@@ -4,3 +4,10 @@ node_modules/
 __pycache__/
 *.pyc
 bin/
+.superpowers/
+examples/scripts/rust/target/
+dataplane/bin/
+*.test
+*.prof
+*.out
+dataplane/modules-tmp/
