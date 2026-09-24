@@ -27,6 +27,8 @@ type TestModule struct {
 	MemoryMin uint32
 	// ReturnCode is the value of handle's i32 result.
 	ReturnCode byte
+	// LoopingStart adds a start section whose function never returns.
+	LoopingStart bool
 }
 
 // Build encodes the module in the wasm binary format.
@@ -39,6 +41,9 @@ func (m TestModule) Build() []byte {
 		types = append(types, funcType(f.Params, f.Results))
 	}
 	types = append(types, funcType(m.HandleParams, m.HandleResults))
+	if m.LoopingStart {
+		types = append(types, funcType(nil, nil))
+	}
 	out = section(out, 1, vec(types))
 
 	var imports [][]byte
@@ -55,7 +60,11 @@ func (m TestModule) Build() []byte {
 	}
 
 	handleType := uint64(len(m.FuncImports))
-	out = section(out, 3, vec([][]byte{uleb(handleType)}))
+	funcs := [][]byte{uleb(handleType)}
+	if m.LoopingStart {
+		funcs = append(funcs, uleb(handleType+1))
+	}
+	out = section(out, 3, vec(funcs))
 
 	if m.MemoryMin > 0 {
 		out = section(out, 5, vec([][]byte{append([]byte{0x00}, uleb(uint64(m.MemoryMin))...)}))
@@ -67,6 +76,9 @@ func (m TestModule) Build() []byte {
 		exports = append(exports, append(name("memory"), 0x02, 0x00))
 	}
 	out = section(out, 7, vec(exports))
+	if m.LoopingStart {
+		out = section(out, 8, uleb(handleIdx+1))
+	}
 
 	body := []byte{0x00} // no locals
 	for _, r := range m.HandleResults {
@@ -78,7 +90,12 @@ func (m TestModule) Build() []byte {
 		}
 	}
 	body = append(body, 0x0b)
-	out = section(out, 10, vec([][]byte{append(uleb(uint64(len(body))), body...)}))
+	bodies := [][]byte{append(uleb(uint64(len(body))), body...)}
+	if m.LoopingStart {
+		loop := []byte{0x00, 0x03, 0x40, 0x0c, 0x00, 0x0b, 0x0b} // loop br 0 end end
+		bodies = append(bodies, append(uleb(uint64(len(loop))), loop...))
+	}
+	out = section(out, 10, vec(bodies))
 	return out
 }
 

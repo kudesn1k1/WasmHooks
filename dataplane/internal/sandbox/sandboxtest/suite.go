@@ -224,6 +224,19 @@ func Run(t *testing.T, newRuntime func(t *testing.T) sandbox.Runtime) {
 		}
 	})
 
+	t.Run("RejectsStartSectionOverLimit", func(t *testing.T) {
+		// Instantiation runs the start section. It must not run longer than a
+		// call may, and a module that cannot start within the limit is invalid.
+		start := time.Now()
+		_, err := newRuntime(t).Compile(ctx, TestModule{HandleResults: []byte{I32}, LoopingStart: true}.Build(), Spec)
+		if !errors.Is(err, sandbox.ErrInvalidModule) {
+			t.Fatalf("want ErrInvalidModule, got %v", err)
+		}
+		if d := time.Since(start); d > Spec.Timeout+500*time.Millisecond {
+			t.Fatalf("compile took %v, hook limit %v", d, Spec.Timeout)
+		}
+	})
+
 	t.Run("NonZeroExitIsGuestError", func(t *testing.T) {
 		rt := newRuntime(t)
 		m, err := rt.Compile(ctx, TestModule{HandleResults: []byte{I32}, ReturnCode: 1}.Build(), Spec)

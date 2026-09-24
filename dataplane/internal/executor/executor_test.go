@@ -491,6 +491,18 @@ func TestExecutorCallerDeadline(t *testing.T) {
 	wantOutcome(t, res, execproto.OutcomeTimeout, execproto.ReasonCallerDeadline)
 }
 
+func TestExecutorCallerDeadlineLongerThanHook(t *testing.T) {
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	// The hook's 100ms limit fires first: the tenant's timeout, not the caller's.
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	wantOutcome(t, res, execproto.OutcomeTimeout, "")
+}
+
 func TestExecutorPoolWaitEndedByDeadline(t *testing.T) {
 	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop", limit: 1}}, anyOut, pool.Options{AcquireTimeout: time.Second})
 	if err := e.exec.Preload(context.Background()); err != nil {

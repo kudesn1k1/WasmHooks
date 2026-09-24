@@ -131,10 +131,19 @@ func (r *Runtime) Compile(ctx context.Context, wasm []byte, spec sandbox.ModuleS
 		return nil, fmt.Errorf("extismrt: compile: %w", err)
 	}
 	// Linking happens at instantiation: imports with wrong signatures and
-	// imported tables or globals only fail there. Fail them once, here.
-	trial, err := cp.Instance(ctx, extism.PluginInstanceConfig{})
+	// imported tables or globals only fail there, and instantiation runs the
+	// module's start section. Do it once, here, within the hook's time limit:
+	// a module that cannot start in the time a call may take is invalid.
+	trialCtx, cancel := context.WithTimeout(ctx, spec.Timeout)
+	trial, err := cp.Instance(trialCtx, extism.PluginInstanceConfig{})
+	cancel()
 	if err != nil {
 		cp.Close(ctx)
+		if strings.Contains(err.Error(), "instantiating extism module") {
+			// The Extism kernel is ours: failing to instantiate it is a
+			// platform problem, not the tenant's.
+			return nil, fmt.Errorf("extismrt: instantiate kernel: %w", err)
+		}
 		return nil, fmt.Errorf("%w: %v", sandbox.ErrInvalidModule, err)
 	}
 	trial.Close(ctx)
