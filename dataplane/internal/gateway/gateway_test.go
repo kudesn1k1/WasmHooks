@@ -176,14 +176,21 @@ func TestInvokeTransportError(t *testing.T) {
 }
 
 func TestInvokeModuleHashOnlyWhenScriptRan(t *testing.T) {
-	for outcome, want := range map[execproto.Outcome]bool{
-		execproto.OutcomeOK: true, execproto.OutcomeTimeout: true, execproto.OutcomeHandlerError: true,
-		execproto.OutcomeUnavailable: false,
-	} {
-		exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: outcome}}
+	cases := []struct {
+		res  execproto.ExecuteResult
+		want bool
+	}{
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeOK}, true},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeTimeout}, true},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeHandlerError, Reason: execproto.ReasonTrap}, true},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeHandlerError, Reason: execproto.ReasonInvalidModule}, false},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable}, false},
+	}
+	for _, tc := range cases {
+		exec := &fakeExecutor{res: tc.res}
 		resp, _ := newGateway(t, exec, true).Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload})
-		if (resp.ModuleHash != "") != want {
-			t.Errorf("%s: module hash %q", outcome, resp.ModuleHash)
+		if (resp.ModuleHash != "") != tc.want {
+			t.Errorf("%s/%s: module hash %q", tc.res.Outcome, tc.res.Reason, resp.ModuleHash)
 		}
 	}
 }

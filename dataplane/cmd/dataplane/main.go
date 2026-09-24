@@ -120,6 +120,7 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 	srv := &http.Server{
 		Handler:           httpapi.New(gw, httpapi.Options{Ready: ready.Load}),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second, // bodies are at most 1 MiB
 		WriteTimeout:      35 * time.Second,
 	}
 	ln, err := net.Listen("tcp", f.listen)
@@ -148,7 +149,8 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 	}
 	log.Info("shutting down")
 	ready.Store(false)
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Let calls in flight finish: no hook runs longer than MaxTimeoutMS.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.MaxTimeoutMS*time.Millisecond+5*time.Second)
 	defer cancel()
 	err = srv.Shutdown(shutdownCtx)
 	<-serveErr // http.ErrServerClosed after Shutdown

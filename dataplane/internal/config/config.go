@@ -84,6 +84,18 @@ type Binding struct {
 // snapshot value is 0.
 const DefaultConcurrencyLimit = 4
 
+// Bounds on hook limits.
+const (
+	// MaxTimeoutMS matches the largest deadline an operator can request, so
+	// a graceful shutdown can always wait for running calls.
+	MaxTimeoutMS = 30000
+	// MinMemoryPages is the Extism kernel's own minimum memory: the limit
+	// applies to it too, so anything lower fails every module on the hook.
+	MinMemoryPages = 16
+	// MaxMemoryPages is 1 GiB.
+	MaxMemoryPages = 16384
+)
+
 // moduleHashPattern matches a well-formed module hash. config cannot import
 // modstore (package boundaries enforced by archtest), so this duplicates
 // modstore's format check rather than depending on it.
@@ -128,11 +140,11 @@ func validate(snap *Snapshot) error {
 		if h.DefVersion < 1 {
 			return fmt.Errorf("config: hook %q: def_version %d must be >= 1", h.Name, h.DefVersion)
 		}
-		if h.TimeoutMS <= 0 {
-			return fmt.Errorf("config: hook %q: timeout_ms %d must be > 0", h.Name, h.TimeoutMS)
+		if h.TimeoutMS <= 0 || h.TimeoutMS > MaxTimeoutMS {
+			return fmt.Errorf("config: hook %q: timeout_ms %d must be in [1, %d]", h.Name, h.TimeoutMS, MaxTimeoutMS)
 		}
-		if h.MemoryMaxPages == 0 {
-			return fmt.Errorf("config: hook %q: memory_max_pages must be > 0", h.Name)
+		if h.MemoryMaxPages < MinMemoryPages || h.MemoryMaxPages > MaxMemoryPages {
+			return fmt.Errorf("config: hook %q: memory_max_pages %d must be in [%d, %d]", h.Name, h.MemoryMaxPages, MinMemoryPages, MaxMemoryPages)
 		}
 		if !isJSONObject(h.InputSchema) {
 			return fmt.Errorf("config: hook %q: input_schema must be a JSON object", h.Name)

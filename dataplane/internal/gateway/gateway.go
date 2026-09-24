@@ -77,6 +77,18 @@ func New(cfg *config.Store, exec execproto.Executor, schemas *schema.Cache, opts
 	return &Gateway{cfg: cfg, exec: exec, schemas: schemas, opts: opts}
 }
 
+// scriptRan reports whether the outcome means the script started: the
+// contract returns module_hash exactly then.
+func scriptRan(res execproto.ExecuteResult) bool {
+	switch res.Outcome {
+	case execproto.OutcomeOK, execproto.OutcomeTimeout:
+		return true
+	case execproto.OutcomeHandlerError:
+		return res.Reason != execproto.ReasonInvalidModule
+	}
+	return false
+}
+
 // Authenticate reports whether token is a valid API key of this installation.
 func (g *Gateway) Authenticate(token string) bool {
 	v := g.cfg.Current()
@@ -141,8 +153,7 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 		Error:    res.Error,
 		Duration: time.Since(start),
 	}
-	switch res.Outcome {
-	case execproto.OutcomeOK, execproto.OutcomeTimeout, execproto.OutcomeHandlerError:
+	if scriptRan(res) {
 		resp.ModuleHash = binding.ModuleHash
 	}
 	return resp, nil

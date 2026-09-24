@@ -214,6 +214,21 @@ func TestParse_Errors(t *testing.T) {
 			wantSub: "memory_max_pages",
 		},
 		{
+			name:    "timeout_ms above 30000",
+			doc:     replaceOnce(t, validSnapshotJSON, `"timeout_ms": 50,`, `"timeout_ms": 30001,`),
+			wantSub: "timeout_ms",
+		},
+		{
+			name:    "memory_max_pages below the Extism kernel minimum",
+			doc:     replaceOnce(t, validSnapshotJSON, `"memory_max_pages": 256,`, `"memory_max_pages": 15,`),
+			wantSub: "memory_max_pages",
+		},
+		{
+			name:    "memory_max_pages above 16384",
+			doc:     replaceOnce(t, validSnapshotJSON, `"memory_max_pages": 256,`, `"memory_max_pages": 16385,`),
+			wantSub: "memory_max_pages",
+		},
+		{
 			name:    "def_version below 1",
 			doc:     replaceOnce(t, validSnapshotJSON, `"def_version": 3,`, `"def_version": 0,`),
 			wantSub: "def_version",

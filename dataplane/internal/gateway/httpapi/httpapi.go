@@ -75,6 +75,7 @@ type invokeResponse struct {
 const maxDeadlineMS = 30000
 
 func (h *handler) invoke(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	if !h.g.Authenticate(bearerToken(r)) {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="wasmhooks"`)
 		problem(w, http.StatusUnauthorized, "missing or invalid API key")
@@ -135,6 +136,8 @@ func (h *handler) invoke(w http.ResponseWriter, r *http.Request) {
 			Error:   err.Error(),
 		}
 	}
+	// duration_ms covers the whole request, from receipt to response.
+	resp.Duration = time.Since(start)
 	writeOutcome(w, resp)
 }
 
