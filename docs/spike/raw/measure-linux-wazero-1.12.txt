@@ -1,22 +1,22 @@
 === RUN   TestSpikeInstanceMemory
     spike_test.go:68: S5 instances=   1  heap/instance idle=2.06 MiB  after first call=2.41 MiB
-    spike_test.go:68: S5 instances=  10  heap/instance idle=2.09 MiB  after first call=2.37 MiB
+    spike_test.go:68: S5 instances=  10  heap/instance idle=2.08 MiB  after first call=2.36 MiB
     spike_test.go:68: S5 instances= 100  heap/instance idle=2.08 MiB  after first call=2.36 MiB
     spike_test.go:68: S5 instances= 500  heap/instance idle=2.08 MiB  after first call=2.36 MiB
---- PASS: TestSpikeInstanceMemory (0.48s)
+--- PASS: TestSpikeInstanceMemory (0.39s)
 === RUN   TestSpikeModuleScaling
-    spike_test.go:130: S6 modules=  1  compile avg=64.553ms  heap/module=0.53 MiB  warm call p50=134µs p99=590µs
-    spike_test.go:130: S6 modules= 10  compile avg=61.694ms  heap/module=0.31 MiB  warm call p50=137µs p99=560µs
-    spike_test.go:130: S6 modules= 50  compile avg=59.321ms  heap/module=0.25 MiB  warm call p50=137µs p99=560µs
-    spike_test.go:130: S6 modules=100  compile avg=58.102ms  heap/module=0.25 MiB  warm call p50=125µs p99=476µs
---- PASS: TestSpikeModuleScaling (10.93s)
+    spike_test.go:130: S6 modules=  1  compile avg=62.829ms  heap/module=0.52 MiB  warm call p50=115µs p99=558µs
+    spike_test.go:130: S6 modules= 10  compile avg=58.831ms  heap/module=0.30 MiB  warm call p50=113µs p99=512µs
+    spike_test.go:130: S6 modules= 50  compile avg=57.903ms  heap/module=0.25 MiB  warm call p50=109µs p99=480µs
+    spike_test.go:130: S6 modules=100  compile avg=56.439ms  heap/module=0.25 MiB  warm call p50=116µs p99=408µs
+--- PASS: TestSpikeModuleScaling (10.45s)
 === RUN   TestSpikeTimeoutPrecision
-    spike_test.go:167: S7 timeout=10ms  overshoot p50=418µs p99=688µs max=1.082ms  dead after timeout=30/30
-    spike_test.go:167: S7 timeout=50ms  overshoot p50=470µs p99=596µs max=1.136ms  dead after timeout=30/30
-    spike_test.go:167: S7 timeout=100ms  overshoot p50=544µs p99=1.105ms max=1.11ms  dead after timeout=30/30
---- PASS: TestSpikeTimeoutPrecision (4.92s)
+    spike_test.go:167: S7 timeout=10ms  overshoot p50=346µs p99=576µs max=700µs  dead after timeout=30/30
+    spike_test.go:167: S7 timeout=50ms  overshoot p50=342µs p99=620µs max=764µs  dead after timeout=30/30
+    spike_test.go:167: S7 timeout=100ms  overshoot p50=471µs p99=732µs max=735µs  dead after timeout=30/30
+--- PASS: TestSpikeTimeoutPrecision (4.90s)
 === RUN   TestSpikeMemoryBomb
-    spike_test.go:194: S8 limit=  64 pages (   4 MiB)  time to trap p50=1.008ms max=8.01ms  err=sandbox: wasm trap: wasm error: unreachable
+    spike_test.go:194: S8 limit=  64 pages (   4 MiB)  time to trap p50=1ms max=6.065ms  err=sandbox: wasm trap: wasm error: unreachable
         wasm stack trace:
         	.$144(i32,i32)
         	.$162(i32,i32)
@@ -25,7 +25,7 @@
         	.$9(i32,i32)
         	.$11(i32,i32,i32)
         	.$10() i32
-    spike_test.go:194: S8 limit= 256 pages (  16 MiB)  time to trap p50=20.061ms max=36.375ms  err=sandbox: wasm trap: wasm error: unreachable
+    spike_test.go:194: S8 limit= 256 pages (  16 MiB)  time to trap p50=19.006ms max=31.458ms  err=sandbox: wasm trap: wasm error: unreachable
         wasm stack trace:
         	.$144(i32,i32)
         	.$162(i32,i32)
@@ -34,7 +34,7 @@
         	.$9(i32,i32)
         	.$11(i32,i32,i32)
         	.$10() i32
-    spike_test.go:194: S8 limit=1024 pages (  64 MiB)  time to trap p50=49.777ms max=67.44ms  err=sandbox: wasm trap: wasm error: unreachable
+    spike_test.go:194: S8 limit=1024 pages (  64 MiB)  time to trap p50=42.788ms max=64.187ms  err=sandbox: wasm trap: wasm error: unreachable
         wasm stack trace:
         	.$144(i32,i32)
         	.$162(i32,i32)
@@ -43,7 +43,7 @@
         	.$9(i32,i32)
         	.$11(i32,i32,i32)
         	.$10() i32
---- PASS: TestSpikeMemoryBomb (0.80s)
+--- PASS: TestSpikeMemoryBomb (0.73s)
 === RUN   TestSpikeImports
     spike_test.go:212: S11 discount       imports=[config_get length load_u64 load_u8 input_length input_load_u64 input_load_u8 error_set get_log_level log_info output_set alloc store_u64 store_u8]
     spike_test.go:212: S11 counter        imports=[input_length input_load_u64 input_load_u8 error_set output_set alloc store_u64 store_u8]
@@ -55,4 +55,10 @@
     spike_test.go:212: S11 http-call      imports=[input_length input_load_u64 input_load_u8 error_set http_request http_status_code length_unsafe http_headers length load_u64 load_u8 free output_set alloc store_u64 store_u8]
 --- PASS: TestSpikeImports (0.03s)
 PASS
-ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	17.173s
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	16.513s
+=== RUN   TestSpikeInvokeLatency
+    spike_test.go:81: S12 sequential n=3000  p50=328µs p90=695µs p99=1.007ms max=2.374ms
+    spike_test.go:102: S12 concurrent workers=4 n=3000  p50=410µs p90=944µs p99=1.978ms  throughput=7053 req/s
+--- PASS: TestSpikeInvokeLatency (1.88s)
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/cmd/dataplane	1.889s
