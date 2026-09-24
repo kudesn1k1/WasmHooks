@@ -10,3 +10,4 @@ dataplane/bin/
 *.test
 *.prof
 *.out
+dataplane/modules-tmp/

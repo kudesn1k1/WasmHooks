@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "api_keys": [
+    {
+      "id": "key_demo",
+      "name": "demo",
+      "sha256": "572b9655513a4a6d69b9d860f58b5c5a5a0792af1237da318ccdde863b6be7a1"
+    }
+  ],
+  "hooks": [
+    {
+      "name": "checkout.discount",
+      "def_version": 1,
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "required": ["cart_total", "customer"],
+        "properties": {
+          "cart_total": { "type": "number" },
+          "customer": {
+            "type": "object",
+            "required": ["id", "lifetime_spend"],
+            "properties": {
+              "id": { "type": "string" },
+              "lifetime_spend": { "type": "number" }
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "required": ["discount_percent", "reason"],
+        "properties": {
+          "discount_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "reason": { "type": "string" }
+        }
+      },
+      "timeout_ms": 50,
+      "memory_max_pages": 64,
+      "allowed_host_functions": [],
+      "allowed_effect_types": [],
+      "sample_input": {
+        "cart_total": 9999,
+        "customer": { "id": "c1", "lifetime_spend": 1500 }
+      }
+    }
+  ],
+  "tenants": [
+    { "external_id": "merchant-a", "concurrency_limit": 4, "rate_limit_rps": 100 },
+    { "external_id": "merchant-b", "concurrency_limit": 4, "rate_limit_rps": 100 },
+    { "external_id": "merchant-c", "concurrency_limit": 4, "rate_limit_rps": 100 }
+  ],
+  "bindings": [
+    {
+      "tenant_id": "merchant-a",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "config": { "threshold": "1000", "percent": "10" },
+      "config_version": 1
+    },
+    {
+      "tenant_id": "merchant-b",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:a44f95a6e52f50017bd10b7fe2a63ce78c62286f9b8e372b4a0492f517591cbf",
+      "config": {},
+      "config_version": 1
+    },
+    {
+      "tenant_id": "merchant-c",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:76064bd4e8431e62659b8894fd802d6521d87d1dda24a7165848a5603a5ecc4a",
+      "config": {},
+      "config_version": 1
+    }
+  ]
+}
