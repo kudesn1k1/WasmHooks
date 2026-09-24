@@ -1,0 +1,39 @@
+name: ci
+on:
+  push: {}
+  pull_request: {}
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dataplane
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: dataplane/go.mod
+          cache-dependency-path: dataplane/go.sum
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test -race -count=1 ./...
+      - name: bench smoke
+        run: go test -run='^$' -bench=. -benchtime=1x ./...
+
+  rust-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/scripts/rust
+      - name: build fixtures
+        working-directory: examples/scripts/rust
+        run: cargo build --release --target wasm32-unknown-unknown
