@@ -1,0 +1,413 @@
+openapi: 3.1.0
+
+info:
+  title: WasmHooks Data Plane Internal API
+  version: "0.1.0"
+  description: >
+    Внутренний API между control plane и data plane WasmHooks: снимок
+    конфигурации (control plane → data plane) и валидация модуля
+    (control plane → executor). Не является публичным API оператора — см.
+    `invoke.openapi.yaml` для этого. Контракт соответствует разделам 6.2 и 6.3
+    спека Milestone 0 (`docs/superpowers/specs/2026-09-24-milestone-0-design.md`)
+    и полям Go-структур пакета `config` (`.superpowers/sdd/2026-09-24-milestone-0/task-7-interfaces.md`);
+    в спорных местах спек имеет приоритет над этим документом.
+
+
+    Владелец контракта: тимлид (Go data plane), см. `docs/TEAM.md`. Снимок
+    конфигурации реализует control plane, потребляет data plane; валидацию
+    модуля реализует data plane (executor), потребляет control plane.
+    Изменения только через PR от владельца, потребители — в ревьюерах. Внутри
+    версии (`/v1`) допускаются только добавляющие изменения. Потребители —
+    tolerant reader: игнорируют незнакомые поля ответа.
+  contact:
+    name: WasmHooks data plane
+
+servers:
+  - url: /
+    description: >
+      Data plane executor самостоятельной установки. Не выставляется наружу
+      установки, доступен только control plane.
+
+tags:
+  - name: config
+    description: Снимок конфигурации тенантов, хуков и привязок
+  - name: modules
+    description: Валидация wasm-модулей
+
+security:
+  - internalBearerAuth: []
+
+paths:
+  /internal/v1/config/snapshot:
+    get:
+      operationId: getConfigSnapshot
+      tags: [config]
+      summary: Получить снимок конфигурации (long-poll)
+      description: >
+        Отдаёт полный снимок конфигурации целиком (state of the world), а не
+        дельтами (решение D11): ни одна ошибка применения дельт невозможна по
+        построению. Если `after_version` не передан, немедленно отдаётся
+        текущий снимок. Если передан, сервер ждёт до `wait_s`: как только
+        версия снимка становится больше `after_version`, немедленно отдаёт 200
+        с полным снимком; если за `wait_s` версия не изменилась — отдаёт 304
+        без тела. В снимке всегда только текущее определение каждого хука;
+        старые версии определений executor держит в памяти, пока на них
+        ссылаются закешированные скомпилированные модули.
+      parameters:
+        - name: after_version
+          in: query
+          required: false
+          description: >
+            Версия последнего снимка, уже известного клиенту. Если не
+            передана, сервер немедленно отдаёт текущий снимок вне зависимости
+            от long-poll.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+          example: 41
+        - name: wait_s
+          in: query
+          required: false
+          description: >
+            Максимальное время ожидания новой версии в секундах. Игнорируется,
+            если `after_version` не передан.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 60
+            default: 30
+          example: 30
+      responses:
+        '200':
+          description: >
+            Полный снимок конфигурации, версия которого больше `after_version`
+            (или текущий снимок, если `after_version` не передан).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+              examples:
+                fullSnapshot:
+                  summary: Полный снимок из §6.2 спека M0
+                  value:
+                    version: 42
+                    api_keys:
+                      - id: key_01
+                        name: shop-prod
+                        sha256: "dc00398b71610ed73135aa53cb1d4e75031a8d5386c066f528cb176173422bbb"
+                    hooks:
+                      - name: checkout.discount
+                        def_version: 3
+                        input_schema:
+                          "$schema": "https://json-schema.org/draft/2020-12/schema"
+                          type: object
+                        output_schema:
+                          "$schema": "https://json-schema.org/draft/2020-12/schema"
+                          type: object
+                        timeout_ms: 50
+                        memory_max_pages: 256
+                        allowed_host_functions: []
+                        allowed_effect_types: []
+                        sample_input:
+                          customer:
+                            lifetime_spend: 1500
+                    tenants:
+                      - external_id: merchant-a
+                        concurrency_limit: 4
+                        rate_limit_rps: 100
+                    bindings:
+                      - tenant_id: merchant-a
+                        hook: checkout.discount
+                        module_hash: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+                        config:
+                          threshold: "1000"
+                          percent: "10"
+                        config_version: 7
+        '304':
+          description: >
+            За время `wait_s` версия снимка не превысила `after_version`. Тела
+            нет.
+
+  /internal/v1/modules/validate:
+    post:
+      operationId: validateModule
+      tags: [modules]
+      summary: Проверить модуль на соответствие определению хука
+      description: >
+        Контракт фиксируется в M0 (раздел 6.3 спека M0), реализация —
+        stretch-цель. Проверки `exports` и `imports` executor выполняет при
+        любой компиляции модуля независимо от вызова этого эндпоинта, как
+        защиту на случай, если control plane валидацию пропустил.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [module_hash, hook]
+              properties:
+                module_hash:
+                  $ref: '#/components/schemas/ModuleHash'
+                hook:
+                  $ref: '#/components/schemas/HookDef'
+            examples:
+              validateDiscount:
+                summary: Валидация модуля для checkout.discount
+                value:
+                  module_hash: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+                  hook:
+                    name: checkout.discount
+                    def_version: 3
+                    input_schema:
+                      "$schema": "https://json-schema.org/draft/2020-12/schema"
+                      type: object
+                    output_schema:
+                      "$schema": "https://json-schema.org/draft/2020-12/schema"
+                      type: object
+                    timeout_ms: 50
+                    memory_max_pages: 256
+                    allowed_host_functions: []
+                    allowed_effect_types: []
+                    sample_input:
+                      customer:
+                        lifetime_spend: 1500
+      responses:
+        '200':
+          description: Отчёт о проверках модуля.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationReport'
+              examples:
+                importsRejected:
+                  summary: Модуль импортирует запрещённую host-функцию
+                  value:
+                    ok: false
+                    checks:
+                      - name: fetch
+                        ok: true
+                      - name: compile
+                        ok: true
+                      - name: exports
+                        ok: true
+                      - name: imports
+                        ok: false
+                        detail: "import extism:host/env.http_request is not allowed for this hook"
+                      - name: sample_call
+                        ok: false
+                        detail: "skipped"
+
+components:
+  securitySchemes:
+    internalBearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Внутренний токен, общий для control plane и data plane. Не является
+        API-ключом оператора из `invoke.openapi.yaml`.
+
+  schemas:
+    ModuleHash:
+      type: string
+      pattern: '^sha256:[0-9a-f]{64}$'
+      description: >
+        Адрес модуля, вычисляемый из его содержимого: `sha256:` + hex-дайджест
+        в нижнем регистре. В M0 модуль хранится по пути
+        `<modules_dir>/<hex>.wasm`.
+      example: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+
+    Snapshot:
+      type: object
+      description: >
+        Полный снимок конфигурации установки (state of the world, решение
+        D11). Поля соответствуют пакету `config` data plane (`config.Snapshot`)
+        поле в поле.
+      required: [version, api_keys, hooks, tenants, bindings]
+      properties:
+        version:
+          type: integer
+          format: int64
+          description: >
+            Монотонно растущая версия снимка. Long-poll возвращает 200 только
+            если версия строго больше `after_version` из запроса.
+        api_keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/APIKey'
+        hooks:
+          type: array
+          items:
+            $ref: '#/components/schemas/HookDef'
+        tenants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tenant'
+        bindings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Binding'
+
+    APIKey:
+      type: object
+      description: Соответствует `config.APIKey`. API-ключи принадлежат установке (решение D1).
+      required: [id, name, sha256]
+      properties:
+        id:
+          type: string
+          example: key_01
+        name:
+          type: string
+          description: Человекочитаемое имя ключа, задаётся оператором при выпуске.
+          example: shop-prod
+        sha256:
+          type: string
+          pattern: '^[0-9a-f]{64}$'
+          description: SHA-256 от значения токена, hex в нижнем регистре.
+
+    HookDef:
+      type: object
+      description: Соответствует `config.HookDef`.
+      required:
+        - name
+        - def_version
+        - input_schema
+        - output_schema
+        - timeout_ms
+        - memory_max_pages
+        - allowed_host_functions
+        - allowed_effect_types
+        - sample_input
+      properties:
+        name:
+          type: string
+          description: Имя хука, уникально в пределах установки.
+          example: checkout.discount
+        def_version:
+          type: integer
+          format: int64
+          description: >
+            Версия определения хука. Executor ищет определение по `(hook,
+            def_version)`, а не «текущее по имени» (раздел 5.4 основного
+            спека).
+        input_schema:
+          type: object
+          additionalProperties: true
+          description: >
+            JSON Schema (draft 2020-12), которой должен соответствовать
+            `payload` запроса `Invoke`. Компилируется один раз при смене
+            снимка.
+        output_schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema (draft 2020-12) поля `result` ответа `Invoke`.
+        timeout_ms:
+          type: integer
+          format: int64
+          description: Лимит времени исполнения одного вызова хука, в миллисекундах.
+        memory_max_pages:
+          type: integer
+          format: int32
+          minimum: 0
+          description: >
+            Лимит линейной памяти wasm-инстанса в страницах (по 64 КиБ).
+            Соответствует `uint32` в Go; отрицательные значения недопустимы.
+        allowed_host_functions:
+          type: array
+          items:
+            type: string
+          description: >
+            Allowlist импортов из пространства `extism:host/user`. В M0 всегда
+            пуст.
+        allowed_effect_types:
+          type: array
+          items:
+            type: string
+          description: Допустимые значения `Effect.type` для этого хука.
+        sample_input:
+          type: object
+          additionalProperties: true
+          description: Пример payload, соответствующего `input_schema`, для плейграунда и валидации.
+
+    Tenant:
+      type: object
+      description: Соответствует `config.Tenant`. Тенант идентифицируется `external_id`, заданным оператором (решение D2).
+      required: [external_id, concurrency_limit, rate_limit_rps]
+      properties:
+        external_id:
+          type: string
+          description: Идентификатор тенанта, заданный оператором. Уникален в пределах установки.
+          example: merchant-a
+        concurrency_limit:
+          type: integer
+          description: >
+            Лимит одновременных инстансов на ключ пула для этого тенанта.
+            Значение 0 в снимке трактуется data plane как значение по
+            умолчанию (`config.DefaultConcurrencyLimit` = 4).
+        rate_limit_rps:
+          type: integer
+          description: >
+            Лимит запросов в секунду. В M0 игнорируется data plane, поле
+            присутствует в контракте ради совместимости с MVP.
+
+    Binding:
+      type: object
+      description: Соответствует `config.Binding` — привязка модуля к паре (тенант, хук).
+      required: [tenant_id, hook, module_hash, config, config_version]
+      properties:
+        tenant_id:
+          type: string
+          example: merchant-a
+        hook:
+          type: string
+          example: checkout.discount
+        module_hash:
+          $ref: '#/components/schemas/ModuleHash'
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: >
+            Конфиг тенанта для этого хука, передаётся скрипту через
+            `config_get` ядра Extism (решение D8). Значения всегда строки —
+            так устроен конфиг Extism; типизация остаётся на стороне скрипта.
+          example:
+            threshold: "1000"
+            percent: "10"
+        config_version:
+          type: integer
+          format: int64
+          description: >
+            Версия конфига этой привязки. Входит в ключ пула инстансов вместе
+            с `module_hash` и `def_version` хука (раздел 8.1 спека M0).
+
+    ValidationReport:
+      type: object
+      required: [ok, checks]
+      properties:
+        ok:
+          type: boolean
+          description: true, если все проверки прошли.
+        checks:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationCheck'
+
+    ValidationCheck:
+      type: object
+      required: [name, ok]
+      properties:
+        name:
+          type: string
+          enum: [fetch, compile, exports, imports, sample_call]
+          description: >
+            fetch — модуль получен по `module_hash`; compile — модуль
+            скомпилирован рантаймом; exports — присутствует обязательный
+            экспорт `handle`; imports — импорты модуля входят в allowlist
+            (раздел 7.2 спека M0); sample_call — пробный вызов на
+            `hook.sample_input`.
+        ok:
+          type: boolean
+        detail:
+          type: string
+          description: Причина отказа. Присутствует, если `ok` равен false; для успешных проверок опускается.

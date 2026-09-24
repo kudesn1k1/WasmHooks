@@ -1,0 +1,438 @@
+openapi: 3.1.0
+
+info:
+  title: WasmHooks Invoke API
+  version: "0.1.0"
+  description: >
+    Публичный API data plane WasmHooks. Оператор вызывает хук по имени для тенанта,
+    платформа исполняет пользовательский скрипт тенанта (WebAssembly) в песочнице
+    с лимитами и возвращает исход вызова. Контракт соответствует разделу 6.1 спека
+    Milestone 0 (`docs/superpowers/specs/2026-09-24-milestone-0-design.md`); в
+    спорных местах спек имеет приоритет над этим документом.
+
+
+    Владелец контракта: тимлид (Go data plane), см. `docs/TEAM.md`. Изменения
+    только через PR от владельца, потребители — в ревьюерах. Внутри версии
+    (`/v1`) допускаются только добавляющие изменения: новые необязательные поля,
+    новые эндпоинты, новые значения перечислений там, где это оговорено явно.
+    Потребители — tolerant reader: игнорируют незнакомые поля ответа.
+  contact:
+    name: WasmHooks data plane
+
+servers:
+  - url: /
+    description: >
+      Data plane gateway самостоятельной установки. Оператор задаёт
+      фактический хост при развёртывании (self-hosted, решение D1).
+
+tags:
+  - name: invoke
+    description: Вызов хука тенанта
+  - name: health
+    description: Служебные эндпоинты процесса
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/hooks/{hook}/invoke:
+    post:
+      operationId: invokeHook
+      tags: [invoke]
+      summary: Вызвать хук для тенанта
+      description: >
+        Исполняет скрипт тенанта, привязанный к хуку `{hook}`, и возвращает исход
+        вызова. См. семантику исходов и HTTP-статусов в описании ответа 200 и в
+        разделе 6.1.3 спека M0.
+      parameters:
+        - name: hook
+          in: path
+          required: true
+          description: >
+            Имя хука, например `checkout.discount`. Определяется control plane
+            и приходит в снимке конфигурации (`HookDef.name`).
+          schema:
+            type: string
+          example: checkout.discount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvokeRequest'
+            examples:
+              checkoutDiscount:
+                summary: Вызов checkout.discount для merchant-a
+                value:
+                  tenant_id: merchant-a
+                  payload:
+                    customer:
+                      lifetime_spend: 1500
+                    order_total: 9999
+                  deadline_ms: 200
+                  idempotency_key: "order-123:checkout.discount"
+      responses:
+        '200':
+          description: >
+            Хук обработан платформой; тело содержит исход в поле `outcome` и
+            заголовок `X-Hook-Outcome` дублирует его. HTTP 200 используется для
+            исходов `ok`, `no_handler`, `timeout` и `handler_error`, потому что
+            HTTP-статус описывает отношения между оператором и платформой, а не
+            результат стороннего скрипта: платформа выполнила свою работу —
+            исполнила код тенанта в пределах лимитов (либо законно не нашла
+            обработчик) и сообщила результат, — а сбой находится в коде тенанта
+            и является данными о вызове, а не отказом сервиса. Семантические
+            502/504 были рассмотрены и отвергнуты: инфраструктура оператора
+            (retry-middleware, алерты по доле 5xx, outlier detection в Envoy или
+            Istio) трактует 5xx как отказ gateway и начала бы повторять зависший
+            скрипт, поднимать ложные алерты из-за бага одного тенанта и исключать
+            здоровые реплики gateway из балансировки; кроме того, оператор
+            потерял бы возможность отличить собственный таймаут балансировщика от
+            таймаута скрипта. Прецедент: AWS Lambda `Invoke` при ошибке функции
+            возвращает 200 с заголовком `X-Amz-Function-Error`. Граница между
+            `timeout` и `unavailable` проходит по моменту запуска скрипта: если
+            дедлайн истёк во время ожидания пула инстансов или создания
+            инстанса, скрипт не запускался — это `unavailable`; `timeout`
+            возможен только у уже запущенного скрипта.
+          headers:
+            X-Hook-Outcome:
+              $ref: '#/components/headers/XHookOutcome'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvokeResponse'
+              examples:
+                ok:
+                  summary: outcome=ok — скрипт отработал
+                  value:
+                    outcome: ok
+                    result:
+                      discount: 150
+                    effects:
+                      - type: analytics.event
+                        key: "order-123:checkout.discount:0"
+                        payload:
+                          name: discount_applied
+                          amount: 150
+                    error: null
+                    duration_ms: 3
+                    module_hash: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+                noHandler:
+                  summary: outcome=no_handler — у тенанта нет активного скрипта на этом хуке
+                  value:
+                    outcome: no_handler
+                    result: null
+                    effects: []
+                    error: null
+                    duration_ms: 1
+                    module_hash: null
+                timeout:
+                  summary: outcome=timeout — скрипт превысил лимит времени хука
+                  value:
+                    outcome: timeout
+                    result: null
+                    effects: []
+                    error: null
+                    duration_ms: 51
+                    module_hash: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+                handlerError:
+                  summary: outcome=handler_error — скрипт упал, трап, либо выход не по схеме
+                  value:
+                    outcome: handler_error
+                    result: null
+                    effects: []
+                    error: "guest error: threshold must be a positive integer"
+                    duration_ms: 4
+                    module_hash: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
+        '400':
+          description: >
+            Тело запроса не JSON, отсутствуют обязательные поля (`tenant_id`,
+            `payload`), либо `payload` не проходит `input_schema` хука.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                schemaViolation:
+                  summary: payload не проходит input_schema
+                  value:
+                    type: "https://wasmhooks.dev/problems/invalid-payload"
+                    title: Payload does not match hook input schema
+                    status: 400
+                    detail: "/customer/lifetime_spend: expected integer, got string"
+        '401':
+          description: Отсутствует или неверен Bearer-ключ.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                invalidKey:
+                  summary: Неверный или отозванный API-ключ
+                  value:
+                    type: "https://wasmhooks.dev/problems/unauthorized"
+                    title: Invalid API key
+                    status: 401
+                    detail: "the provided bearer token does not match any active API key"
+        '404':
+          description: Хук `{hook}` не существует в текущем снимке конфигурации.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                unknownHook:
+                  summary: Неизвестный хук
+                  value:
+                    type: "https://wasmhooks.dev/problems/unknown-hook"
+                    title: Unknown hook
+                    status: 404
+                    detail: "no hook named 'checkout.unknown-hook' in the current config snapshot"
+        '413':
+          description: Тело запроса больше лимита в 1 МиБ.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                tooLarge:
+                  summary: Тело больше 1 МиБ
+                  value:
+                    type: "https://wasmhooks.dev/problems/payload-too-large"
+                    title: Request body too large
+                    status: 413
+                    detail: "request body of 2097153 bytes exceeds the 1 MiB limit"
+        '429':
+          description: >
+            Превышена квота тенанта (MVP; в M0 квоты не реализованы, код
+            зарезервирован контрактом). Тело — `InvokeResponse` с
+            `outcome: quota_exceeded`. Скрипт не запускался. Имеет смысл
+            повторить запрос после `Retry-After`.
+          headers:
+            X-Hook-Outcome:
+              $ref: '#/components/headers/XHookOutcome'
+            Retry-After:
+              description: Через сколько секунд оператору стоит повторить запрос.
+              schema:
+                type: integer
+                minimum: 0
+              example: 1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvokeResponse'
+              examples:
+                quotaExceeded:
+                  summary: outcome=quota_exceeded
+                  value:
+                    outcome: quota_exceeded
+                    result: null
+                    effects: []
+                    error: null
+                    duration_ms: 0
+                    module_hash: null
+        '503':
+          description: >
+            Платформа не смогла обслужить запрос: пул инстансов насыщен, дедлайн
+            истёк до запуска скрипта, модуль недоступен или внутренняя ошибка.
+            Тело — `InvokeResponse` с `outcome: unavailable`. Скрипт не
+            запускался. Имеет смысл повторить запрос.
+          headers:
+            X-Hook-Outcome:
+              $ref: '#/components/headers/XHookOutcome'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvokeResponse'
+              examples:
+                unavailable:
+                  summary: outcome=unavailable
+                  value:
+                    outcome: unavailable
+                    result: null
+                    effects: []
+                    error: "instance pool saturated for tenant merchant-a"
+                    duration_ms: 10
+                    module_hash: null
+
+  /healthz:
+    get:
+      operationId: healthz
+      tags: [health]
+      summary: Проверка живости процесса
+      description: Процесс жив и принимает соединения. Не проверяет наличие снимка конфигурации.
+      security: []
+      responses:
+        '200':
+          description: >
+            Процесс жив. §6.1.4 спека M0 определяет только код ответа;
+            тело этим контрактом не фиксируется.
+
+  /readyz:
+    get:
+      operationId: readyz
+      tags: [health]
+      summary: Проверка готовности обслуживать запросы
+      description: >
+        Готов, если снимок конфигурации загружен хотя бы раз. До первой
+        загрузки снимка возвращает 503.
+      security: []
+      responses:
+        '200':
+          description: >
+            Снимок конфигурации загружен, процесс готов обслуживать запросы.
+            §6.1.4 спека M0 определяет только код ответа; тело этим
+            контрактом не фиксируется.
+        '503':
+          description: >
+            Снимок конфигурации ещё не загружен ни разу. Тело этим контрактом
+            не фиксируется.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        API-ключ установки. Data plane сравнивает SHA-256 от токена с хешами из
+        снимка конфигурации за постоянное время (`View.AuthenticateToken`).
+
+  headers:
+    XHookOutcome:
+      description: Дублирует `outcome` из тела ответа.
+      schema:
+        type: string
+        enum: [ok, no_handler, timeout, handler_error, quota_exceeded, unavailable]
+
+  schemas:
+    InvokeRequest:
+      type: object
+      required: [tenant_id, payload]
+      properties:
+        tenant_id:
+          type: string
+          description: >
+            `external_id` тенанта, заданный оператором при регистрации в
+            control plane (решение D2). Уникален в пределах установки.
+          example: merchant-a
+        payload:
+          type: object
+          additionalProperties: true
+          description: >
+            Свободный JSON-объект. Схема payload — это `input_schema` хука,
+            определяемая конфигурацией конкретного хука во время выполнения, а
+            не этим контрактом. Gateway проверяет payload по `input_schema`
+            перед вызовом скрипта (решение D5); несоответствие — HTTP 400.
+        deadline_ms:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 30000
+          description: >
+            Бюджет времени вызывающей стороны в миллисекундах. Необязателен.
+            По умолчанию `hook.timeout_ms + 100`, не более 30000; значения по
+            умолчанию могут быть пересмотрены после спайка.
+          example: 200
+        idempotency_key:
+          type: string
+          description: >
+            Необязательный ключ идемпотентности вызова. Используется как основа
+            ключа эффектов по умолчанию (`idempotency_key + ":" + <индекс>`).
+          example: "order-123:checkout.discount"
+
+    InvokeResponse:
+      type: object
+      required: [outcome, result, effects, error, duration_ms, module_hash]
+      properties:
+        outcome:
+          type: string
+          enum: [ok, no_handler, timeout, handler_error, quota_exceeded, unavailable]
+          description: >
+            Исход вызова (раздел 6.1.3 спека M0). `ok` — скрипт
+            запускался и отработал. `no_handler` — хук существует, но у
+            тенанта нет активного скрипта на нём, либо тенант не
+            зарегистрирован (решение D3); скрипт не запускался. `timeout` —
+            скрипт запускался, но не уложился в лимит времени хука.
+            `handler_error` — скрипт запускался и упал: трап, превышение
+            памяти, выход не по схеме, неразрешённый эффект. `quota_exceeded`
+            (HTTP 429, MVP, в M0 не реализовано) — превышена квота тенанта;
+            скрипт не запускался. `unavailable` (HTTP 503) — платформа не
+            смогла обслужить запрос: пул насыщен, дедлайн истёк до запуска
+            скрипта, модуль недоступен, внутренняя ошибка; скрипт не
+            запускался.
+        result:
+          type: [object, "null"]
+          additionalProperties: true
+          description: >
+            Результат хука. Присутствует (не null) только при `outcome: ok`.
+            Схема result — это `output_schema` хука, определяемая
+            конфигурацией конкретного хука во время выполнения, а не этим
+            контрактом.
+        effects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Effect'
+          description: >
+            Эффекты, порождённые скриптом. Заполняется только при
+            `outcome: ok`, может быть пустым массивом; при остальных исходах —
+            всегда пустой массив.
+        error:
+          type: [string, "null"]
+          description: >
+            Текст ошибки, обрезанный до 1 КиБ. Присутствует (не null) при
+            `handler_error` и `unavailable`; при остальных исходах, включая
+            `timeout`, — null.
+        duration_ms:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Время от получения запроса gateway до отправки ответа, в миллисекундах.
+        module_hash:
+          type: [string, "null"]
+          pattern: '^sha256:[0-9a-f]{64}$'
+          description: >
+            Хеш исполненного модуля вида `sha256:<hex>`. Присутствует, если
+            скрипт запускался (`ok`, `timeout`, `handler_error`), иначе null.
+
+    Effect:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          description: >
+            Тип эффекта. Должен входить в `allowed_effect_types` хука, иначе
+            вызов становится `handler_error`.
+          example: analytics.event
+        key:
+          type: string
+          description: >
+            Ключ эффекта. Если скрипт не задал ключ явно, по умолчанию равен
+            `idempotency_key + ":" + <индекс>`; без `idempotency_key` в запросе
+            поле остаётся пустой строкой.
+          example: "order-123:checkout.discount:0"
+        payload:
+          type: object
+          additionalProperties: true
+          description: >
+            Свободный JSON-объект эффекта; схема определяется его типом и не
+            описывается этим контрактом.
+
+    Problem:
+      type: object
+      description: RFC 9457 problem details.
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: URI, идентифицирующий тип проблемы.
+        title:
+          type: string
+          description: Короткое, человекочитаемое резюме типа проблемы.
+        status:
+          type: integer
+          description: HTTP-статус-код, продублированный в теле.
+        detail:
+          type: string
+          description: Человекочитаемое объяснение, специфичное для этого случая.
