@@ -7,7 +7,8 @@ on:
   push:
     branches: [milestone-0]
     paths:
-      - dataplane/internal/sandbox/**
+      - dataplane/internal/**
+      - dataplane/cmd/dataplane/**
       - dataplane/go.mod
       - .github/workflows/bench.yml
 
@@ -30,7 +31,9 @@ jobs:
       - name: benchmarks
         run: go test -run '^$' -bench . -benchmem -count 10 ./internal/sandbox/extismrt/ ./internal/schema/ | tee out/bench-linux.txt
       - name: measurements
-        run: go test -count=1 -run Spike -v ./internal/sandbox/extismrt/ -args -spike | tee out/measure-linux.txt
+        run: |
+          go test -count=1 -run Spike -v ./internal/sandbox/extismrt/ -args -spike | tee out/measure-linux.txt
+          go test -count=1 -run Spike -v ./cmd/dataplane/ -args -spike | tee -a out/measure-linux.txt
       - uses: actions/upload-artifact@v7
         with:
           name: spike-linux
