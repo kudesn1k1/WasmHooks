@@ -1,0 +1,37 @@
+name: bench
+# Runtime spike benchmarks and measurements on Linux (spec M0 §12).
+# Windows cannot provide sub-millisecond latency percentiles because its
+# monotonic clock is tick-quantized, so per-call latency numbers come from here.
+on:
+  workflow_dispatch:
+  push:
+    branches: [milestone-0]
+    paths:
+      - dataplane/internal/sandbox/**
+      - dataplane/go.mod
+      - .github/workflows/bench.yml
+
+jobs:
+  spike:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dataplane
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: dataplane/go.mod
+          cache-dependency-path: dataplane/go.sum
+      - name: machine
+        run: |
+          mkdir -p out
+          { nproc; grep -m1 'model name' /proc/cpuinfo; uname -a; go version; } | tee out/machine.txt
+      - name: benchmarks
+        run: go test -run '^$' -bench . -benchmem -count 10 ./internal/sandbox/extismrt/ ./internal/schema/ | tee out/bench-linux.txt
+      - name: measurements
+        run: go test -count=1 -run Spike -v ./internal/sandbox/extismrt/ -args -spike | tee out/measure-linux.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: spike-linux
+          path: dataplane/out/
