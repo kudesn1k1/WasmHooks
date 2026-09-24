@@ -6,6 +6,7 @@ import (
 	"flag"
 	"runtime"
 	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -168,6 +169,66 @@ func TestSpikeTimeoutPrecision(t *testing.T) {
 			limit, percentile(over, 0.5).Round(time.Microsecond), percentile(over, 0.99).Round(time.Microsecond),
 			slices.Max(over).Round(time.Microsecond), dead, len(over))
 		m.Close(ctx)
+	}
+}
+
+// S7b: timeout precision and a neighbour's warm latency while N scripts spin
+// at once. wasm code cannot be preempted asynchronously, so once spinning
+// scripts occupy every P the deadline watchdog and other tenants wait for
+// the scheduler.
+func TestSpikeTimeoutUnderSaturation(t *testing.T) {
+	requireSpike(t)
+	ctx := context.Background()
+	rt, _ := New(Options{})
+	defer rt.Close(ctx)
+	const limit = 50 * time.Millisecond
+	loop, err := rt.Compile(ctx, sandboxtest.Fixture(t, "infinite-loop"), sandbox.ModuleSpec{MemoryMaxPages: 64, Timeout: limit})
+	if err != nil {
+		t.Fatal(err)
+	}
+	disc, err := rt.Compile(ctx, sandboxtest.Fixture(t, "discount"), benchSpec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	neighbour, err := disc.Instantiate(ctx, discountCf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer neighbour.Close(ctx)
+
+	procs := runtime.GOMAXPROCS(0)
+	for _, n := range []int{procs, 2 * procs, 4 * procs} {
+		insts := make([]sandbox.Instance, n)
+		for i := range insts {
+			if insts[i], err = loop.Instantiate(ctx, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		over := make([]time.Duration, n)
+		var wg sync.WaitGroup
+		for i, inst := range insts {
+			wg.Go(func() {
+				s := time.Now()
+				inst.Call(ctx, sandbox.Export, nil)
+				over[i] = time.Since(s) - limit
+			})
+		}
+		time.Sleep(5 * time.Millisecond)
+		var lat []time.Duration
+		for range 20 {
+			s := time.Now()
+			if _, err := neighbour.Call(ctx, sandbox.Export, discountIn); err != nil {
+				t.Fatal(err)
+			}
+			lat = append(lat, time.Since(s))
+		}
+		wg.Wait()
+		for _, inst := range insts {
+			inst.Close(ctx)
+		}
+		t.Logf("S7b spinning=%3d (GOMAXPROCS=%d)  overshoot p50=%v max=%v  neighbour warm call p50=%v max=%v",
+			n, procs, percentile(over, 0.5).Round(time.Microsecond), slices.Max(over).Round(time.Microsecond),
+			percentile(lat, 0.5).Round(time.Microsecond), slices.Max(lat).Round(time.Microsecond))
 	}
 }
 
