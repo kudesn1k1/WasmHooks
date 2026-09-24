@@ -45,8 +45,9 @@ func TestLogBufferCapsBytes(t *testing.T) {
 		b.add(extism.LogLevelWarn, line)
 	}
 	lines := b.take()
-	if len(lines) != 17 {
-		t.Fatalf("got %d lines, want 16 + marker", len(lines))
+	// 16 full lines use 16000 of 16384 bytes; the 17th is cut to 384 bytes.
+	if len(lines) != 18 || len(lines[16].Message) != 384 {
+		t.Fatalf("got %d lines, want 16 full + 1 cut + marker", len(lines))
 	}
 	markers := 0
 	for _, l := range lines {
@@ -56,6 +57,23 @@ func TestLogBufferCapsBytes(t *testing.T) {
 	}
 	if markers != 1 {
 		t.Fatalf("got %d markers, want exactly 1", markers)
+	}
+}
+
+func TestLogBufferTruncatesLongLine(t *testing.T) {
+	b := logBuffer{maxBytes: 10, maxLines: 10}
+	b.add(extism.LogLevelInfo, "abc")
+	b.add(extism.LogLevelInfo, "0123456789xyz") // over the remaining budget
+	b.add(extism.LogLevelInfo, "late")
+	lines := b.take()
+	want := []string{"abc", "0123456", truncatedMarker}
+	if len(lines) != len(want) {
+		t.Fatalf("lines = %+v", lines)
+	}
+	for i, w := range want {
+		if lines[i].Message != w {
+			t.Fatalf("line %d = %q, want %q", i, lines[i].Message, w)
+		}
 	}
 }
 

@@ -80,8 +80,17 @@ type Import struct {
 	Name   string
 }
 
+// Signature is a function type, with value types named as in the text
+// format: i32, i64, f32, f64, v128, funcref, externref.
+type Signature struct {
+	Params  []string
+	Results []string
+}
+
 // ModuleInfo is the static shape of a module.
 type ModuleInfo struct {
-	Imports []Import
-	Exports []string // exported function names
+	Imports       []Import             // imported functions
+	MemoryImports []Import             // imported memories; scripts may not import any
+	Exports       []string             // exported function names
+	Signatures    map[string]Signature // types of the exported functions
 }

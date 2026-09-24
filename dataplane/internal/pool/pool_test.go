@@ -164,8 +164,8 @@ func TestAcquireRespectsContextDeadline(t *testing.T) {
 	defer cancel()
 	start := time.Now()
 	_, err := m.Acquire(ctx, k1, 1, f.make)
-	if !errors.Is(err, ErrSaturated) {
-		t.Fatalf("want ErrSaturated, got %v", err)
+	if !errors.Is(err, ErrSaturated) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("want ErrSaturated wrapping the context error, got %v", err)
 	}
 	if time.Since(start) > 100*time.Millisecond {
 		t.Fatalf("ignored ctx deadline: %v", time.Since(start))

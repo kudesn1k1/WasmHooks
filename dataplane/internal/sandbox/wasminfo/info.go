@@ -12,15 +12,22 @@ import (
 	"sort"
 
 	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/api"
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox"
 )
 
-// Inspect parses wasm and lists its function imports and exports. Invalid
-// modules yield an error wrapping sandbox.ErrInvalidModule.
-func Inspect(ctx context.Context, wasm []byte) (sandbox.ModuleInfo, error) {
+// Inspect parses wasm and lists its imports, exported functions and their
+// signatures. When memoryMaxPages > 0, a module whose own memory needs more
+// pages fails here. Invalid modules yield an error wrapping
+// sandbox.ErrInvalidModule.
+func Inspect(ctx context.Context, wasm []byte, memoryMaxPages uint32) (sandbox.ModuleInfo, error) {
 	// The interpreter compiles cheaply: we only need the parsed module.
-	rt := wazero.NewRuntimeWithConfig(ctx, wazero.NewRuntimeConfigInterpreter())
+	cfg := wazero.NewRuntimeConfigInterpreter()
+	if memoryMaxPages > 0 {
+		cfg = cfg.WithMemoryLimitPages(memoryMaxPages)
+	}
+	rt := wazero.NewRuntimeWithConfig(ctx, cfg)
 	defer rt.Close(ctx)
 
 	cm, err := rt.CompileModule(ctx, wasm)
@@ -29,14 +36,27 @@ func Inspect(ctx context.Context, wasm []byte) (sandbox.ModuleInfo, error) {
 	}
 	defer cm.Close(ctx)
 
-	var info sandbox.ModuleInfo
+	info := sandbox.ModuleInfo{Signatures: map[string]sandbox.Signature{}}
 	for _, fn := range cm.ImportedFunctions() {
 		module, name, _ := fn.Import()
 		info.Imports = append(info.Imports, sandbox.Import{Module: module, Name: name})
 	}
-	for name := range cm.ExportedFunctions() {
+	for _, mem := range cm.ImportedMemories() {
+		module, name, _ := mem.Import()
+		info.MemoryImports = append(info.MemoryImports, sandbox.Import{Module: module, Name: name})
+	}
+	for name, fn := range cm.ExportedFunctions() {
 		info.Exports = append(info.Exports, name)
+		info.Signatures[name] = sandbox.Signature{Params: typeNames(fn.ParamTypes()), Results: typeNames(fn.ResultTypes())}
 	}
 	sort.Strings(info.Exports)
 	return info, nil
+}
+
+func typeNames(types []api.ValueType) []string {
+	names := make([]string, len(types))
+	for i, t := range types {
+		names[i] = api.ValueTypeName(t)
+	}
+	return names
 }

@@ -11,6 +11,7 @@ package pool
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -116,7 +117,8 @@ func NewManager(opts Options) *Manager {
 
 // Acquire leases an instance for key. limit caps the key's live instances.
 // The wait for capacity is bounded by AcquireTimeout and by ctx; either ends
-// with ErrSaturated. Factory errors are returned as is.
+// with ErrSaturated (wrapping ctx.Err() in the second case). Factory errors
+// are returned as is.
 func (m *Manager) Acquire(ctx context.Context, key Key, limit int, factory Factory) (*Lease, error) {
 	if limit < 1 {
 		limit = 1
@@ -160,18 +162,23 @@ func (m *Manager) Acquire(ctx context.Context, key Key, limit int, factory Facto
 		select {
 		case <-wake:
 		case <-timer.C:
-			return nil, m.saturated(key)
+			return nil, m.saturated(key, nil)
 		case <-ctx.Done():
-			return nil, m.saturated(key)
+			return nil, m.saturated(key, ctx.Err())
 		}
 	}
 }
 
-// saturated drops the key's pool if the failed wait left it empty.
-func (m *Manager) saturated(key Key) error {
+// saturated drops the key's pool if the failed wait left it empty. When the
+// caller's context ended the wait, the error wraps both ErrSaturated and the
+// context error, so callers can tell a busy tenant from an exhausted budget.
+func (m *Manager) saturated(key Key, ctxErr error) error {
 	m.mu.Lock()
 	m.dropIfEmptyLocked(key)
 	m.mu.Unlock()
+	if ctxErr != nil {
+		return fmt.Errorf("%w: %w", ErrSaturated, ctxErr)
+	}
 	return ErrSaturated
 }
 

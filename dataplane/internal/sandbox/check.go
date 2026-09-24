@@ -26,23 +26,34 @@ var kernelAllowed = map[string]bool{
 }
 
 // CheckModule verifies a module's static shape against its spec: the
-// required export is present and every import is either an allowed kernel
-// function or a host function granted by the hook. All violations are
-// reported at once, wrapped in ErrInvalidModule.
+// required export is present with type () -> i32 (or () -> ()), and every
+// import is either an allowed kernel function or a host function granted by
+// the hook. Imported memories are never allowed. All violations are reported
+// at once, wrapped in ErrInvalidModule.
 func CheckModule(info ModuleInfo, spec ModuleSpec) error {
 	var violations []string
 	if !slices.Contains(info.Exports, Export) {
 		violations = append(violations, fmt.Sprintf("missing export %q", Export))
+	} else if sig, ok := info.Signatures[Export]; ok && !validHandle(sig) {
+		violations = append(violations, fmt.Sprintf("export %q must have type () -> i32, has (%s) -> (%s)",
+			Export, strings.Join(sig.Params, ", "), strings.Join(sig.Results, ", ")))
 	}
 	for _, imp := range info.Imports {
 		if !importAllowed(imp, spec) {
 			violations = append(violations, fmt.Sprintf("import %s.%s is not allowed", imp.Module, imp.Name))
 		}
 	}
+	for _, imp := range info.MemoryImports {
+		violations = append(violations, fmt.Sprintf("import %s.%s (memory) is not allowed", imp.Module, imp.Name))
+	}
 	if len(violations) > 0 {
 		return fmt.Errorf("%w: %s", ErrInvalidModule, strings.Join(violations, "; "))
 	}
 	return nil
+}
+
+func validHandle(sig Signature) bool {
+	return len(sig.Params) == 0 && (len(sig.Results) == 0 || slices.Equal(sig.Results, []string{"i32"}))
 }
 
 func importAllowed(imp Import, spec ModuleSpec) bool {

@@ -2,7 +2,6 @@ package extismrt
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -39,18 +38,34 @@ func benchModule(b *testing.B, rt *Runtime, fixture string) sandbox.Module {
 	return m
 }
 
-// S1: compile a module, with and without the shared compilation cache.
-// With the cache, every compile after the first reuses compiled code for
-// the Extism kernel and for identical module bytes.
+// S1: compile a module. "distinct" compiles new bytes every iteration (a
+// real cold miss); "same/sharedCache" recompiles identical bytes with the
+// shared compilation cache, which is a full cache hit and measures only
+// inspection, decoding and the trial instantiation.
 func BenchmarkCompile(b *testing.B) {
 	ctx := context.Background()
 	wasm := sandboxtest.Fixture(b, "discount")
-	for _, shared := range []bool{false, true} {
-		b.Run(fmt.Sprintf("sharedCache=%v", shared), func(b *testing.B) {
-			rt := benchRuntime(b, Options{DisableSharedCompilationCache: !shared})
+	cases := []struct {
+		name     string
+		shared   bool
+		distinct bool
+	}{
+		{"distinct", false, true},
+		{"same/noCache", false, false},
+		{"same/sharedCache", true, false},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			rt := benchRuntime(b, Options{SharedCompilationCache: tc.shared})
+			var n uint64
 			b.ReportAllocs()
 			for b.Loop() {
-				m, err := rt.Compile(ctx, wasm, benchSpec)
+				bytes := wasm
+				if tc.distinct {
+					n++
+					bytes = withCustomSection(wasm, n)
+				}
+				m, err := rt.Compile(ctx, bytes, benchSpec)
 				if err != nil {
 					b.Fatal(err)
 				}

@@ -259,10 +259,16 @@ func TestExecutorDeadlineBeforeStart(t *testing.T) {
 	if err := e.exec.Preload(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	res, _ := e.exec.Execute(ctx, e.req("n", nil))
+	expired, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	res, _ := e.exec.Execute(expired, e.req("n", nil))
 	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
+
+	canceled, cancel2 := context.WithCancel(context.Background())
+	cancel2()
+	res, _ = e.exec.Execute(canceled, e.req("n", nil))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled)
+
 	if res := e.run(t, "n", nil); !strings.Contains(string(res.Result), `"count":1`) {
 		t.Fatalf("script ran before the deadline check: %s", res.Result)
 	}
@@ -421,6 +427,141 @@ func TestExecutorConcurrentCompileOnce(t *testing.T) {
 	wg.Wait()
 	if n := e.rt.compiles.Load(); n != 1 {
 		t.Fatalf("compiled %d times, want 1", n)
+	}
+}
+
+func TestExecutorHooksDoNotShareModules(t *testing.T) {
+	// Two hooks at the same def_version bind the same bytes. Each must run
+	// under its own limits: the lax hook's compile must not leak into the
+	// strict one.
+	e := newEnv(t, map[string]binding{"x": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
+	next := *e.snap
+	next.Version = 2
+	next.Hooks = append(append([]config.HookDef{}, e.snap.Hooks...), config.HookDef{
+		Name: "lax", DefVersion: 1, InputSchema: inSchema, OutputSchema: anyOut,
+		TimeoutMS: 2000, MemoryMaxPages: 256,
+	})
+	next.Tenants = append(append([]config.Tenant{}, e.snap.Tenants...), config.Tenant{ExternalID: "y"})
+	next.Bindings = append(append([]config.Binding{}, e.snap.Bindings...), config.Binding{
+		TenantID: "y", Hook: "lax", ModuleHash: e.snap.Bindings[0].ModuleHash, ConfigVersion: 1,
+	})
+	if err := e.cfg.Update(&next); err != nil {
+		t.Fatal(err)
+	}
+
+	// y compiles the module under the lax hook first.
+	laxCtx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	yReq := e.req("x", nil)
+	yReq.TenantID, yReq.Hook = "y", "lax"
+	e.exec.Execute(laxCtx, yReq)
+
+	ctx, cancel2 := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+	defer cancel2()
+	start := time.Now()
+	res, _ := e.exec.Execute(ctx, e.req("x", nil))
+	wantOutcome(t, res, execproto.OutcomeTimeout, "")
+	if d := time.Since(start); d > 400*time.Millisecond {
+		t.Fatalf("strict hook (100ms) ran for %v: it used the lax hook's module", d)
+	}
+	if n := e.rt.compiles.Load(); n != 2 {
+		t.Fatalf("compiled %d times, want 2 (one per hook spec)", n)
+	}
+}
+
+func TestExecutorCallerCanceled(t *testing.T) {
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(20*time.Millisecond, cancel)
+	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled)
+}
+
+func TestExecutorCallerDeadline(t *testing.T) {
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	wantOutcome(t, res, execproto.OutcomeTimeout, execproto.ReasonCallerDeadline)
+}
+
+func TestExecutorPoolWaitEndedByDeadline(t *testing.T) {
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop", limit: 1}}, anyOut, pool.Options{AcquireTimeout: time.Second})
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { e.run(t, "b", nil); close(done) }()
+	time.Sleep(20 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
+	<-done
+}
+
+// fakeRuntime compiles every module into a fakeModule.
+type fakeRuntime struct{ mod *fakeModule }
+
+func (f fakeRuntime) Compile(context.Context, []byte, sandbox.ModuleSpec) (sandbox.Module, error) {
+	return f.mod, nil
+}
+func (fakeRuntime) Close(context.Context) error { return nil }
+
+type fakeModule struct {
+	instErr error
+	callErr error
+}
+
+func (m *fakeModule) Instantiate(context.Context, map[string]string) (sandbox.Instance, error) {
+	if m.instErr != nil {
+		return nil, m.instErr
+	}
+	return fakeInstance{err: m.callErr}, nil
+}
+func (*fakeModule) Close(context.Context) error { return nil }
+
+type fakeInstance struct{ err error }
+
+func (i fakeInstance) Call(context.Context, string, []byte) (sandbox.CallResult, error) {
+	return sandbox.CallResult{}, i.err
+}
+func (fakeInstance) Close(context.Context) error { return nil }
+
+func newFakeEnv(t *testing.T, mod *fakeModule) *env {
+	t.Helper()
+	e := newEnv(t, map[string]binding{"a": {fixture: "counter"}}, anyOut, pool.Options{})
+	pools := pool.NewManager(pool.Options{AcquireTimeout: 20 * time.Millisecond})
+	t.Cleanup(func() { pools.Close(context.Background()) })
+	e.pools = pools
+	e.exec = New(Options{
+		Runtime: fakeRuntime{mod: mod}, Modules: modstore.NewFS(e.dir), Config: e.cfg, Pools: pools,
+		Schemas: schema.NewCache(), Sink: e.sink, ExecutorID: "fake",
+	})
+	return e
+}
+
+func TestExecutorInstantiateErrorIsUnavailable(t *testing.T) {
+	e := newFakeEnv(t, &fakeModule{instErr: errors.New("out of memory")})
+	res := e.run(t, "a", nil)
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonInternal)
+	if s := e.pools.Stats(); s.Instances != 0 {
+		t.Fatalf("failed instantiation left a slot taken: %+v", s)
+	}
+}
+
+func TestExecutorClosedDuringCall(t *testing.T) {
+	e := newFakeEnv(t, &fakeModule{callErr: fmt.Errorf("%w: gone", sandbox.ErrClosed)})
+	res := e.run(t, "a", nil)
+	wantOutcome(t, res, execproto.OutcomeHandlerError, execproto.ReasonInternal)
+	if s := e.pools.Stats(); s.Instances != 0 {
+		t.Fatalf("closed instance returned to the pool: %+v", s)
 	}
 }
 

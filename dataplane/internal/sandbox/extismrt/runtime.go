@@ -7,7 +7,10 @@
 //     and an infinite loop cannot be interrupted;
 //   - instances get a reference to the manifest's Config map, so tenant
 //     config is assigned as a fresh map, never mutated in place;
-//   - the log level is process-global and defaults to Off.
+//   - the log level is process-global and defaults to Off;
+//   - a non-zero return code without an error message is still a failure;
+//   - with a shared wazero CompilationCache, closing a compiled plugin does
+//     not free its machine code, so the cache is opt-in.
 package extismrt
 
 import (
@@ -33,9 +36,11 @@ type Options struct {
 	MaxVarBytes int64           // cap on Extism vars per instance; default 64 KiB
 	MaxLogBytes int             // per call; default 16 KiB
 	MaxLogLines int             // per call; default 100
-	// DisableSharedCompilationCache compiles every module from scratch.
-	// Only the compile benchmark uses it.
-	DisableSharedCompilationCache bool
+	// SharedCompilationCache reuses machine code for identical module bytes
+	// across compiles. Closing a module then no longer frees its code (it
+	// lives until Runtime.Close), so it is off by default; the compile
+	// benchmark uses it.
+	SharedCompilationCache bool
 }
 
 func (o *Options) setDefaults() {
@@ -53,15 +58,18 @@ func (o *Options) setDefaults() {
 	}
 }
 
-// Runtime compiles modules with a shared wazero compilation cache, so the
-// Extism kernel is compiled once per process instead of once per module.
+// Runtime compiles modules. Compiles hold a read lock for their whole
+// duration and Close takes the write lock, so nothing compiles against a
+// closed runtime.
 type Runtime struct {
 	opts  Options
-	cache wazero.CompilationCache
+	cache wazero.CompilationCache // nil unless SharedCompilationCache
 
-	mu     sync.Mutex
-	mods   map[*module]struct{}
-	closed bool
+	lifecycle sync.RWMutex // held for reading by compiles, for writing by Close
+	closed    bool         // guarded by lifecycle
+
+	mu   sync.Mutex
+	mods map[*module]struct{}
 }
 
 var _ sandbox.Runtime = (*Runtime)(nil)
@@ -71,18 +79,29 @@ func New(opts Options) (*Runtime, error) {
 	opts.setDefaults()
 	extism.SetLogLevel(opts.LogLevel)
 	r := &Runtime{opts: opts, mods: make(map[*module]struct{})}
-	if !opts.DisableSharedCompilationCache {
+	if opts.SharedCompilationCache {
 		r.cache = wazero.NewCompilationCache()
 	}
 	return r, nil
 }
 
-// Compile checks the module against spec and compiles it.
+// errClosed is returned by Compile after Close.
+var errClosed = errors.New("extismrt: runtime closed")
+
+// Compile checks the module against spec, compiles it and instantiates it
+// once to prove it links. Everything the module can get wrong is reported as
+// sandbox.ErrInvalidModule; other errors are the platform's.
 func (r *Runtime) Compile(ctx context.Context, wasm []byte, spec sandbox.ModuleSpec) (sandbox.Module, error) {
 	if spec.Timeout <= 0 || spec.MemoryMaxPages == 0 {
 		return nil, fmt.Errorf("%w: timeout and memory limit are required", sandbox.ErrInvalidModule)
 	}
-	info, err := wasminfo.Inspect(ctx, wasm)
+	r.lifecycle.RLock()
+	defer r.lifecycle.RUnlock()
+	if r.closed {
+		return nil, errClosed
+	}
+
+	info, err := wasminfo.Inspect(ctx, wasm, spec.MemoryMaxPages)
 	if err != nil {
 		return nil, err
 	}
@@ -104,30 +123,39 @@ func (r *Runtime) Compile(ctx context.Context, wasm []byte, spec sandbox.ModuleS
 		Timeout: timeoutMS,
 		// AllowedHosts stays empty: the SDK rejects every HTTP request.
 	}
+	// The module was decoded and checked above, so a failure here is the
+	// platform's (executable memory refused, out of memory, a kernel that
+	// does not fit the limit), not the tenant's.
 	cp, err := extism.NewCompiledPlugin(ctx, manifest, extism.PluginConfig{RuntimeConfig: rc}, nil)
 	if err != nil {
+		return nil, fmt.Errorf("extismrt: compile: %w", err)
+	}
+	// Linking happens at instantiation: imports with wrong signatures and
+	// imported tables or globals only fail there. Fail them once, here.
+	trial, err := cp.Instance(ctx, extism.PluginInstanceConfig{})
+	if err != nil {
+		cp.Close(ctx)
 		return nil, fmt.Errorf("%w: %v", sandbox.ErrInvalidModule, err)
 	}
+	trial.Close(ctx)
 
 	m := &module{rt: r, cp: cp, spec: spec}
 	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.closed {
-		cp.Close(ctx)
-		return nil, errors.New("extismrt: runtime closed")
-	}
 	r.mods[m] = struct{}{}
+	r.mu.Unlock()
 	return m, nil
 }
 
-// Close closes every module, then the compilation cache they depend on.
+// Close waits for running compiles, then closes every module and the
+// compilation cache they depend on.
 func (r *Runtime) Close(ctx context.Context) error {
-	r.mu.Lock()
+	r.lifecycle.Lock()
+	defer r.lifecycle.Unlock()
 	if r.closed {
-		r.mu.Unlock()
 		return nil
 	}
 	r.closed = true
+	r.mu.Lock()
 	mods := r.mods
 	r.mods = nil
 	r.mu.Unlock()
@@ -196,8 +224,11 @@ func (i *instance) Call(ctx context.Context, export string, input []byte) (sandb
 	callCtx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
-	_, out, err := i.p.CallWithContext(callCtx, export, input)
+	rc, out, err := i.p.CallWithContext(callCtx, export, input)
 	logs := i.logs.take()
+	if err == nil && rc != 0 {
+		err = fmt.Errorf("exit code %d without an error message", rc)
+	}
 	if err != nil {
 		i.dead = true
 		return sandbox.CallResult{Logs: logs}, classify(callCtx, err)

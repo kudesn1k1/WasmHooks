@@ -151,8 +151,8 @@ func Run(t *testing.T, newRuntime func(t *testing.T) sandbox.Runtime) {
 
 	t.Run("MemoryLimitTraps", func(t *testing.T) {
 		// A small limit and a generous timeout isolate the memory limit from
-		// timing: reaching a larger limit takes superlinear time because
-		// memory growth copies linear memory, and could hit the timeout first.
+		// timing: a bomb needs about 1 ms of CPU per MiB of limit (spike S8),
+		// so a large limit could hit the timeout first.
 		m, err := newRuntime(t).Compile(ctx, Fixture(t, "memory-bomb"), sandbox.ModuleSpec{MemoryMaxPages: 64, Timeout: 5 * time.Second})
 		if err != nil {
 			t.Fatal(err)
@@ -204,6 +204,45 @@ func Run(t *testing.T, newRuntime func(t *testing.T) sandbox.Runtime) {
 			if _, err := rt.Compile(ctx, Fixture(t, "discount"), spec); !errors.Is(err, sandbox.ErrInvalidModule) {
 				t.Fatalf("spec %+v: want ErrInvalidModule, got %v", spec, err)
 			}
+		}
+	})
+
+	t.Run("RejectsModulesThatCannotLink", func(t *testing.T) {
+		kernel := "extism:host/env"
+		cases := map[string]TestModule{
+			"memory import": {HandleResults: []byte{I32}, MemoryImport: &FuncImport{Module: "env", Name: "memory"}},
+			"kernel import with wrong signature": {HandleResults: []byte{I32},
+				FuncImports: []FuncImport{{Module: kernel, Name: "alloc", Params: []byte{I32}, Results: []byte{I32}}}},
+			"handle with params":    {HandleParams: []byte{I32}, HandleResults: []byte{I32}},
+			"memory over the limit": {HandleResults: []byte{I32}, MemoryMin: Spec.MemoryMaxPages + 1},
+		}
+		rt := newRuntime(t)
+		for name, mod := range cases {
+			if _, err := rt.Compile(ctx, mod.Build(), Spec); !errors.Is(err, sandbox.ErrInvalidModule) {
+				t.Errorf("%s: want ErrInvalidModule at compile, got %v", name, err)
+			}
+		}
+	})
+
+	t.Run("NonZeroExitIsGuestError", func(t *testing.T) {
+		rt := newRuntime(t)
+		m, err := rt.Compile(ctx, TestModule{HandleResults: []byte{I32}, ReturnCode: 1}.Build(), Spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { m.Close(ctx) })
+		if _, err := instantiate(t, m, nil).Call(ctx, sandbox.Export, nil); !errors.Is(err, sandbox.ErrGuest) {
+			t.Fatalf("want ErrGuest for exit code 1 without a message, got %v", err)
+		}
+	})
+
+	t.Run("CompileAfterCloseFails", func(t *testing.T) {
+		rt := newRuntime(t)
+		if err := rt.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := rt.Compile(ctx, Fixture(t, "counter"), Spec); err == nil {
+			t.Fatal("compile after Close must fail")
 		}
 	})
 

@@ -201,7 +201,7 @@ func TestSpikeMemoryBomb(t *testing.T) {
 func TestSpikeImports(t *testing.T) {
 	requireSpike(t)
 	for _, name := range []string{"discount", "counter", "echo-config", "guest-error", "infinite-loop", "memory-bomb", "bad-output", "http-call"} {
-		info, err := wasminfo.Inspect(context.Background(), sandboxtest.Fixture(t, name))
+		info, err := wasminfo.Inspect(context.Background(), sandboxtest.Fixture(t, name), 0)
 		if err != nil {
 			t.Fatal(err)
 		}

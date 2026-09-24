@@ -8,9 +8,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
+	"slices"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/config"
@@ -31,9 +36,12 @@ type Options struct {
 	Schemas        *schema.Cache
 	Sink           observe.Sink
 	ExecutorID     string
-	MaxOutputBytes int           // default 1 MiB
-	MaxErrorBytes  int           // default 1 KiB
-	CompileTimeout time.Duration // default 30s
+	MaxOutputBytes int // default 1 MiB
+	MaxErrorBytes  int // default 1 KiB
+	// CompileTimeout bounds fetching and compiling a module where the
+	// module store and runtime honour the context; the wazero compiler
+	// itself does not. Default 30s.
+	CompileTimeout time.Duration
 }
 
 func (o *Options) setDefaults() {
@@ -48,9 +56,28 @@ func (o *Options) setDefaults() {
 	}
 }
 
+// modKey identifies a compiled module: the bytes and everything the module
+// is compiled under. Keying by the spec rather than by (hook, def_version)
+// means hooks with identical limits share compiled code, hooks with
+// different limits never do, and a definition bump that keeps the limits
+// reuses the module.
 type modKey struct {
-	hash       string
-	defVersion int64
+	hash string
+	spec string
+}
+
+func specOf(hook config.HookDef) sandbox.ModuleSpec {
+	return sandbox.ModuleSpec{
+		MemoryMaxPages:       hook.MemoryMaxPages,
+		Timeout:              hook.Timeout(),
+		AllowedHostFunctions: hook.AllowedHostFunctions,
+	}
+}
+
+func specDigest(s sandbox.ModuleSpec) string {
+	fns := slices.Clone(s.AllowedHostFunctions)
+	slices.Sort(fns)
+	return strconv.FormatUint(uint64(s.MemoryMaxPages), 10) + "/" + s.Timeout.String() + "/" + strings.Join(fns, ",")
 }
 
 type hookKey struct {
@@ -171,15 +198,20 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		return mod.Instantiate(ctx, binding.Config)
 	})
 	switch {
+	case err != nil && ctx.Err() != nil:
+		return notStarted(ctx)
 	case errors.Is(err, pool.ErrSaturated):
 		return fail(execproto.OutcomeUnavailable, execproto.ReasonPoolSaturated, errors.New("no free instance for this tenant"))
 	case err != nil:
 		return fail(execproto.OutcomeUnavailable, execproto.ReasonInternal, fmt.Errorf("instantiate: %w", err))
 	}
+	// A panic below must not leak the pool slot: Release is idempotent, so
+	// this only acts when nothing else released the lease.
+	defer lease.Release(false)
 	res.ColdStart = lease.Cold()
 	if ctx.Err() != nil {
 		lease.Release(true)
-		return fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("deadline expired before the script started"))
+		return notStarted(ctx)
 	}
 
 	callStart := time.Now()
@@ -188,7 +220,7 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	res.Logs = formatLogs(out.Logs)
 	if err != nil {
 		lease.Release(false)
-		return callFailure(err)
+		return callFailure(ctx, err)
 	}
 	// From here on the instance is healthy whatever the output says.
 	lease.Release(true)
@@ -210,8 +242,24 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	return nil
 }
 
-func callFailure(err error) *failure {
+// notStarted reports a call whose script never started because the
+// caller's context ended first.
+func notStarted(ctx context.Context) *failure {
+	if errors.Is(ctx.Err(), context.Canceled) {
+		return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away before the script started"))
+	}
+	return fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("deadline expired before the script started"))
+}
+
+// callFailure maps a script failure. A timeout is attributed to whoever set
+// the deadline: the hook's limit (empty reason), the caller's shorter
+// deadline, or the caller going away, which is not the tenant's fault.
+func callFailure(ctx context.Context, err error) *failure {
 	switch {
+	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(ctx.Err(), context.Canceled):
+		return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away while the script ran"))
+	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(ctx.Err(), context.DeadlineExceeded):
+		return fail(execproto.OutcomeTimeout, execproto.ReasonCallerDeadline, nil)
 	case errors.Is(err, sandbox.ErrTimeout):
 		return fail(execproto.OutcomeTimeout, "", nil)
 	case errors.Is(err, sandbox.ErrTrap):
@@ -235,27 +283,42 @@ func (e *Executor) hookDef(view *config.View, name string, version int64) (confi
 	return h, ok
 }
 
-// module returns the compiled module for (hash, hook definition), compiling
-// it at most once concurrently. Compilation is detached from ctx: a caller
-// whose deadline expires stops waiting, but the compile finishes and is
-// cached for the next call.
-func (e *Executor) module(ctx context.Context, hash string, hook config.HookDef) (sandbox.Module, *failure) {
-	key := modKey{hash, hook.DefVersion}
+// cached returns a compiled module or a cached invalid verdict for key.
+func (e *Executor) cached(key modKey) (sandbox.Module, error, bool) {
 	e.mu.Lock()
+	defer e.mu.Unlock()
 	if m, ok := e.modules[key]; ok {
-		e.mu.Unlock()
-		return m, nil
+		return m, nil, true
 	}
 	if err, ok := e.invalid[key]; ok {
-		e.mu.Unlock()
-		return nil, fail(execproto.OutcomeHandlerError, execproto.ReasonInvalidModule, err)
+		return nil, err, true
 	}
-	e.mu.Unlock()
+	return nil, nil, false
+}
 
-	ch := e.compiles.DoChan(fmt.Sprintf("%s@%d", hash, hook.DefVersion), func() (any, error) {
+// module returns the module compiled from hash under the hook's spec,
+// compiling it at most once concurrently. Compilation is detached from ctx:
+// a caller whose deadline expires stops waiting, but the compile finishes
+// and is cached for the next call.
+func (e *Executor) module(ctx context.Context, hash string, hook config.HookDef) (sandbox.Module, *failure) {
+	spec := specOf(hook)
+	key := modKey{hash, specDigest(spec)}
+	if m, err, ok := e.cached(key); ok {
+		if err != nil {
+			return nil, fail(execproto.OutcomeHandlerError, execproto.ReasonInvalidModule, err)
+		}
+		return m, nil
+	}
+
+	ch := e.compiles.DoChan(key.hash+"|"+key.spec, func() (any, error) {
+		// A flight for this key may have finished between the check above
+		// and this one starting.
+		if m, err, ok := e.cached(key); ok {
+			return m, err
+		}
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), e.opts.CompileTimeout)
 		defer cancel()
-		return e.compile(cctx, key, hook)
+		return e.compile(cctx, key, spec)
 	})
 	select {
 	case r := <-ch:
@@ -264,23 +327,19 @@ func (e *Executor) module(ctx context.Context, hash string, hook config.HookDef)
 		}
 		return r.Val.(sandbox.Module), nil
 	case <-ctx.Done():
-		return nil, fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("deadline expired while the module was compiling"))
+		return nil, notStarted(ctx)
 	}
 }
 
 // errFetch marks module store failures, which are retryable.
 var errFetch = errors.New("fetch module")
 
-func (e *Executor) compile(ctx context.Context, key modKey, hook config.HookDef) (sandbox.Module, error) {
+func (e *Executor) compile(ctx context.Context, key modKey, spec sandbox.ModuleSpec) (sandbox.Module, error) {
 	wasm, err := e.opts.Modules.Get(ctx, key.hash)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errFetch, err)
 	}
-	mod, err := e.opts.Runtime.Compile(ctx, wasm, sandbox.ModuleSpec{
-		MemoryMaxPages:       hook.MemoryMaxPages,
-		Timeout:              hook.Timeout(),
-		AllowedHostFunctions: hook.AllowedHostFunctions,
-	})
+	mod, err := e.opts.Runtime.Compile(ctx, wasm, spec)
 
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -310,24 +369,35 @@ func compileFailure(err error) *failure {
 }
 
 // Preload compiles every module bound in the current snapshot, so the first
-// calls do not pay for compilation. Failures of individual bindings are
-// joined; the rest still load.
+// calls do not pay for compilation. Compiles run in parallel, one per CPU.
+// Failures of individual bindings are joined; the rest still load.
 func (e *Executor) Preload(ctx context.Context) error {
 	view := e.opts.Config.Current()
 	if view == nil {
 		return errors.New("preload: config not loaded")
 	}
-	var errs []error
+	var (
+		mu   sync.Mutex
+		errs []error
+		g    errgroup.Group
+	)
+	g.SetLimit(runtime.GOMAXPROCS(0))
 	for _, b := range view.Bindings() {
 		hook, ok := e.hookDef(view, b.Hook, currentDefVersion(view, b.Hook))
 		if !ok {
 			errs = append(errs, fmt.Errorf("preload %s/%s: unknown hook", b.TenantID, b.Hook))
 			continue
 		}
-		if _, f := e.module(ctx, b.ModuleHash, hook); f != nil {
-			errs = append(errs, fmt.Errorf("preload %s/%s (%s): %w", b.TenantID, b.Hook, b.ModuleHash, f.err))
-		}
+		g.Go(func() error {
+			if _, f := e.module(ctx, b.ModuleHash, hook); f != nil {
+				mu.Lock()
+				errs = append(errs, fmt.Errorf("preload %s/%s (%s): %w", b.TenantID, b.Hook, b.ModuleHash, f.err))
+				mu.Unlock()
+			}
+			return nil
+		})
 	}
+	g.Wait()
 	return errors.Join(errs...)
 }
 

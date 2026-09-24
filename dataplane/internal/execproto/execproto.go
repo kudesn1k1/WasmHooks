@@ -33,6 +33,12 @@ const (
 	ReasonModuleFetch   = "module_fetch"
 	ReasonStaleConfig   = "stale_config"
 	ReasonInternal      = "internal"
+	// ReasonCallerDeadline refines timeout: the caller's deadline, shorter
+	// than the hook's limit, stopped the script. An empty reason on timeout
+	// means the hook's own limit did.
+	ReasonCallerDeadline = "caller_deadline"
+	// ReasonCallerCanceled: the caller went away while the script ran.
+	ReasonCallerCanceled = "caller_canceled"
 )
 
 // ExecuteRequest asks the executor to run the tenant's script bound to a
