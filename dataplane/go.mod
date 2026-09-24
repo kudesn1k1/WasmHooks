@@ -4,7 +4,9 @@ go 1.26
 
 require (
 	github.com/extism/go-sdk v1.7.1
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/tetratelabs/wazero v1.9.0
+	golang.org/x/text v0.17.0
 )
 
 require (
