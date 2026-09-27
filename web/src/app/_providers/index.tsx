@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 
+import { MockProvider } from "./mock-provider";
+
 function makeQueryClient() {
   return new QueryClient({
     defaultOptions: {
@@ -16,12 +18,11 @@ function makeQueryClient() {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
-  // Клиент создаётся один раз на жизнь вкладки, а не на каждый рендер.
   const [queryClient] = useState(makeQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <MockProvider>{children}</MockProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
