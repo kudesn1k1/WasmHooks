@@ -24,6 +24,28 @@ jobs:
       - name: bench smoke
         run: go test -run='^$' -bench=. -benchtime=1x ./...
 
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: lint
+        run: npm run lint
+      - name: test
+        run: npm test
+      - name: build
+        run: npm run build
+
   rust-scripts:
     runs-on: ubuntu-latest
     steps:

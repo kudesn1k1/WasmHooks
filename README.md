@@ -12,7 +12,7 @@ Self-hosted платформа, которая позволяет SaaS-прод�
 | `control-plane/` | control plane (Python) — README-заглушка в M0 |
 | `sdk/python/` | Python SDK — README-заглушка в M0 |
 | `demo-shop/` | бэкенд демо-магазина — README-заглушка в M0 |
-| `web/` | фронтенд: консоли оператора и тенанта, витрина — README-заглушка в M0 |
+| `web/` | фронтенд на Next.js: консоли оператора и тенанта, витрина |
 | `docs/` | бриф, спеки, ADR, `TEAM.md` |
 | `.github/workflows/ci.yml` | CI |
 
