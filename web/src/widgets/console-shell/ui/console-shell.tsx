@@ -10,7 +10,6 @@ import { Badge } from "@/shared/ui/badge";
 export type ConsoleNavItem = {
   href: string;
   label: string;
-  /** Пометка рядом с пунктом, например веха, в которой экран появится. */
   badge?: string;
 };
 
@@ -24,7 +23,6 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Общая оболочка консолей оператора и тенанта: боковая навигация и контент. */
 export function ConsoleShell({ title, nav, children }: ConsoleShellProps) {
   const pathname = usePathname();
 

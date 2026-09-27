@@ -6,12 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 type PageStubProps = {
   title: string;
   description: string;
-  /** Веха, в которой экран появится: "M0", "MVP". */
   milestone: string;
   children?: ReactNode;
 };
 
-/** Заглушка экрана, который ещё не реализован. */
 export function PageStub({ title, description, milestone, children }: PageStubProps) {
   return (
     <div className="flex flex-col gap-6">
