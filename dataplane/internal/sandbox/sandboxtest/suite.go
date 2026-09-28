@@ -260,7 +260,14 @@ func Run(t *testing.T, newRuntime func(t *testing.T) sandbox.Runtime) {
 	})
 
 	t.Run("ConcurrentInstances", func(t *testing.T) {
-		m := compile(t, newRuntime(t), "echo-config")
+		// 16 instances on a 4-vCPU runner under -race saturate the CPU, and
+		// a saturated call can overrun the suite's 100 ms limit (spike S7b).
+		// The subtest checks isolation, so the timeout is kept out of the way.
+		m, err := newRuntime(t).Compile(ctx, Fixture(t, "echo-config"), sandbox.ModuleSpec{MemoryMaxPages: Spec.MemoryMaxPages, Timeout: 5 * time.Second})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { m.Close(ctx) })
 		var wg sync.WaitGroup
 		errs := make(chan error, 16)
 		for n := range 16 {
