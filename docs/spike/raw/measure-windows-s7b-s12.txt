@@ -1,0 +1,10 @@
+S7b spinning= 16 (GOMAXPROCS=16)  overshoot p50=786µs max=30.903ms  neighbour warm call p50=999µs max=2.527ms
+S7b spinning= 32 (GOMAXPROCS=16)  overshoot p50=84.735ms max=161.289ms  neighbour warm call p50=631µs max=199.21ms
+S7b spinning= 64 (GOMAXPROCS=16)  overshoot p50=470.399ms max=1.890589s  neighbour warm call p50=0s max=36.051ms
+S12 sequential n=3000  p50=537µs p90=1.509ms p99=2.517ms max=8.878ms
+S12 concurrent workers=4 n=3000  p50=1.102ms p90=2.198ms p99=3.43ms  throughput=3262 req/s
+S7b spinning= 16 (GOMAXPROCS=16)  overshoot p50=18.979ms max=18.979ms  neighbour warm call p50=0s max=3.523ms
+S7b spinning= 32 (GOMAXPROCS=16)  overshoot p50=72.964ms max=216.226ms  neighbour warm call p50=938µs max=15.561ms
+S7b spinning= 64 (GOMAXPROCS=16)  overshoot p50=40.411ms max=47.287ms  neighbour warm call p50=1ms max=80.176ms
+S12 sequential n=3000  p50=571µs p90=1.514ms p99=2.54ms max=12.683ms
+S12 concurrent workers=4 n=3000  p50=1.027ms p90=2.019ms p99=3.042ms  throughput=3585 req/s

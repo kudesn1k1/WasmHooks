@@ -1,0 +1,92 @@
+goos: linux
+goarch: amd64
+pkg: github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt
+cpu: AMD EPYC 9V74 80-Core Processor                
+BenchmarkCompile/distinct-4   	      19	  62055501 ns/op	11875086 B/op	   20737 allocs/op
+BenchmarkCompile/distinct-4   	      19	  62231945 ns/op	11873905 B/op	   20737 allocs/op
+BenchmarkCompile/distinct-4   	      19	  61293330 ns/op	11873861 B/op	   20737 allocs/op
+BenchmarkCompile/distinct-4   	      19	  65641488 ns/op	11874016 B/op	   20738 allocs/op
+BenchmarkCompile/distinct-4   	      19	  61376499 ns/op	11874056 B/op	   20738 allocs/op
+BenchmarkCompile/distinct-4   	      19	  60730942 ns/op	11873806 B/op	   20737 allocs/op
+BenchmarkCompile/distinct-4   	      19	  60746211 ns/op	11873837 B/op	   20736 allocs/op
+BenchmarkCompile/distinct-4   	      19	  60646230 ns/op	11873854 B/op	   20736 allocs/op
+BenchmarkCompile/distinct-4   	      19	  60918010 ns/op	11873785 B/op	   20736 allocs/op
+BenchmarkCompile/distinct-4   	      19	  60666317 ns/op	11873862 B/op	   20737 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60849330 ns/op	11734286 B/op	   20725 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60973485 ns/op	11734349 B/op	   20725 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  61718735 ns/op	11734441 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60874887 ns/op	11734434 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60532552 ns/op	11734364 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60756899 ns/op	11734429 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60613768 ns/op	11734534 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      20	  61360869 ns/op	11734484 B/op	   20726 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60652547 ns/op	11734273 B/op	   20725 allocs/op
+BenchmarkCompile/same/noCache-4         	      19	  60434000 ns/op	11734381 B/op	   20726 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     126	   9360751 ns/op	 6875702 B/op	   11324 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     123	   9536765 ns/op	 6876631 B/op	   11326 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     128	   9204962 ns/op	 6875025 B/op	   11322 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     127	   9310670 ns/op	 6875366 B/op	   11323 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     127	   9327500 ns/op	 6875300 B/op	   11323 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     127	   9228779 ns/op	 6875335 B/op	   11323 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     123	   9598897 ns/op	 6876582 B/op	   11325 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     124	   9479531 ns/op	 6876230 B/op	   11325 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     124	   9497511 ns/op	 6876278 B/op	   11325 allocs/op
+BenchmarkCompile/same/sharedCache-4     	     127	   9312743 ns/op	 6875361 B/op	   11323 allocs/op
+BenchmarkInstantiate-4                  	    2522	    429617 ns/op	 2188843 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3163	    424102 ns/op	 2188836 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3045	    447566 ns/op	 2188840 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3012	    436790 ns/op	 2188823 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3175	    404813 ns/op	 2188820 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3334	    436769 ns/op	 2188832 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    2803	    488538 ns/op	 2188844 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3489	    432854 ns/op	 2188836 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    2260	    499572 ns/op	 2188864 B/op	     477 allocs/op
+BenchmarkInstantiate-4                  	    3464	    465517 ns/op	 2188850 B/op	     477 allocs/op
+BenchmarkCallWarm-4                     	    5444	    219127 ns/op	  504365 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    4890	    222548 ns/op	  504380 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    4792	    215276 ns/op	  504379 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    5782	    215711 ns/op	  504327 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    5114	    215494 ns/op	  504358 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    5470	    221428 ns/op	  504340 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    4802	    217824 ns/op	  504376 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    5194	    209003 ns/op	  504354 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    5533	    222627 ns/op	  504339 B/op	     277 allocs/op
+BenchmarkCallWarm-4                     	    4798	    219107 ns/op	  504377 B/op	     277 allocs/op
+BenchmarkCallCold-4                     	     668	   1654949 ns/op	 4093984 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     795	   1525189 ns/op	 4093950 B/op	     757 allocs/op
+BenchmarkCallCold-4                     	     757	   1583216 ns/op	 4093967 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     770	   1558230 ns/op	 4093982 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     886	   1584929 ns/op	 4093928 B/op	     757 allocs/op
+BenchmarkCallCold-4                     	     771	   1581204 ns/op	 4093990 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     775	   1537860 ns/op	 4093960 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     844	   1497718 ns/op	 4093956 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     760	   1589079 ns/op	 4093977 B/op	     758 allocs/op
+BenchmarkCallCold-4                     	     925	   1574016 ns/op	 4093959 B/op	     758 allocs/op
+BenchmarkCallWarmParallel-4             	   15631	     66340 ns/op	  505667 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   17540	     63808 ns/op	  505480 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   15686	     65408 ns/op	  505666 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   15644	     69070 ns/op	  505665 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   15403	     66686 ns/op	  505689 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   17968	     64492 ns/op	  505445 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   15510	     67369 ns/op	  505678 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   18073	     67731 ns/op	  505437 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   18050	     65565 ns/op	  505440 B/op	     278 allocs/op
+BenchmarkCallWarmParallel-4             	   18488	     61978 ns/op	  505404 B/op	     278 allocs/op
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	95.556s
+goos: linux
+goarch: amd64
+pkg: github.com/kudesn1k1/WasmHooks/dataplane/internal/schema
+cpu: AMD EPYC 9V74 80-Core Processor                
+BenchmarkValidate-4   	  414884	      2836 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  393218	      2836 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  394710	      2860 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  392756	      2848 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  398931	      2869 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  398757	      2842 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  409386	      2851 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  402207	      2954 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  390948	      2859 ns/op	    2896 B/op	      39 allocs/op
+BenchmarkValidate-4   	  394834	      2910 ns/op	    2896 B/op	      39 allocs/op
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/schema	11.772s

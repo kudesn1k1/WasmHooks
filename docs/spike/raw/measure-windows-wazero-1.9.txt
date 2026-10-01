@@ -1,0 +1,23 @@
+S5 instances=   1  heap/instance idle=2.06 MiB  after first call=2.40 MiB
+S5 instances=  10  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+S5 instances= 100  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+S5 instances= 500  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+S6 modules=  1  compile avg=89.588ms  heap/module=0.52 MiB  warm call p50=104µs p99=1.832ms
+S6 modules= 10  compile avg=103.815ms  heap/module=0.28 MiB  warm call p50=0s p99=1.646ms
+S6 modules= 50  compile avg=87.14ms  heap/module=0.24 MiB  warm call p50=0s p99=1.572ms
+S6 modules=100  compile avg=76.522ms  heap/module=0.23 MiB  warm call p50=0s p99=1.528ms
+S7 timeout=10ms  overshoot p50=264µs p99=851µs max=5.926ms  dead after timeout=30/30
+S7 timeout=50ms  overshoot p50=381µs p99=1.236ms max=1.781ms  dead after timeout=30/30
+S7 timeout=100ms  overshoot p50=406µs p99=677µs max=968µs  dead after timeout=30/30
+S8 limit=  64 pages (   4 MiB)  time to trap p50=1.516ms max=2.581ms  err=sandbox: wasm trap: wasm error: unreachable
+S8 limit= 256 pages (  16 MiB)  time to trap p50=16.166ms max=21.597ms  err=sandbox: wasm trap: wasm error: unreachable
+S8 limit=1024 pages (  64 MiB)  time to trap p50=74.127ms max=104.791ms  err=sandbox: wasm trap: wasm error: unreachable
+S11 discount       imports=[config_get length load_u64 load_u8 input_length input_load_u64 input_load_u8 error_set get_log_level log_info output_set alloc store_u64 store_u8]
+S11 counter        imports=[input_length input_load_u64 input_load_u8 error_set output_set alloc store_u64 store_u8]
+S11 echo-config    imports=[input_length input_load_u64 input_load_u8 error_set config_get length load_u64 load_u8 output_set alloc store_u64 store_u8]
+S11 guest-error    imports=[input_length input_load_u64 input_load_u8 error_set alloc store_u64 store_u8]
+S11 infinite-loop  imports=[input_length input_load_u64 input_load_u8]
+S11 memory-bomb    imports=[input_length input_load_u64 input_load_u8 alloc store_u64 store_u8 error_set]
+S11 bad-output     imports=[input_length input_load_u64 input_load_u8 output_set error_set alloc store_u64 store_u8]
+S11 http-call      imports=[input_length input_load_u64 input_load_u8 error_set http_request http_status_code length_unsafe http_headers length load_u64 load_u8 free output_set alloc store_u64 store_u8]
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	22.851s

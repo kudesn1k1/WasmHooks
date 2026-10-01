@@ -1,0 +1,66 @@
+goos: windows
+goarch: amd64
+pkg: github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt
+cpu: 12th Gen Intel(R) Core(TM) i5-1240P
+BenchmarkCompile/sharedCache=false-16         	      13	  85836854 ns/op	 9549034 B/op	   20246 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      14	  79332593 ns/op	 9546947 B/op	   20244 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      14	  80867179 ns/op	 9546768 B/op	   20244 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      13	  91311100 ns/op	 9546777 B/op	   20243 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      15	  91372393 ns/op	 9546403 B/op	   20243 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      14	  85928957 ns/op	 9546924 B/op	   20244 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      15	  82334560 ns/op	 9546748 B/op	   20244 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      14	  83840736 ns/op	 9546550 B/op	   20243 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      13	  86258485 ns/op	 9546566 B/op	   20243 allocs/op
+BenchmarkCompile/sharedCache=false-16         	      13	  93506131 ns/op	 9546388 B/op	   20243 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      96	  12042988 ns/op	 4700389 B/op	   10868 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      98	  12003620 ns/op	 4699320 B/op	   10866 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      97	  12180805 ns/op	 4699859 B/op	   10867 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      90	  12754992 ns/op	 4703785 B/op	   10875 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      96	  12085129 ns/op	 4700428 B/op	   10868 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      81	  12629596 ns/op	 4709864 B/op	   10887 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      94	  12337736 ns/op	 4701454 B/op	   10870 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      88	  12848256 ns/op	 4704982 B/op	   10877 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      96	  11718185 ns/op	 4700369 B/op	   10868 allocs/op
+BenchmarkCompile/sharedCache=true-16          	      90	  12163371 ns/op	 4703808 B/op	   10875 allocs/op
+BenchmarkInstantiate-16                       	     783	   1799024 ns/op	 2190641 B/op	     480 allocs/op
+BenchmarkInstantiate-16                       	     688	   1906356 ns/op	 2190737 B/op	     480 allocs/op
+BenchmarkInstantiate-16                       	     618	   1784196 ns/op	 2190829 B/op	     479 allocs/op
+BenchmarkInstantiate-16                       	     814	   1721541 ns/op	 2190846 B/op	     479 allocs/op
+BenchmarkInstantiate-16                       	     699	   1597604 ns/op	 2190857 B/op	     479 allocs/op
+BenchmarkInstantiate-16                       	     756	   1423731 ns/op	 2190760 B/op	     480 allocs/op
+BenchmarkInstantiate-16                       	     850	   1551393 ns/op	 2190941 B/op	     479 allocs/op
+BenchmarkInstantiate-16                       	     667	   1934249 ns/op	 2190832 B/op	     480 allocs/op
+BenchmarkInstantiate-16                       	     784	   1747808 ns/op	 2190917 B/op	     479 allocs/op
+BenchmarkInstantiate-16                       	     633	   1671410 ns/op	 2190876 B/op	     479 allocs/op
+BenchmarkCallWarm-16                          	    3170	    319067 ns/op	  505067 B/op	     280 allocs/op
+BenchmarkCallWarm-16                          	    5094	    293653 ns/op	  504769 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    4890	    269824 ns/op	  504868 B/op	     280 allocs/op
+BenchmarkCallWarm-16                          	    3926	    296240 ns/op	  504791 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    4641	    299500 ns/op	  504736 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    4527	    283371 ns/op	  504736 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    4210	    279485 ns/op	  504767 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    4010	    316528 ns/op	  504775 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    3684	    306544 ns/op	  504816 B/op	     279 allocs/op
+BenchmarkCallWarm-16                          	    3444	    357103 ns/op	  504838 B/op	     279 allocs/op
+BenchmarkCallCold-16                          	     729	   1507016 ns/op	 4095532 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     806	   1397038 ns/op	 4095501 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     738	   1578750 ns/op	 4095511 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     925	   1366748 ns/op	 4095467 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     855	   1495573 ns/op	 4095499 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     910	   1350445 ns/op	 4095481 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     768	   1585586 ns/op	 4095525 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     644	   1584075 ns/op	 4095512 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     894	   1325196 ns/op	 4095455 B/op	     761 allocs/op
+BenchmarkCallCold-16                          	     859	   1368502 ns/op	 4095417 B/op	     761 allocs/op
+BenchmarkCallWarmParallel-16                  	   12138	     89245 ns/op	  509693 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   13360	     93545 ns/op	  509184 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12886	     91667 ns/op	  509375 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12951	     90567 ns/op	  509345 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12562	    100067 ns/op	  509506 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   11595	     89684 ns/op	  509959 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12284	     96117 ns/op	  509626 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12124	     90043 ns/op	  509700 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12990	    102157 ns/op	  509330 B/op	     281 allocs/op
+BenchmarkCallWarmParallel-16                  	   12589	     93900 ns/op	  509494 B/op	     281 allocs/op
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	89.901s
