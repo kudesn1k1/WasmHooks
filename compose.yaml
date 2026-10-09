@@ -1,0 +1,59 @@
+name: wasmhooks
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${PG_USER:-wasmhooks}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-wasmhooks}
+      POSTGRES_DB: ${PG_DB:-controlplane}
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      retries: 30
+  minio:
+    # Official MinIO images are no longer published on Docker Hub or quay.io.
+    # Chainguard builds MinIO from source and keeps the image updated. Its
+    # non-root user cannot initialise the data directory, so this dev-only
+    # container runs as root.
+    image: chainguard/minio:latest
+    user: "0"
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
+    ports: ["127.0.0.1:9001:9001"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      retries: 30
+  minio-init:
+    image: chainguard/minio-client:latest
+    depends_on: { minio: { condition: service_healthy } }
+    environment:
+      MC_HOST_local: http://${S3_ACCESS_KEY:-minioadmin}:${S3_SECRET_KEY:-minioadmin}@minio:9000
+    command: ["mb", "--ignore-existing", "local/modules"]
+  control-plane-migrate:
+    build: ./control-plane
+    command: ["controlplane", "migrate"]
+    environment: &cp-env
+      CP_DATABASE_URL: postgresql+asyncpg://${PG_USER:-wasmhooks}:${PG_PASSWORD:-wasmhooks}@postgres:5432/${PG_DB:-controlplane}
+      CP_INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token-change-me}
+      CP_TENANT_JWT_SECRET: ${TENANT_JWT_SECRET:-dev-tenant-jwt-secret-change-me-0123456789}
+      CP_S3_ENDPOINT: http://minio:9000
+      CP_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      CP_S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+      CP_DATAPLANE_INTERNAL_URL: http://dataplane:8081
+    depends_on: { postgres: { condition: service_healthy } }
+  control-plane:
+    build: ./control-plane
+    environment: *cp-env
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: ["./dataplane/testdata/wasm:/fixtures:ro"]
+    depends_on:
+      control-plane-migrate: { condition: service_completed_successfully }
+      minio-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=2)"]
+      interval: 2s
+      retries: 30
