@@ -58,3 +58,27 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/readyz', timeout=2)"]
       interval: 2s
       retries: 30
+  dataplane:
+    build: ./dataplane
+    command:
+      - -control-plane-url=http://control-plane:8000
+      - -s3-endpoint=minio:9000
+      - -s3-insecure
+      - -internal-listen=:8081
+    environment:
+      WASMHOOKS_INTERNAL_TOKEN: ${INTERNAL_TOKEN:-dev-internal-token-change-me}
+      WASMHOOKS_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
+      WASMHOOKS_S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
+    # Only the public port is published; the internal API (:8081, module
+    # validation) is reachable inside the compose network alone.
+    ports: ["127.0.0.1:8080:8080"]
+    # Deliberately not on control-plane: the data plane must keep running
+    # and serving its last snapshot while the control plane is down.
+    depends_on:
+      minio-init: { condition: service_completed_successfully }
+    # healthz (process alive), not readyz: readyz is 503 until the first
+    # snapshot, which would tie `up --wait` to the control plane.
+    healthcheck:
+      test: ["CMD", "/dataplane", "probe", "http://localhost:8080/healthz"]
+      interval: 2s
+      retries: 30
