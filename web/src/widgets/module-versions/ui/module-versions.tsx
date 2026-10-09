@@ -19,7 +19,7 @@ import {
 
 type Props = {
   hook: string;
-  binding: Binding | null;
+  binding?: Binding | null;
 };
 
 function ModuleAction({ hook, module, active }: { hook: string; module: Module; active?: Module }) {

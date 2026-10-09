@@ -237,7 +237,7 @@ export function tickInvocations() {
   const last = db.invocations.at(-1);
   const binding = db.bindings.get("checkout.discount");
   if (!last || !binding || Date.now() - Date.parse(last.ts) < 4_000) return;
-  db.invocations.push(makeInvocation(last.seq + 1, new Date(), binding.active_module_hash));
+  db.invocations.push(makeInvocation(last.seq + 1, new Date(), binding.active_module_hash ?? null));
 }
 
 export function publicModule(mod: PendingModule): Module {

@@ -16,8 +16,8 @@ export const hookSchema = z.object({
 export type Hook = z.infer<typeof hookSchema>;
 
 export const bindingSchema = z.object({
-  active_module_id: z.string().nullable(),
-  active_module_hash: z.string().nullable(),
+  active_module_id: z.string().nullish(),
+  active_module_hash: z.string().nullish(),
   config: z.record(z.string(), z.string()),
   config_version: z.number().int(),
   updated_at: z.iso.datetime({ offset: true }),
@@ -26,7 +26,7 @@ export type Binding = z.infer<typeof bindingSchema>;
 
 export const tenantHookSchema = z.object({
   hook: hookSchema,
-  binding: bindingSchema.nullable(),
+  binding: bindingSchema.nullish(),
 });
 export type TenantHook = z.infer<typeof tenantHookSchema>;
 
