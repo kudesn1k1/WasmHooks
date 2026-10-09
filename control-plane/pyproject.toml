@@ -17,6 +17,7 @@ dependencies = [
   "httpx>=0.28",
   "jsonschema>=4.23",
   "pyyaml>=6.0",
+  "python-multipart>=0.0.12",
 ]
 
 [project.scripts]
