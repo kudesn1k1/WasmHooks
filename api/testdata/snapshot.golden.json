@@ -1,0 +1,97 @@
+{
+  "version": 2,
+  "api_keys": [
+    {
+      "id": "key_golden",
+      "name": "golden",
+      "sha256": "0587b9b1d34c0a80d2dd46622889396752519f8cc69d63806e01fe87484faa38"
+    }
+  ],
+  "hooks": [
+    {
+      "name": "checkout.discount",
+      "def_version": 1,
+      "input_schema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "required": [
+          "cart_total",
+          "customer"
+        ],
+        "properties": {
+          "customer": {
+            "type": "object",
+            "required": [
+              "id",
+              "lifetime_spend"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "lifetime_spend": {
+                "type": "number"
+              }
+            }
+          },
+          "cart_total": {
+            "type": "number"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "required": [
+          "discount_percent",
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "discount_percent": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 0
+          }
+        }
+      },
+      "timeout_ms": 50,
+      "memory_max_pages": 64,
+      "allowed_host_functions": [],
+      "allowed_effect_types": [],
+      "sample_input": {
+        "customer": {
+          "id": "c-1",
+          "lifetime_spend": 1500
+        },
+        "cart_total": 120.5
+      }
+    }
+  ],
+  "tenants": [
+    {
+      "external_id": "merchant-a",
+      "concurrency_limit": 4,
+      "rate_limit_rps": 100
+    },
+    {
+      "external_id": "merchant-z",
+      "concurrency_limit": 0,
+      "rate_limit_rps": 0
+    }
+  ],
+  "bindings": [
+    {
+      "tenant_id": "merchant-a",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "config": {
+        "percent": "10",
+        "threshold": "1000"
+      },
+      "config_version": 1
+    }
+  ]
+}

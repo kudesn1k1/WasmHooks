@@ -11,8 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from sqlalchemy import insert, update
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
+from controlplane.configstate.version import bump_config_version
 from controlplane.tables import api_keys, bindings, hooks, modules, tenants
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -143,3 +144,24 @@ async def revoke_key(conn: AsyncConnection, key_id: str) -> None:
     await conn.execute(
         update(api_keys).where(api_keys.c.id == key_id).values(revoked_at=datetime.now(UTC))
     )
+
+
+async def bump(engine: AsyncEngine, kind: str = "test") -> int:
+    async with engine.begin() as conn:
+        return await bump_config_version(conn, kind, {})
+
+
+async def seed_full(engine: AsyncEngine) -> None:
+    """One of everything the snapshot shows, plus rows it must hide."""
+    async with engine.begin() as conn:
+        await add_api_key(conn, "key_b", "b", "whk_b")
+        await add_api_key(conn, "key_a", "a", "whk_a")
+        await add_api_key(conn, "key_revoked", "revoked", "whk_revoked", revoked=True)
+        hook = await add_hook(conn, "checkout.discount")
+        await add_hook(conn, "order.validate")
+        a = await add_tenant(conn, "merchant-a", concurrency_limit=4, rate_limit_rps=100)
+        b = await add_tenant(conn, "merchant-b")
+        module = await add_module(conn, a, hook, wasm_hash("discount.wasm"))
+        await add_binding(conn, a, hook, module, {"threshold": "1000", "percent": "10"})
+        await add_binding(conn, b, hook, None)  # no active module: not in the snapshot
+        await bump_config_version(conn, "test.seed", {})
