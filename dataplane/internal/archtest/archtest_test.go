@@ -42,7 +42,7 @@ var rules = map[string]rule{
 }
 
 // exempt packages are test helpers and this package itself.
-var exempt = []string{"archtest", "sandbox/sandboxtest"}
+var exempt = []string{"archtest", "sandbox/sandboxtest", "modstore/storetest"}
 
 type goPackage struct {
 	ImportPath string

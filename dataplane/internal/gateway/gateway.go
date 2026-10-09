@@ -89,6 +89,11 @@ func scriptRan(res execproto.ExecuteResult) bool {
 	return false
 }
 
+// ConfigLoaded reports whether a config snapshot has been applied. Until then
+// nothing can be served, not even authentication: API keys arrive in the
+// snapshot too.
+func (g *Gateway) ConfigLoaded() bool { return g.cfg.Current() != nil }
+
 // Authenticate reports whether token is a valid API key of this installation.
 func (g *Gateway) Authenticate(token string) bool {
 	v := g.cfg.Current()
