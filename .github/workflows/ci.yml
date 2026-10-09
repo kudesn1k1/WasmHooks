@@ -77,3 +77,7 @@ jobs:
       - run: uv run ruff check .
       - run: uv run mypy
       - run: uv run pytest -q
+      - name: openapi drift
+        run: |
+          uv run controlplane openapi > /tmp/control-plane.openapi.yaml
+          diff -u ../api/control-plane.openapi.yaml /tmp/control-plane.openapi.yaml

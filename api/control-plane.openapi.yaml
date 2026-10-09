@@ -1,0 +1,1319 @@
+openapi: 3.1.0
+info:
+  title: WasmHooks Control Plane API
+  description: 'API консолей оператора и тенанта. Владелец контракта: backend, Python
+    (docs/TEAM.md); файл api/control-plane.openapi.yaml генерируется из кода командой
+    `controlplane openapi`.'
+  version: 0.1.0
+paths:
+  /api/v1/tenants/{external_id}/console-sessions:
+    post:
+      tags:
+      - tenant console sessions
+      summary: Выписать токен консоли тенанта
+      description: Бэкенд оператора выписывает короткоживущий токен для своего тенанта
+        и передаёт его в браузер тенанта; консоль тенанта ходит с ним как с Bearer-токеном
+        (решение D18).
+      operationId: create_console_session_api_v1_tenants__external_id__console_sessions_post
+      security:
+      - operatorKey: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsoleSession'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/hooks:
+    get:
+      tags:
+      - hooks
+      summary: Список хуков
+      operationId: list_hooks_api_v1_hooks_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HookList'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+    post:
+      tags:
+      - hooks
+      summary: Создать хук
+      operationId: create_hook_api_v1_hooks_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HookCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+  /api/v1/hooks/{name}:
+    get:
+      tags:
+      - hooks
+      summary: Определение хука
+      operationId: get_hook_api_v1_hooks__name__get
+      security:
+      - operatorKey: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    put:
+      tags:
+      - hooks
+      summary: Заменить определение хука
+      description: Полная замена определения; имя неизменно. Без изменений — ответ
+        без роста def_version. Списки разрешённых host-функций и эффектов могут только
+        расти.
+      operationId: replace_hook_api_v1_hooks__name__put
+      security:
+      - operatorKey: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HookSpec'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Hook'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/tenants:
+    get:
+      tags:
+      - tenants
+      summary: Список тенантов
+      description: Реализуется в T1, см. docs/handoff/backend.md.
+      operationId: list_tenants_api_v1_tenants_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantList'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+    post:
+      tags:
+      - tenants
+      summary: Создать тенанта
+      description: Реализуется в T1, см. docs/handoff/backend.md.
+      operationId: create_tenant_api_v1_tenants_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+  /api/v1/tenants/{external_id}:
+    get:
+      tags:
+      - tenants
+      summary: Получить тенанта
+      description: Реализуется в T1, см. docs/handoff/backend.md.
+      operationId: get_tenant_api_v1_tenants__external_id__get
+      security:
+      - operatorKey: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    patch:
+      tags:
+      - tenants
+      summary: Изменить тенанта
+      description: Реализуется в T1, см. docs/handoff/backend.md.
+      operationId: patch_tenant_api_v1_tenants__external_id__patch
+      security:
+      - operatorKey: []
+      parameters:
+      - name: external_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: External Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tenant'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/api-keys:
+    get:
+      tags:
+      - api-keys
+      summary: Список ключей
+      description: Реализуется в T2, см. docs/handoff/backend.md.
+      operationId: list_api_keys_api_v1_api_keys_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyList'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+    post:
+      tags:
+      - api-keys
+      summary: Выпустить ключ
+      description: Реализуется в T2, см. docs/handoff/backend.md. Токен показывается
+        один раз.
+      operationId: create_api_key_api_v1_api_keys_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApiKeyCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreated'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - operatorKey: []
+  /api/v1/api-keys/{key_id}:
+    delete:
+      tags:
+      - api-keys
+      summary: Отозвать ключ
+      description: Реализуется в T2, см. docs/handoff/backend.md.
+      operationId: revoke_api_key_api_v1_api_keys__key_id__delete
+      security:
+      - operatorKey: []
+      parameters:
+      - name: key_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Key Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/tenant/hooks:
+    get:
+      tags:
+      - tenant
+      summary: Хуки тенанта
+      description: Реализуется в T6, см. docs/handoff/backend.md.
+      operationId: list_hooks_api_v1_tenant_hooks_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantHookList'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      security:
+      - tenantToken: []
+  /api/v1/tenant/hooks/{hook}:
+    get:
+      tags:
+      - tenant
+      summary: Хук тенанта
+      description: Реализуется в T6, см. docs/handoff/backend.md.
+      operationId: get_hook_api_v1_tenant_hooks__hook__get
+      security:
+      - tenantToken: []
+      parameters:
+      - name: hook
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Hook
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantHook'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/tenant/hooks/{hook}/modules:
+    get:
+      tags:
+      - tenant
+      summary: Версии модуля хука
+      description: Реализуется в T3, см. docs/handoff/backend.md.
+      operationId: list_modules_api_v1_tenant_hooks__hook__modules_get
+      security:
+      - tenantToken: []
+      parameters:
+      - name: hook
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Hook
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModuleList'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    post:
+      tags:
+      - tenant
+      summary: Загрузить версию модуля
+      description: Тело multipart/form-data, поле file. Реализуется в T3, см. docs/handoff/backend.md.
+      operationId: upload_module_api_v1_tenant_hooks__hook__modules_post
+      security:
+      - tenantToken: []
+      parameters:
+      - name: hook
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Hook
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_module_api_v1_tenant_hooks__hook__modules_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Module'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/tenant/hooks/{hook}/binding:
+    put:
+      tags:
+      - tenant
+      summary: Изменить привязку хука
+      description: Активная версия и/или конфиг. Реализуется в T5, см. docs/handoff/backend.md.
+      operationId: update_binding_api_v1_tenant_hooks__hook__binding_put
+      security:
+      - tenantToken: []
+      parameters:
+      - name: hook
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Hook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BindingUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenantBinding'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Не авторизован
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  schemas:
+    ApiKey:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        revoked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Revoked At
+      type: object
+      required:
+      - id
+      - name
+      - created_at
+      - revoked_at
+      title: ApiKey
+    ApiKeyCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Name
+      type: object
+      required:
+      - name
+      title: ApiKeyCreate
+    ApiKeyCreated:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        revoked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Revoked At
+        token:
+          type: string
+          title: Token
+      type: object
+      required:
+      - id
+      - name
+      - created_at
+      - revoked_at
+      - token
+      title: ApiKeyCreated
+    ApiKeyList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ApiKey'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ApiKeyList
+    BindingUpdate:
+      properties:
+        active_module_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Module Id
+        config:
+          anyOf:
+          - additionalProperties:
+              type: string
+            type: object
+          - type: 'null'
+          title: Config
+      additionalProperties: false
+      type: object
+      title: BindingUpdate
+    Body_upload_module_api_v1_tenant_hooks__hook__modules_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_module_api_v1_tenant_hooks__hook__modules_post
+    ConsoleSession:
+      properties:
+        token:
+          type: string
+          title: Token
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+      type: object
+      required:
+      - token
+      - expires_at
+      title: ConsoleSession
+    Hook:
+      properties:
+        input_schema:
+          additionalProperties: true
+          type: object
+          title: Input Schema
+          description: JSON Schema (draft 2020-12) of the payload operators send.
+        output_schema:
+          additionalProperties: true
+          type: object
+          title: Output Schema
+          description: JSON Schema (draft 2020-12) of the result scripts return.
+        timeout_ms:
+          type: integer
+          maximum: 30000.0
+          minimum: 1.0
+          title: Timeout Ms
+          description: Time limit of one call.
+        memory_max_pages:
+          type: integer
+          maximum: 16384.0
+          minimum: 16.0
+          title: Memory Max Pages
+          description: Linear memory limit in 64 KiB pages.
+        allowed_host_functions:
+          items:
+            type: string
+          type: array
+          title: Allowed Host Functions
+          description: Host functions scripts may import. Only grows.
+        allowed_effect_types:
+          items:
+            type: string
+          type: array
+          title: Allowed Effect Types
+          description: Effect types scripts may return. Only grows.
+        sample_input:
+          additionalProperties: true
+          type: object
+          title: Sample Input
+          description: A payload matching input_schema, used to validate uploaded
+            scripts.
+        name:
+          type: string
+          maxLength: 128
+          pattern: ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$
+          title: Name
+        def_version:
+          type: integer
+          title: Def Version
+          description: Grows by one on every change of the definition.
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      additionalProperties: false
+      type: object
+      required:
+      - input_schema
+      - output_schema
+      - timeout_ms
+      - memory_max_pages
+      - sample_input
+      - name
+      - def_version
+      - created_at
+      - updated_at
+      title: Hook
+    HookCreate:
+      properties:
+        input_schema:
+          additionalProperties: true
+          type: object
+          title: Input Schema
+          description: JSON Schema (draft 2020-12) of the payload operators send.
+        output_schema:
+          additionalProperties: true
+          type: object
+          title: Output Schema
+          description: JSON Schema (draft 2020-12) of the result scripts return.
+        timeout_ms:
+          type: integer
+          maximum: 30000.0
+          minimum: 1.0
+          title: Timeout Ms
+          description: Time limit of one call.
+        memory_max_pages:
+          type: integer
+          maximum: 16384.0
+          minimum: 16.0
+          title: Memory Max Pages
+          description: Linear memory limit in 64 KiB pages.
+        allowed_host_functions:
+          items:
+            type: string
+          type: array
+          title: Allowed Host Functions
+          description: Host functions scripts may import. Only grows.
+        allowed_effect_types:
+          items:
+            type: string
+          type: array
+          title: Allowed Effect Types
+          description: Effect types scripts may return. Only grows.
+        sample_input:
+          additionalProperties: true
+          type: object
+          title: Sample Input
+          description: A payload matching input_schema, used to validate uploaded
+            scripts.
+        name:
+          type: string
+          maxLength: 128
+          pattern: ^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$
+          title: Name
+      additionalProperties: false
+      type: object
+      required:
+      - input_schema
+      - output_schema
+      - timeout_ms
+      - memory_max_pages
+      - sample_input
+      - name
+      title: HookCreate
+      description: 'The body of POST: a spec plus the hook''s name.'
+    HookList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Hook'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: HookList
+    HookSpec:
+      properties:
+        input_schema:
+          additionalProperties: true
+          type: object
+          title: Input Schema
+          description: JSON Schema (draft 2020-12) of the payload operators send.
+        output_schema:
+          additionalProperties: true
+          type: object
+          title: Output Schema
+          description: JSON Schema (draft 2020-12) of the result scripts return.
+        timeout_ms:
+          type: integer
+          maximum: 30000.0
+          minimum: 1.0
+          title: Timeout Ms
+          description: Time limit of one call.
+        memory_max_pages:
+          type: integer
+          maximum: 16384.0
+          minimum: 16.0
+          title: Memory Max Pages
+          description: Linear memory limit in 64 KiB pages.
+        allowed_host_functions:
+          items:
+            type: string
+          type: array
+          title: Allowed Host Functions
+          description: Host functions scripts may import. Only grows.
+        allowed_effect_types:
+          items:
+            type: string
+          type: array
+          title: Allowed Effect Types
+          description: Effect types scripts may return. Only grows.
+        sample_input:
+          additionalProperties: true
+          type: object
+          title: Sample Input
+          description: A payload matching input_schema, used to validate uploaded
+            scripts.
+      additionalProperties: false
+      type: object
+      required:
+      - input_schema
+      - output_schema
+      - timeout_ms
+      - memory_max_pages
+      - sample_input
+      title: HookSpec
+      description: 'Everything about a hook except its name: the body of PUT.'
+    HookView:
+      properties:
+        name:
+          type: string
+          title: Name
+        def_version:
+          type: integer
+          title: Def Version
+        input_schema:
+          additionalProperties: true
+          type: object
+          title: Input Schema
+        output_schema:
+          additionalProperties: true
+          type: object
+          title: Output Schema
+        timeout_ms:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Timeout Ms
+        memory_max_pages:
+          type: integer
+          exclusiveMinimum: 0.0
+          title: Memory Max Pages
+        allowed_host_functions:
+          items:
+            type: string
+          type: array
+          title: Allowed Host Functions
+        allowed_effect_types:
+          items:
+            type: string
+          type: array
+          title: Allowed Effect Types
+        sample_input:
+          title: Sample Input
+      type: object
+      required:
+      - name
+      - def_version
+      - input_schema
+      - output_schema
+      - timeout_ms
+      - memory_max_pages
+      - allowed_host_functions
+      - allowed_effect_types
+      title: HookView
+    Module:
+      properties:
+        id:
+          type: string
+          title: Id
+        hook:
+          type: string
+          title: Hook
+        content_hash:
+          type: string
+          title: Content Hash
+        size_bytes:
+          type: integer
+          title: Size Bytes
+        status:
+          type: string
+          enum:
+          - uploaded
+          - validating
+          - validated
+          - rejected
+          - archived
+          title: Status
+        validation_report:
+          anyOf:
+          - $ref: '#/components/schemas/ValidationReport'
+          - type: 'null'
+        uploaded_at:
+          type: string
+          format: date-time
+          title: Uploaded At
+      type: object
+      required:
+      - id
+      - hook
+      - content_hash
+      - size_bytes
+      - status
+      - validation_report
+      - uploaded_at
+      title: Module
+    ModuleList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Module'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ModuleList
+    Tenant:
+      properties:
+        external_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: External Id
+        name:
+          type: string
+          title: Name
+        rate_limit_rps:
+          type: integer
+          minimum: 0.0
+          title: Rate Limit Rps
+          default: 0
+        concurrency_limit:
+          type: integer
+          minimum: 0.0
+          title: Concurrency Limit
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - external_id
+      - name
+      - created_at
+      - updated_at
+      title: Tenant
+    TenantBinding:
+      properties:
+        active_module_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Module Id
+        active_module_hash:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Module Hash
+        config:
+          additionalProperties:
+            type: string
+          type: object
+          title: Config
+        config_version:
+          type: integer
+          title: Config Version
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - active_module_id
+      - active_module_hash
+      - config
+      - config_version
+      - updated_at
+      title: TenantBinding
+    TenantCreate:
+      properties:
+        external_id:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: External Id
+        name:
+          type: string
+          title: Name
+        rate_limit_rps:
+          type: integer
+          minimum: 0.0
+          title: Rate Limit Rps
+          default: 0
+        concurrency_limit:
+          type: integer
+          minimum: 0.0
+          title: Concurrency Limit
+          default: 0
+      type: object
+      required:
+      - external_id
+      - name
+      title: TenantCreate
+    TenantHook:
+      properties:
+        hook:
+          $ref: '#/components/schemas/HookView'
+        binding:
+          anyOf:
+          - $ref: '#/components/schemas/TenantBinding'
+          - type: 'null'
+      type: object
+      required:
+      - hook
+      - binding
+      title: TenantHook
+    TenantHookList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/TenantHook'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: TenantHookList
+    TenantList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Tenant'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: TenantList
+    TenantPatch:
+      properties:
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        rate_limit_rps:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Rate Limit Rps
+        concurrency_limit:
+          anyOf:
+          - type: integer
+            minimum: 0.0
+          - type: 'null'
+          title: Concurrency Limit
+      type: object
+      title: TenantPatch
+    ValidationCheck:
+      properties:
+        name:
+          type: string
+          enum:
+          - fetch
+          - compile
+          - exports
+          - imports
+          - sample_call
+          title: Name
+        ok:
+          type: boolean
+          title: Ok
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Detail
+      type: object
+      required:
+      - name
+      - ok
+      title: ValidationCheck
+    ValidationReport:
+      properties:
+        ok:
+          type: boolean
+          title: Ok
+        checks:
+          items:
+            $ref: '#/components/schemas/ValidationCheck'
+          type: array
+          title: Checks
+      type: object
+      required:
+      - ok
+      - checks
+      title: ValidationReport
+    Problem:
+      description: 'RFC 9457 problem details: the body of every error of this API.'
+      properties:
+        type:
+          default: about:blank
+          title: Type
+          type: string
+        title:
+          title: Title
+          type: string
+        status:
+          title: Status
+          type: integer
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Detail
+      required:
+      - title
+      - status
+      title: Problem
+      type: object
+  securitySchemes:
+    operatorKey:
+      type: http
+      scheme: bearer
+    tenantToken:
+      type: http
+      scheme: bearer
