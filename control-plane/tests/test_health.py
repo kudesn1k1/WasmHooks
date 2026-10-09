@@ -19,7 +19,7 @@ async def test_readyz_with_live_db(client: httpx.AsyncClient) -> None:
 async def test_readyz_without_db_is_503_problem() -> None:
     settings = Settings(
         database_url="postgresql+asyncpg://u:p@127.0.0.1:1/x",
-        internal_token="t",
+        internal_token="test-internal-token",
         tenant_jwt_secret="test-tenant-jwt-secret-0123456789abcdef",
     )
     app = create_app(settings)

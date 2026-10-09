@@ -26,7 +26,9 @@ from controlplane.settings import Settings
 def alembic_config(url: str) -> Config:
     cfg = Config()
     cfg.set_main_option("script_location", "controlplane:migrations")
-    cfg.set_main_option("sqlalchemy.url", url)
+    # ConfigParser interpolates %: a URL-encoded password (p%40ss) must be
+    # escaped, or alembic fails with "invalid interpolation syntax".
+    cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
     return cfg
 
 
@@ -56,7 +58,7 @@ def _openapi(_: argparse.Namespace) -> None:
     app = create_app(
         Settings(
             database_url="postgresql+asyncpg://openapi@localhost/none",
-            internal_token="openapi",  # noqa: S106 - placeholder, nothing is served
+            internal_token="openapi-placeholder",  # noqa: S106 - nothing is served
             tenant_jwt_secret="openapi-" + "x" * 32,
         )
     )

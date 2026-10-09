@@ -242,3 +242,23 @@ async def test_migration_matches_tables(engine: AsyncEngine) -> None:
     async with engine.connect() as conn:
         diffs = await conn.run_sync(_structural_diffs)
     assert diffs == []
+
+
+# Review 1, I1: arrays the snapshot cannot carry as a list of strings.
+@pytest.mark.parametrize(
+    "value",
+    ["ARRAY['discount', NULL]::text[]", "'{{a},{b}}'::text[]", "ARRAY[NULL]::text[]"],
+    ids=["null-element", "two-dimensional", "only-null"],
+)
+@pytest.mark.parametrize("column", ["allowed_host_functions", "allowed_effect_types"])
+async def test_hook_arrays_must_be_flat_without_nulls(
+    engine: AsyncEngine, column: str, value: str
+) -> None:
+    await insert_hook(engine, name="h")
+    await expect_rejected(engine, f"UPDATE hooks SET {column} = {value}")  # noqa: S608
+
+
+@pytest.mark.parametrize("value", ["'{}'::text[]", "ARRAY['a', 'b']"])
+async def test_hook_arrays_accepted(engine: AsyncEngine, value: str) -> None:
+    await insert_hook(engine, name="h")
+    await expect_accepted(engine, f"UPDATE hooks SET allowed_effect_types = {value}")  # noqa: S608

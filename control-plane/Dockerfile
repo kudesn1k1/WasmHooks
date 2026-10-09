@@ -8,4 +8,6 @@ COPY alembic.ini ./
 COPY src ./src
 RUN uv sync --locked --no-dev
 EXPOSE 8000
-CMD ["uvicorn", "--factory", "controlplane.app:create_app_from_env", "--host", "0.0.0.0", "--port", "8000"]
+# The data plane always holds a long-poll open; without a bounded graceful
+# shutdown every stop would wait for it and end in SIGKILL.
+CMD ["uvicorn", "--factory", "controlplane.app:create_app_from_env", "--host", "0.0.0.0", "--port", "8000", "--timeout-graceful-shutdown", "3"]

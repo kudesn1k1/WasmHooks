@@ -27,8 +27,13 @@ func TestControlPlaneGoldenSnapshot(t *testing.T) {
 	if b.Config["threshold"] != "1000" {
 		t.Fatalf("binding config = %v, want threshold 1000", b.Config)
 	}
-	if _, ok := v.Tenant("merchant-z"); !ok {
-		t.Fatal("tenant merchant-z missing")
+	z, ok := v.Binding("merchant-z", "checkout.discount")
+	if !ok || z.Config == nil || len(z.Config) != 0 {
+		t.Fatalf("binding merchant-z with an empty config = %+v, %v", z, ok)
+	}
+	h, ok := v.Hook("order.validate")
+	if !ok || len(h.AllowedEffectTypes) != 2 || len(h.AllowedHostFunctions) != 1 {
+		t.Fatalf("hook order.validate allowed lists = %+v", h)
 	}
 	if !v.AuthenticateToken("whk_golden") {
 		t.Fatal("golden API key does not authenticate")

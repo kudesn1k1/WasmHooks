@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from controlplane.auth.keys import hash_token
-from controlplane.auth.tenant_tokens import UNAUTHORIZED, TenantTokens
+from controlplane.auth.tenant_tokens import BEARER_CHALLENGE, UNAUTHORIZED, TenantTokens
 from controlplane.errors import ProblemError
 from controlplane.tables import api_keys
 
@@ -51,7 +51,7 @@ class InternalAuth:
         if credentials is None or not hmac.compare_digest(
             credentials.credentials.encode(), self._token
         ):
-            raise ProblemError(401, UNAUTHORIZED)
+            raise ProblemError(401, UNAUTHORIZED, headers=BEARER_CHALLENGE)
 
 
 class OperatorAuth:
@@ -63,7 +63,7 @@ class OperatorAuth:
         credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_operator_bearer)],
     ) -> OperatorPrincipal:
         if credentials is None:
-            raise ProblemError(401, UNAUTHORIZED)
+            raise ProblemError(401, UNAUTHORIZED, headers=BEARER_CHALLENGE)
         # Lookup by hash: the stored value is a SHA-256, so an index lookup
         # leaks nothing useful about the key through timing.
         async with self._engine.connect() as conn:
@@ -76,7 +76,7 @@ class OperatorAuth:
                 )
             ).scalar_one_or_none()
         if key_id is None:
-            raise ProblemError(401, UNAUTHORIZED)
+            raise ProblemError(401, UNAUTHORIZED, headers=BEARER_CHALLENGE)
         return OperatorPrincipal(key_id=key_id)
 
 
@@ -89,5 +89,5 @@ class TenantAuth:
         credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_tenant_bearer)],
     ) -> TenantPrincipal:
         if credentials is None:
-            raise ProblemError(401, UNAUTHORIZED)
+            raise ProblemError(401, UNAUTHORIZED, headers=BEARER_CHALLENGE)
         return TenantPrincipal(external_id=self._tokens.verify(credentials.credentials))

@@ -16,6 +16,8 @@ import jwt
 from controlplane.errors import ProblemError
 
 UNAUTHORIZED = "Не авторизован"
+# RFC 9110 11.6.1: a 401 names the scheme the client should use.
+BEARER_CHALLENGE = {"WWW-Authenticate": "Bearer"}
 
 
 @dataclass(frozen=True)
@@ -61,5 +63,5 @@ class TenantTokens:
                 options={"require": ["exp", "iat", "sub", "aud", "iss"]},
             )
         except jwt.PyJWTError as exc:
-            raise ProblemError(401, UNAUTHORIZED) from exc
+            raise ProblemError(401, UNAUTHORIZED, headers=BEARER_CHALLENGE) from exc
         return str(claims["sub"])

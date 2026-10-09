@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -37,24 +38,41 @@ PROBLEM_RESPONSES: dict[int | str, dict[str, Any]] = {
 
 
 class ProblemError(Exception):
-    def __init__(self, status: int, title: str, detail: str | None = None) -> None:
+    def __init__(
+        self,
+        status: int,
+        title: str,
+        detail: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(title)
         self.status = status
         self.title = title
         self.detail = detail
+        self.headers = headers
 
 
-def problem_response(status: int, title: str, detail: str | None = None) -> JSONResponse:
+def problem_response(
+    status: int,
+    title: str,
+    detail: str | None = None,
+    headers: Mapping[str, str] | None = None,
+) -> JSONResponse:
     body: dict[str, Any] = {"type": "about:blank", "title": title, "status": status}
     if detail is not None:
         body["detail"] = detail
-    return JSONResponse(body, status_code=status, media_type=PROBLEM_MEDIA_TYPE)
+    return JSONResponse(
+        body,
+        status_code=status,
+        media_type=PROBLEM_MEDIA_TYPE,
+        headers=dict(headers) if headers else None,
+    )
 
 
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ProblemError)
     async def _problem(_: Request, exc: ProblemError) -> JSONResponse:
-        return problem_response(exc.status, exc.title, exc.detail)
+        return problem_response(exc.status, exc.title, exc.detail, exc.headers)
 
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:
@@ -70,7 +88,12 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-        return problem_response(exc.status_code, str(exc.detail))
+        return problem_response(exc.status_code, str(exc.detail), headers=exc.headers)
+
+    @app.exception_handler(Exception)
+    async def _unexpected(_: Request, exc: Exception) -> JSONResponse:
+        # Starlette logs the exception; the client still gets problem+json.
+        return problem_response(500, "Внутренняя ошибка сервера")
 
     @app.exception_handler(NotImplementedError)
     async def _not_implemented(_: Request, exc: NotImplementedError) -> JSONResponse:

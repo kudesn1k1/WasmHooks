@@ -80,6 +80,12 @@ class SnapshotService:
         self._cached: tuple[int, bytes] | None = None
         self._lock = asyncio.Lock()
 
+    async def read(self) -> Snapshot:
+        """Reads the snapshot afresh, bypassing the cache, in one consistent
+        transaction."""
+        async with self._engine.begin() as conn:
+            return await read_snapshot(conn)
+
     async def current(self) -> tuple[int, bytes]:
         # Bounded staleness by design: the watcher lags the database by at most
         # one poll interval, and so may this answer. Long-poll waiters are woken
@@ -92,7 +98,6 @@ class SnapshotService:
             cached = self._cached
             if cached is not None and cached[0] >= self._watcher.current():
                 return cached
-            async with self._engine.begin() as conn:
-                snap = await read_snapshot(conn)
+            snap = await self.read()
             self._cached = (snap.version, snap.model_dump_json().encode())
             return self._cached

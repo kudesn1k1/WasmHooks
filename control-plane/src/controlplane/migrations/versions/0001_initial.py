@@ -53,6 +53,22 @@ def upgrade() -> None:
         """
     )
 
+    # True only for a one-dimensional array without NULL elements: the
+    # snapshot carries these columns as lists of strings.
+    op.execute(
+        """
+        CREATE FUNCTION flat_text_array(arr text[]) RETURNS boolean
+        LANGUAGE plpgsql IMMUTABLE STRICT AS $$
+        BEGIN
+            IF coalesce(array_ndims(arr), 1) <> 1 THEN
+                RETURN false;
+            END IF;
+            RETURN array_position(arr, NULL) IS NULL;
+        END
+        $$
+        """
+    )
+
     op.create_table(
         "config_state",
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=False),
@@ -114,6 +130,12 @@ def upgrade() -> None:
         sa.CheckConstraint("jsonb_typeof(input_schema) = 'object'", name="input_schema_object"),
         sa.CheckConstraint("jsonb_typeof(output_schema) = 'object'", name="output_schema_object"),
         sa.CheckConstraint("jsonb_typeof(sample_input) = 'object'", name="sample_input_object"),
+        sa.CheckConstraint(
+            "flat_text_array(allowed_host_functions)", name="allowed_host_functions_flat"
+        ),
+        sa.CheckConstraint(
+            "flat_text_array(allowed_effect_types)", name="allowed_effect_types_flat"
+        ),
     )
     op.create_table(
         "modules",
@@ -165,3 +187,4 @@ def downgrade() -> None:
     ):
         op.drop_table(table)
     op.execute("DROP FUNCTION jsonb_string_values(jsonb)")
+    op.execute("DROP FUNCTION flat_text_array(text[])")

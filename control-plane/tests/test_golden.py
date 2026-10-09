@@ -31,10 +31,20 @@ async def test_golden_snapshot(client: httpx.AsyncClient, engine: AsyncEngine) -
     async with engine.begin() as conn:
         await add_api_key(conn, "key_golden", "golden", "whk_golden")
         hook = await add_hook(conn, "checkout.discount")
+        await add_hook(
+            conn,
+            "order.validate",
+            allowed_host_functions=["kv_get"],
+            allowed_effect_types=["email.send", "order.hold"],
+        )
         tenant = await add_tenant(conn, "merchant-a", concurrency_limit=4, rate_limit_rps=100)
-        await add_tenant(conn, "merchant-z")
+        tenant_z = await add_tenant(conn, "merchant-z")
         module = await add_module(conn, tenant, hook, wasm_hash("discount.wasm"))
         await add_binding(conn, tenant, hook, module, {"threshold": "1000", "percent": "10"})
+        # A binding with an empty config: the shape most likely to differ
+        # between the languages ({} versus null).
+        module_z = await add_module(conn, tenant_z, hook, wasm_hash("echo-config.wasm"))
+        await add_binding(conn, tenant_z, hook, module_z)
         await bump_config_version(conn, "test.golden", {})
 
     resp = await client.get(

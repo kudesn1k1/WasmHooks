@@ -7,7 +7,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from controlplane.configstate import snapshot as snapshot_module
-from tests.factories import bump, seed_full, wasm_hash
+from controlplane.configstate.version import bump_config_version
+from tests.factories import add_hook, seed_full, wasm_hash
 
 URL = "/internal/v1/config/snapshot"
 AUTH = {"Authorization": "Bearer test-internal-token"}
@@ -51,10 +52,13 @@ async def test_change_wakes_long_poll(client: httpx.AsyncClient, engine: AsyncEn
     request = asyncio.create_task(get(client, after_version=1, wait_s=5))
     await asyncio.sleep(0.2)
     changed_at = time.monotonic()
-    await bump(engine)
+    async with engine.begin() as conn:
+        await add_hook(conn, "checkout.discount")
+        await bump_config_version(conn, "hook.created", {"name": "checkout.discount"})
     resp = await request
     assert resp.status_code == 200
     assert resp.json()["version"] == 2
+    assert [h["name"] for h in resp.json()["hooks"]] == ["checkout.discount"]
     assert time.monotonic() - changed_at < 1
 
 

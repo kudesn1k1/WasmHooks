@@ -106,6 +106,10 @@ hooks = Table(
     CheckConstraint("jsonb_typeof(input_schema) = 'object'", name="input_schema_object"),
     CheckConstraint("jsonb_typeof(output_schema) = 'object'", name="output_schema_object"),
     CheckConstraint("jsonb_typeof(sample_input) = 'object'", name="sample_input_object"),
+    # One-dimensional arrays without NULL elements: anything else cannot be
+    # turned into the snapshot's list of strings and would stop every build.
+    CheckConstraint("flat_text_array(allowed_host_functions)", name="allowed_host_functions_flat"),
+    CheckConstraint("flat_text_array(allowed_effect_types)", name="allowed_effect_types_flat"),
 )
 
 modules = Table(

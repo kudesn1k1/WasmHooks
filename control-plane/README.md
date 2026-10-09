@@ -7,6 +7,7 @@ Control plane WasmHooks: API-ключи, тенанты, хуки, модули,
 - Потребляет: `POST /internal/v1/modules/validate` из того же контракта.
 - Публикует: `api/control-plane.openapi.yaml` (API консолей, генерируется из FastAPI).
 - Реализация ведётся backend, Python, начиная с M0.
+- С чего начать backend-разработчику: [docs/handoff/backend.md](../docs/handoff/backend.md) — картина, запуск, разбор эталонного среза, задачи T1–T8.
 
 ## Как запустить
 

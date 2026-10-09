@@ -68,6 +68,72 @@
         },
         "cart_total": 120.5
       }
+    },
+    {
+      "name": "order.validate",
+      "def_version": 1,
+      "input_schema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "required": [
+          "cart_total",
+          "customer"
+        ],
+        "properties": {
+          "customer": {
+            "type": "object",
+            "required": [
+              "id",
+              "lifetime_spend"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "lifetime_spend": {
+                "type": "number"
+              }
+            }
+          },
+          "cart_total": {
+            "type": "number"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "required": [
+          "discount_percent",
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "discount_percent": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 0
+          }
+        }
+      },
+      "timeout_ms": 50,
+      "memory_max_pages": 64,
+      "allowed_host_functions": [
+        "kv_get"
+      ],
+      "allowed_effect_types": [
+        "email.send",
+        "order.hold"
+      ],
+      "sample_input": {
+        "customer": {
+          "id": "c-1",
+          "lifetime_spend": 1500
+        },
+        "cart_total": 120.5
+      }
     }
   ],
   "tenants": [
@@ -91,6 +157,13 @@
         "percent": "10",
         "threshold": "1000"
       },
+      "config_version": 1
+    },
+    {
+      "tenant_id": "merchant-z",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:b0eeb7a2e41ac3f06c7eb8097fb96e35aa59531ae61b306a7ad15ddfefa1d1c9",
+      "config": {},
       "config_version": 1
     }
   ]

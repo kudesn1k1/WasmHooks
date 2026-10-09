@@ -11,7 +11,11 @@ async def bump_config_version(conn: AsyncConnection, kind: str, payload: Mapping
     """Increments the snapshot version inside the caller's transaction.
 
     Call it exactly once from every operation that changes what the snapshot
-    shows (hooks, tenants, bindings, API keys), in the same transaction.
+    shows (hooks, tenants, bindings, API keys), in the same transaction, as
+    the last statement before commit: the row lock it takes serializes every
+    writer until commit, so taking it early holds all other writers for the
+    whole transaction, and taking it before a row lock another writer holds
+    can deadlock.
 
     The row lock on config_state is held until commit, so versions are handed
     out in commit order. A sequence would allocate them at insert time: a

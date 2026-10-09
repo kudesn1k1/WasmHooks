@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from controlplane.errors import ProblemError, install_error_handlers
+from tests.conftest import reset_db
 
 PROBLEM = "application/problem+json"
 
@@ -36,12 +37,21 @@ def _build_app() -> FastAPI:
     async def todo() -> None:
         raise NotImplementedError("T1")
 
+    @app.get("/boom")
+    async def boom() -> None:
+        raise RuntimeError("unexpected")
+
+    @app.get("/challenge")
+    async def challenge() -> None:
+        raise ProblemError(401, "Не авторизован", headers={"WWW-Authenticate": "Bearer"})
+
     return app
 
 
 @pytest_asyncio.fixture
 async def err_client() -> AsyncIterator[httpx.AsyncClient]:
-    transport = httpx.ASGITransport(app=_build_app())
+    # The 500 handler responds, then Starlette re-raises for logging.
+    transport = httpx.ASGITransport(app=_build_app(), raise_app_exceptions=False)
     async with httpx.AsyncClient(transport=transport, base_url="http://t") as c:
         yield c
 
@@ -80,16 +90,24 @@ async def test_unknown_path_is_404_problem(err_client: httpx.AsyncClient) -> Non
     assert r.json()["title"] == "Not Found"
 
 
-async def test_fixture_isolation_a_writes(client: httpx.AsyncClient, engine: AsyncEngine) -> None:
+async def test_reset_db_leaves_a_clean_database(engine: AsyncEngine) -> None:
+    # What every test relies on: client -> settings -> engine -> reset_db.
     async with engine.begin() as conn:
-        await conn.execute(text("CREATE TABLE IF NOT EXISTS _fixture_probe (id int)"))
-        await conn.execute(text("INSERT INTO _fixture_probe VALUES (1)"))
+        await conn.execute(text("INSERT INTO tenants (external_id, name) VALUES ('t', 't')"))
+        await conn.execute(text("UPDATE config_state SET version = 5"))
+    await reset_db(engine)
+    async with engine.connect() as conn:
+        assert await conn.scalar(text("SELECT count(*) FROM tenants")) == 0
+        assert await conn.scalar(text("SELECT version FROM config_state")) == 1
 
 
-async def test_fixture_isolation_b_sees_clean_db(
-    client: httpx.AsyncClient, engine: AsyncEngine
-) -> None:
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE TABLE IF NOT EXISTS _fixture_probe (id int)"))
-        count = await conn.scalar(text("SELECT count(*) FROM _fixture_probe"))
-    assert count == 0
+async def test_unexpected_error_is_500_problem(err_client: httpx.AsyncClient) -> None:
+    r = await err_client.get("/boom")
+    assert r.status_code == 500
+    assert r.headers["content-type"].startswith(PROBLEM)
+
+
+async def test_problem_error_headers_are_sent(err_client: httpx.AsyncClient) -> None:
+    r = await err_client.get("/challenge")
+    assert r.status_code == 401
+    assert r.headers["www-authenticate"] == "Bearer"
