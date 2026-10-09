@@ -1,9 +1,10 @@
 """Request and response shapes of the operator hooks API."""
 
+import math
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Same rule as the database constraint in tables.py: dot-separated
 # lowercase segments, e.g. "checkout.discount".
@@ -35,6 +36,17 @@ class HookSpec(BaseModel):
         description="A payload matching input_schema, used to validate uploaded scripts."
     )
 
+    @model_validator(mode="after")
+    def _storable(self) -> Self:
+        # PostgreSQL jsonb rejects NUL in strings, and JSON has no infinity
+        # (1e400 parses as inf): reject both here as 422 instead of failing
+        # at the database with a 500.
+        for field in ("input_schema", "output_schema", "sample_input"):
+            problem = _unstorable(getattr(self, field))
+            if problem:
+                raise ValueError(f"{field}: {problem}")
+        return self
+
 
 class HookCreate(HookSpec):
     """The body of POST: a spec plus the hook's name."""
@@ -50,3 +62,21 @@ class Hook(HookCreate):
 
 class HookList(BaseModel):
     items: list[Hook]
+
+
+def _unstorable(node: Any) -> str | None:
+    if isinstance(node, str):
+        return "strings must not contain the NUL character" if chr(0) in node else None
+    if isinstance(node, float):
+        return None if math.isfinite(node) else "numbers must be finite"
+    if isinstance(node, dict):
+        for key, value in node.items():
+            problem = _unstorable(key) or _unstorable(value)
+            if problem:
+                return problem
+    if isinstance(node, list):
+        for item in node:
+            problem = _unstorable(item)
+            if problem:
+                return problem
+    return None

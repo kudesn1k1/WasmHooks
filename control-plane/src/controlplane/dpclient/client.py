@@ -3,6 +3,7 @@
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 
 from controlplane.configstate.schemas import HookDefOut
 from controlplane.dpclient.schemas import ValidationReport
@@ -39,13 +40,18 @@ class DataPlaneClient:
             body["config"] = config
         try:
             response = await self._http.post("/internal/v1/modules/validate", json=body)
-        except (httpx.ConnectError, httpx.TimeoutException) as exc:
+        except httpx.TransportError as exc:
+            # Connect, read, write, protocol errors and timeouts: the data
+            # plane went away or is restarting. Worth retrying.
             raise DataPlaneUnavailable(f"data plane unreachable: {exc!r}") from exc
         if response.status_code == 503:
             raise DataPlaneUnavailable("data plane answered 503")
         if response.status_code != 200:
             raise DataPlaneError(f"data plane answered {response.status_code}: {response.text}")
-        return ValidationReport.model_validate_json(response.content)
+        try:
+            return ValidationReport.model_validate_json(response.content)
+        except ValidationError as exc:
+            raise DataPlaneError(f"data plane answered 200 with a malformed report: {exc}") from exc
 
     async def aclose(self) -> None:
         await self._http.aclose()

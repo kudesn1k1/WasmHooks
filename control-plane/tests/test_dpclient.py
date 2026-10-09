@@ -82,6 +82,27 @@ async def test_timeout_is_unavailable() -> None:
         await client_with(httpx.MockTransport(handle)).validate(HASH, HOOK)
 
 
+@pytest.mark.parametrize(
+    "error",
+    [httpx.RemoteProtocolError, httpx.ReadError, httpx.WriteError],
+    ids=["closed-mid-response", "reset", "write-failed"],
+)
+async def test_dropped_connection_is_unavailable(error: type[httpx.TransportError]) -> None:
+    # Review 2, I2: a data plane restarting mid-validation must not crash T4.
+    def handle(request: httpx.Request) -> httpx.Response:
+        raise error("connection dropped", request=request)
+
+    with pytest.raises(DataPlaneUnavailable):
+        await client_with(httpx.MockTransport(handle)).validate(HASH, HOOK)
+
+
+async def test_malformed_report_is_error() -> None:
+    body = {"ok": True, "checks": [{"name": "not-a-check", "ok": True}]}
+    client = client_with(httpx.MockTransport(lambda r: httpx.Response(200, json=body)))
+    with pytest.raises(DataPlaneError, match="malformed"):
+        await client.validate(HASH, HOOK)
+
+
 async def test_400_is_error_with_body_text() -> None:
     client = client_with(httpx.MockTransport(lambda r: httpx.Response(400, text="bad hook")))
     with pytest.raises(DataPlaneError, match="bad hook"):

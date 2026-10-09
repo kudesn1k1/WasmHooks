@@ -105,7 +105,8 @@ async def seed_demo(
     try:
         async with engine.connect() as conn:
             hook_id, hook = await load_hook(conn, hook_name)
-        report = await dp.validate(content_hash, hook, None)
+        # The sample call runs with the config the binding will get.
+        report = await dp.validate(content_hash, hook, config_dict)
         if not report.ok:
             raise RuntimeError(f"module failed validation: {report.model_dump_json()}")
         async with engine.begin() as conn:

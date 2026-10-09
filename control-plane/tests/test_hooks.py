@@ -208,3 +208,104 @@ async def test_concurrent_puts_lose_no_change(
             .all()
         )
     assert [r["def_version"] for r in rows] == [2, 3]
+
+
+# Review 2, I3: schemas Python accepts but the data plane (Go, RE2) cannot compile.
+@pytest.mark.parametrize(
+    ("field", "schema", "message"),
+    [
+        (
+            "input_schema",
+            {"type": "object", "properties": {"a": {"type": "string", "pattern": "^(?=a)"}}},
+            "RE2",
+        ),
+        (
+            "output_schema",
+            {"type": "object", "properties": {"a": {"type": "string", "pattern": r"(a)\1"}}},
+            "RE2",
+        ),
+        ("input_schema", {"type": "object", "patternProperties": {"^(?!x)": {}}}, "RE2"),
+        (
+            "output_schema",
+            {"$schema": "https://example.com/my-meta", "type": "object"},
+            "draft 2020-12",
+        ),
+        (
+            "output_schema",
+            {"type": "object", "properties": {"a": {"$ref": "#/$defs/nope"}}},
+            "points to nothing",
+        ),
+        ("output_schema", {"$defs": {"a": {"$anchor": "x"}}, "type": "object"}, "$anchor"),
+        (
+            "output_schema",
+            {"type": "object", "properties": {"a": {"$ref": "#x"}}},
+            "only local $ref",
+        ),
+        (
+            "input_schema",
+            {"type": "object", "properties": {"a": {"type": "string", "pattern": "("}}},
+            "regex",
+        ),
+    ],
+    ids=[
+        "lookahead",
+        "backreference",
+        "pattern-properties",
+        "foreign-dialect",
+        "dangling-ref",
+        "anchor",
+        "anchor-ref",
+        "broken-regex",
+    ],
+)
+async def test_schemas_the_data_plane_cannot_compile_are_422(
+    client: httpx.AsyncClient,
+    auth: dict[str, str],
+    field: str,
+    schema: dict[str, Any],
+    message: str,
+) -> None:
+    body = hook(**{field: schema})
+    if field == "input_schema":
+        body["sample_input"] = {}
+    resp = await client.post(URL, json=body, headers=auth)
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"].startswith(f"{field}:")
+    assert message in resp.json()["detail"]
+
+
+async def test_supported_schema_features_are_accepted(
+    client: httpx.AsyncClient, auth: dict[str, str]
+) -> None:
+    out = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {"pct": {"type": "integer", "minimum": 0, "maximum": 100}},
+        "type": "object",
+        "properties": {
+            "discount_percent": {"$ref": "#/$defs/pct"},
+            "reason": {"type": "string", "pattern": "^[a-z]+(?P<tail>[0-9]*)$"},
+        },
+        "examples": [{"pattern": "(?=data, not a schema)"}],
+    }
+    resp = await client.post(URL, json=hook(output_schema=out), headers=auth)
+    assert resp.status_code == 201, resp.text
+
+
+# Review 2, m4: values PostgreSQL or JSON cannot store are 422, not 500.
+@pytest.mark.parametrize(
+    "raw",
+    [
+        '"sample_input": {"cart_total": 1e400, "customer": {"id": "c", "lifetime_spend": 1}}',
+        '"sample_input": {"cart_total": 1, "customer": {"id": "a\u0000b", "lifetime_spend": 1}}',
+    ],
+    ids=["infinite-number", "nul-character"],
+)
+async def test_unstorable_values_are_422(
+    client: httpx.AsyncClient, auth: dict[str, str], raw: str
+) -> None:
+    import json
+
+    base = json.dumps({k: v for k, v in hook().items() if k != "sample_input"})
+    body = base[:-1] + ", " + raw + "}"
+    resp = await client.post(URL, content=body, headers=auth | {"Content-Type": "application/json"})
+    assert resp.status_code == 422, resp.text
