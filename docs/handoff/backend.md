@@ -62,7 +62,7 @@ WasmHooks — self-hosted платформа, которую SaaS-приложе
 
 - **Ваша зона:** `control-plane/`, `demo-shop/`, `sdk/python/`. Вы владеете контрактами `api/control-plane.openapi.yaml` (генерируется из кода) и `api/demo-shop.openapi.yaml` (появится в T7).
 - **Тимлид:** `dataplane/`, контракты `api/invoke.openapi.yaml` и `api/dataplane-internal.openapi.yaml`. В M1 он же сделал эндпоинт снимка и аутентификацию (решение D17), поэтому `configstate/` и `auth/` меняются только вместе с ним. Импортировать из них можно и нужно.
-- **Фронтенд:** `web/`. Работает на моках MSW (`web/src/mocks/handlers.ts`) и переключает экраны на настоящий API по мере готовности T3–T6. Он ревьюер всех изменений контракта консолей.
+- **Фронтенд:** `web/`. Работает на моках MSW (`web/src/mocks/handlers.ts`) и переключает экраны на настоящий API по мере готовности T1–T6. Он ревьюер всех изменений контракта консолей. Его задачи F1–F9 и точки синхронизации с вашими — в `docs/handoff/frontend.md`.
 
 ### Что уже сделано и что делаете вы
 
@@ -636,7 +636,7 @@ async def test_create_hook(
 - [ ] Версию снимка не трогает.
 - [ ] Без токена или с ключом оператора — `401`.
 
-**Не в объёме:** `/tenant/invocations` (MVP, фронтенд продолжает его мокать). CORS: если консоль ходит в control plane из браузера напрямую, а не через прокси Next.js, понадобится `CORSMiddleware` в `app.py` — решается с фронтендом и тимлидом.
+**Не в объёме:** `/tenant/invocations` (MVP, фронтенд продолжает его мокать). CORS не нужен: консоли ходят в control plane через прокси Next.js (F2 в `docs/handoff/frontend.md`).
 
 **Тесты:** `tests/test_tenant_console.py`, данные через `factories` (`add_hook`, `add_tenant`, `add_module`, `add_binding`).
 
