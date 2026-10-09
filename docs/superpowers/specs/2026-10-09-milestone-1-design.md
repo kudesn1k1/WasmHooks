@@ -229,7 +229,7 @@ control-plane/
 
 ### 7.2 `modstore.S3`
 
-Реализация `modstore.Store` на minio-go v7: ключ `<hex>.wasm` в бакете, проверка хеша, `ErrNotFound` при отсутствии объекта, `ErrHashMismatch` при несовпадении. Табличный набор тестов поведения `Store` общий для `FS` и `S3`; `S3` проверяется против MinIO в testcontainers-go. Флаги `-s3-endpoint`, `-s3-bucket`, `-s3-region`, `-s3-insecure`; ключи доступа из env `WASMHOOKS_S3_ACCESS_KEY`, `WASMHOOKS_S3_SECRET_KEY`. `-modules-dir` и `-s3-endpoint` взаимоисключающие.
+Реализация `modstore.Store` на minio-go v7: ключ `<hex>.wasm` в бакете, проверка хеша, `ErrNotFound` при отсутствии объекта, `ErrHashMismatch` при несовпадении. Табличный набор тестов поведения `Store` общий для `FS` и `S3`; В unit-тестах `S3` проверяется против фейкового S3 на `httptest` (unit-тесты data plane, как в M0, без Docker); настоящий MinIO проверяет e2e (шаг 5 демо). Флаги `-s3-endpoint`, `-s3-bucket`, `-s3-region`, `-s3-insecure`; ключи доступа из env `WASMHOOKS_S3_ACCESS_KEY`, `WASMHOOKS_S3_SECRET_KEY`. `-modules-dir` и `-s3-endpoint` взаимоисключающие.
 
 ### 7.3 Validate
 
@@ -258,7 +258,7 @@ control-plane/
 
 - Новый пакет `internal/internalapi`: HTTP-обработчик Validate с проверкой внутреннего токена. Слушает `-internal-listen` (по умолчанию `:8081`) и запускается, только если задан токен в env `WASMHOOKS_INTERNAL_TOKEN`; тот же токен использует `HTTPSource`.
 - `archtest`: `gateway` и `gateway/httpapi` не импортируют `internalapi`; `internalapi` не импортирует `gateway`.
-- `dataplane/Dockerfile`: multi-stage, финальный образ distroless static, wasm-фикстуры в образ не входят.
+- `dataplane/Dockerfile`: multi-stage, финальный образ distroless static, wasm-фикстуры в образ не входят. В образе нет shell и curl, поэтому healthcheck compose использует подкоманду `dataplane probe <url>`.
 
 ## 8. Compose и демо
 
@@ -275,7 +275,7 @@ Healthcheck у каждого сервиса, `docker compose up --wait` дож�
 
 ### 8.2 Демо и e2e
 
-Отдельный Go-модуль `e2e/`. `go run ./cmd/demo` из `e2e/` (флаг `--compose-dir` по умолчанию указывает на корень) работает против поднятого compose, шаги CLI выполняет через `docker compose exec`, печатает таблицу как в M0 (шаг, ожидание, факт, время, PASS/FAIL) и возвращает ненулевой код при любом FAIL.
+Отдельный Go-модуль `e2e/`. `go run ./cmd/demo` из `e2e/` (флаг `--compose-dir` по умолчанию указывает на корень) работает против поднятого compose, шаги CLI выполняет через `docker compose exec`, печатает таблицу как в M0 (шаг, ожидание, факт, время, PASS/FAIL) и возвращает ненулевой код при любом FAIL. Имена хука, тенанта и ключа получают суффикс прогона (`checkout.discount_<suffix>`, `merchant-a-<suffix>`), чтобы сценарий проходил повторно на том же compose; ниже для краткости имена без суффикса.
 
 | # | Шаг | Ожидание |
 |---|---|---|
