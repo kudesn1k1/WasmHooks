@@ -11,6 +11,7 @@ import {
   tickInvocations,
 } from "./db";
 import { authed, problem, url } from "./http";
+import { operatorHooks } from "./operator-hooks";
 
 function tenantHook(name: string): TenantHook | undefined {
   const hook = db.hooks.find((h) => h.name === name);
@@ -125,6 +126,7 @@ const invocations = [
 ];
 
 export const handlerGroups = {
+  operatorHooks,
   tenantHooks,
   tenantModules,
   tenantBinding,

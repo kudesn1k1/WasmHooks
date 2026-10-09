@@ -21,7 +21,8 @@ npm run dev        # http://localhost:3000
 |---|---|
 | `/`, `/cart` | витрина демо-магазина |
 | `/tenant/hooks`, `/tenant/invocations` | консоль тенанта |
-| `/operator/hooks`, `/operator/tenants` | консоль оператора (MVP) |
+| `/operator/hooks` | консоль оператора: вход по ключу установки, список, создание и редактирование хуков |
+| `/operator/tenants` | консоль оператора: тенанты (заглушка, задача F7) |
 
 Проверки, те же, что в CI:
 

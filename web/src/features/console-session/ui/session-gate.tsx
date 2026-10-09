@@ -3,7 +3,7 @@
 import { KeyRound } from "lucide-react";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 
-import { setToken, useSessionToken, type ConsoleKind } from "@/shared/api";
+import { ApiError, describeError, setToken, useSessionToken, type ConsoleKind } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 
@@ -12,21 +12,46 @@ type Props = {
   title: string;
   description: string;
   label: string;
+  verify?: (token: string) => Promise<unknown>;
+  rejectedMessage?: string;
   children: ReactNode;
 };
 
-export function SessionGate({ kind, title, description, label, children }: Props) {
+export function SessionGate({
+  kind,
+  title,
+  description,
+  label,
+  verify,
+  rejectedMessage = "Токен не подошёл",
+  children,
+}: Props) {
   const token = useSessionToken(kind);
   const inputId = useId();
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   if (token === undefined) return null;
   if (token) return children;
 
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const trimmed = value.trim();
-    if (trimmed) setToken(kind, trimmed);
+    const candidate = value.trim();
+    if (!candidate) return;
+    setError(null);
+    if (verify) {
+      setChecking(true);
+      try {
+        await verify(candidate);
+      } catch (e) {
+        setError(e instanceof ApiError && e.status === 401 ? rejectedMessage : describeError(e));
+        return;
+      } finally {
+        setChecking(false);
+      }
+    }
+    setToken(kind, candidate);
   }
 
   return (
@@ -45,12 +70,21 @@ export function SessionGate({ kind, title, description, label, children }: Props
             type="password"
             autoComplete="off"
             value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="border-input focus-visible:ring-ring/50 h-9 rounded-md border bg-transparent px-3 font-mono text-sm outline-none focus-visible:ring-[3px]"
+            aria-invalid={error ? true : undefined}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setError(null);
+            }}
+            className="border-input focus-visible:ring-ring/50 aria-invalid:border-destructive h-9 rounded-md border bg-transparent px-3 font-mono text-sm outline-none focus-visible:ring-[3px]"
           />
-          <Button type="submit" disabled={!value.trim()} className="w-fit">
+          {error && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
+          <Button type="submit" disabled={!value.trim() || checking} className="w-fit">
             <KeyRound />
-            Войти
+            {checking ? "Проверка…" : "Войти"}
           </Button>
         </form>
       </CardContent>

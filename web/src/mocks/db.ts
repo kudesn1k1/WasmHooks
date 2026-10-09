@@ -1,20 +1,22 @@
-import type { Binding, Hook } from "@/entities/hook";
+import type { Binding, OperatorHook } from "@/entities/hook";
 import type { Invocation, Outcome } from "@/entities/invocation";
 import type { Module, ValidationCheck } from "@/entities/module";
 
 type PendingModule = Module & { validatesAt: number; rejectReason?: string };
 
 type Db = {
-  hooks: Hook[];
+  hooks: OperatorHook[];
   modules: PendingModule[];
   bindings: Map<string, Binding>;
   invocations: Invocation[];
 };
 
-const HOOKS: Hook[] = [
+const HOOKS: OperatorHook[] = [
   {
     name: "checkout.discount",
     def_version: 3,
+    created_at: "2026-09-05T10:00:00Z",
+    updated_at: "2026-09-17T16:20:00Z",
     timeout_ms: 50,
     memory_max_pages: 64,
     allowed_host_functions: [],
@@ -44,6 +46,8 @@ const HOOKS: Hook[] = [
   {
     name: "order.validate",
     def_version: 1,
+    created_at: "2026-09-20T09:30:00Z",
+    updated_at: "2026-09-20T09:30:00Z",
     timeout_ms: 100,
     memory_max_pages: 64,
     allowed_host_functions: [],
@@ -177,7 +181,7 @@ function initialDb(): Db {
   const modules = initialModules();
   const active = modules[1];
   return {
-    hooks: HOOKS,
+    hooks: structuredClone(HOOKS),
     modules,
     bindings: new Map([
       [

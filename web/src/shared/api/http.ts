@@ -28,6 +28,7 @@ type RequestOptions<T> = {
   body?: unknown;
   query?: Record<string, string | number | undefined>;
   signal?: AbortSignal;
+  token?: string;
 };
 
 export function apiUrl(path: string, query?: RequestOptions<unknown>["query"]): URL {
@@ -43,7 +44,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions<T>): P
   const { schema, method = "GET", body, query, signal } = options;
   const isForm = body instanceof FormData;
   const kind = consoleForPath(path);
-  const token = getToken(kind);
+  const token = options.token ?? getToken(kind);
 
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -57,7 +58,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions<T>): P
   });
 
   if (!response.ok) {
-    if (response.status === 401) clearToken(kind);
+    if (response.status === 401 && options.token === undefined) clearToken(kind);
     const problem = problemSchema.safeParse(await response.json().catch(() => null));
     const title = problem.success ? problem.data.title : undefined;
     const detail = problem.success ? problem.data.detail : undefined;
