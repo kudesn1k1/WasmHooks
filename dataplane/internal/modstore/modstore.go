@@ -22,6 +22,9 @@ var (
 	// ErrBadHash: the hash string isn't "sha256:" followed by 64 lowercase
 	// hex characters.
 	ErrBadHash = errors.New("modstore: malformed module hash")
+	// ErrTooLarge: the stored object exceeds the size a module may have.
+	// Retrying does not help; the module is the problem.
+	ErrTooLarge = errors.New("modstore: module too large")
 )
 
 // hashFormat matches a well-formed module hash: "sha256:" plus 64 lowercase

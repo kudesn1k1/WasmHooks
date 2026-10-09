@@ -129,7 +129,7 @@ func Run(ctx context.Context, cfg Config) ([]Step, error) {
 	}
 
 	defs := []stepDef{
-		{"1", "API key reaches data plane", "401 -> 404 within 3s", false, r.keyReachesDataPlane},
+		{"1", "API key reaches data plane", "key known (404, not 401) <=3s", false, r.keyReachesDataPlane},
 		{"2", "new hook reaches data plane", "404 -> no_handler, <=1s", false, r.hookReachesDataPlane},
 		{"3", "control plane stopped", "20/20 no_handler, readyz 200", false, r.servesWhileControlPlaneDown},
 		{"4", "control plane back, hook changed", "old payload -> 400 within 15s", false, r.picksUpChangeAfterOutage},

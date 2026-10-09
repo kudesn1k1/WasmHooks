@@ -78,6 +78,9 @@ services:
       minio-init: { condition: service_completed_successfully }
     # healthz (process alive), not readyz: readyz is 503 until the first
     # snapshot, which would tie `up --wait` to the control plane.
+    # Shutdown lets calls in flight finish (a hook may run up to 30 s);
+    # Docker's default 10 s would end it with SIGKILL.
+    stop_grace_period: 40s
     healthcheck:
       test: ["CMD", "/dataplane", "probe", "http://localhost:8080/healthz"]
       interval: 2s

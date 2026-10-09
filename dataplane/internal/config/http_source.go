@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -27,7 +29,10 @@ type HTTPSource struct {
 	BaseURL string       // e.g. http://control-plane:8000
 	Token   string       // internal bearer token
 	WaitS   int          // long-poll wait, 1..60; 0 means 30
-	Client  *http.Client // nil means a client with Timeout = WaitS + 10s
+	Client  *http.Client // nil means a client with Timeout = WaitS + 10s and a 5s dial timeout
+
+	once          sync.Once
+	defaultClient *http.Client
 }
 
 func (s *HTTPSource) waitS() int {
@@ -41,7 +46,24 @@ func (s *HTTPSource) client() *http.Client {
 	if s.Client != nil {
 		return s.Client
 	}
-	return &http.Client{Timeout: time.Duration(s.waitS()+10) * time.Second}
+	s.once.Do(func() {
+		longPoll := time.Duration(s.waitS()+10) * time.Second
+		s.defaultClient = &http.Client{
+			Timeout: longPoll,
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+				// A control plane that moved to a new address (a restarted
+				// container, a rescheduled pod) must not cost a 30 s dial to
+				// the old one: fail fast and let the backoff retry.
+				DialContext:           (&net.Dialer{Timeout: 5 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
+				TLSHandshakeTimeout:   5 * time.Second,
+				ResponseHeaderTimeout: longPoll,
+				MaxIdleConns:          2,
+				IdleConnTimeout:       90 * time.Second,
+			},
+		}
+	})
+	return s.defaultClient
 }
 
 // Fetch asks for a snapshot newer than after; after < 0 asks for the current

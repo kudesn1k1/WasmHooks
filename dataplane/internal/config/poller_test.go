@@ -264,3 +264,17 @@ func TestPollerStopsPromptlyOnCancel(t *testing.T) {
 		t.Fatalf("Run took %v to stop", took)
 	}
 }
+
+func TestPollerPausesAfterAStaleSnapshot(t *testing.T) {
+	// A proxy that ignores after_version keeps answering with the same
+	// version: the poller must not download it in a tight loop.
+	r := startPoller(t, 100*time.Millisecond, time.Second,
+		reply{200, snapshotJSON(1, "a")},
+		reply{200, snapshotJSON(1, "a")},
+	)
+	r.waitUpdate(t, 1)
+	_, times := r.waitRequests(t, 3)
+	if gap := times[2].Sub(times[1]); gap < 100*time.Millisecond {
+		t.Fatalf("refetched %v after a stale snapshot; want a pause of MinBackoff", gap)
+	}
+}

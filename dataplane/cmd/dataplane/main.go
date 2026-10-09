@@ -259,6 +259,15 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 		case <-ctx.Done():
 		case err := <-serveErr:
 			return err
+		case err := <-internalErr:
+			srv.Close()
+			return fmt.Errorf("internal API: %w", err)
+		}
+		// The first snapshot is preloaded below, synchronously; drop its
+		// kick so the background loop does not preload it a second time.
+		select {
+		case <-preloadKick:
+		default:
 		}
 		background.Add(1)
 		go func() {

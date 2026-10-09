@@ -27,7 +27,9 @@ func validateHook(out json.RawMessage) config.HookDef {
 	return config.HookDef{
 		Name: hookName, DefVersion: 7,
 		InputSchema: inSchema, OutputSchema: out,
-		TimeoutMS: 50, MemoryMaxPages: 64,
+		// Generous: a real sample call under -race on a busy CI runner. Only
+		// the infinite-loop case uses a short limit (review 2, I1).
+		TimeoutMS: 2000, MemoryMaxPages: 64,
 		SampleInput: discountIn,
 	}
 }
@@ -67,6 +69,7 @@ func TestValidate(t *testing.T) {
 		out        json.RawMessage
 		config     map[string]string
 		sample     json.RawMessage
+		timeoutMS  int64
 		wantOK     bool
 		wantChecks string
 		detail     string // substring of the failed check's detail
@@ -81,8 +84,8 @@ func TestValidate(t *testing.T) {
 			wantChecks: "fetch=ok compile=FAIL exports=skip imports=skip sample_call=skip"},
 		{name: "no handle export", wasm: emptyModule,
 			wantChecks: "fetch=ok compile=ok exports=FAIL imports=skip sample_call=skip", detail: `missing export "handle"`},
-		{name: "infinite loop", wasm: sandboxtest.Fixture(t, "infinite-loop"),
-			wantChecks: "fetch=ok compile=ok exports=ok imports=ok sample_call=FAIL", detail: "timeout after 50 ms"},
+		{name: "infinite loop", wasm: sandboxtest.Fixture(t, "infinite-loop"), timeoutMS: 50,
+			wantChecks: "fetch=ok compile=ok exports=ok imports=ok sample_call=FAIL", detail: "timeout after 50 ms (twice)"},
 		{name: "output breaks the contract", wasm: sandboxtest.Fixture(t, "bad-output"), out: discountOut,
 			wantChecks: "fetch=ok compile=ok exports=ok imports=ok sample_call=FAIL", detail: "handler_error"},
 		{name: "config reaches the sample call", wasm: sandboxtest.Fixture(t, "echo-config"),
@@ -107,6 +110,9 @@ func TestValidate(t *testing.T) {
 			hook := validateHook(out)
 			if tt.sample != nil {
 				hook.SampleInput = tt.sample
+			}
+			if tt.timeoutMS != 0 {
+				hook.TimeoutMS = tt.timeoutMS
 			}
 			report, err := e.exec.Validate(context.Background(), ValidateRequest{ModuleHash: hash, Hook: hook, Config: tt.config})
 			if err != nil {
@@ -218,5 +224,68 @@ func TestValidateGivesUpWaitingForASlot(t *testing.T) {
 	_, err := e.exec.Validate(ctx, ValidateRequest{ModuleHash: modstore.HashOf(emptyModule), Hook: validateHook(anyOut)})
 	if !errors.Is(err, ErrUnavailable) {
 		t.Fatalf("err = %v, want ErrUnavailable", err)
+	}
+}
+
+// flakyModule times out on the first call and succeeds afterwards, like a
+// module whose first call landed on a busy CPU.
+type flakyModule struct{ calls atomic.Int32 }
+
+func (m *flakyModule) Instantiate(context.Context, map[string]string) (sandbox.Instance, error) {
+	return flakyInstance{m}, nil
+}
+func (m *flakyModule) Close(context.Context) error { return nil }
+
+type flakyInstance struct{ m *flakyModule }
+
+func (i flakyInstance) Call(context.Context, string, []byte) (sandbox.CallResult, error) {
+	if i.m.calls.Add(1) == 1 {
+		return sandbox.CallResult{}, sandbox.ErrTimeout
+	}
+	return sandbox.CallResult{Output: []byte(`{"result":{"discount_percent":5}}`)}, nil
+}
+func (flakyInstance) Close(context.Context) error { return nil }
+
+type flakyRuntime struct{ mod *flakyModule }
+
+func (r flakyRuntime) Compile(context.Context, []byte, sandbox.ModuleSpec) (sandbox.Module, error) {
+	return r.mod, nil
+}
+func (flakyRuntime) Close(context.Context) error { return nil }
+
+func TestValidateRetriesATimedOutSampleCallOnce(t *testing.T) {
+	e := newEnv(t, nil, anyOut, pool.Options{})
+	hash := e.put(t, emptyModule)
+	mod := &flakyModule{}
+	exec := New(Options{Runtime: flakyRuntime{mod}, Modules: modstore.NewFS(e.dir), Config: e.cfg, Pools: e.pools, Sink: e.sink})
+	report, err := exec.Validate(context.Background(), ValidateRequest{ModuleHash: hash, Hook: validateHook(discountOut)})
+	if err != nil || !report.OK {
+		t.Fatalf("Validate = %s, %v; a single timeout must be retried", checks(report), err)
+	}
+	if got := mod.calls.Load(); got != 2 {
+		t.Fatalf("calls = %d, want 2", got)
+	}
+}
+
+func TestValidateRejectsUncompilableSchemasAsTheHooksFault(t *testing.T) {
+	// Review 2, I3: a schema the data plane cannot compile is the request's
+	// problem (400), never a module verdict.
+	e := newEnv(t, nil, anyOut, pool.Options{})
+	hash := e.put(t, sandboxtest.Fixture(t, "discount"))
+	for name, hook := range map[string]config.HookDef{
+		"lookahead in output": validateHook(json.RawMessage(`{"type":"object","properties":{"a":{"type":"string","pattern":"^(?=a)"}}}`)),
+		"dangling ref":        validateHook(json.RawMessage(`{"type":"object","properties":{"a":{"$ref":"#/$defs/nope"}}}`)),
+		"foreign dialect in input": func() config.HookDef {
+			h := validateHook(anyOut)
+			h.InputSchema = json.RawMessage(`{"$schema":"https://example.com/my-meta","type":"object"}`)
+			return h
+		}(),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := e.exec.Validate(context.Background(), ValidateRequest{ModuleHash: hash, Hook: hook})
+			if !errors.Is(err, ErrInvalidHook) {
+				t.Fatalf("err = %v, want ErrInvalidHook", err)
+			}
+		})
 	}
 }

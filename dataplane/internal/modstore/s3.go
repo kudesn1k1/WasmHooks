@@ -66,7 +66,7 @@ func (s *S3) Get(ctx context.Context, hash string) ([]byte, error) {
 		return nil, s.mapErr(hash, err)
 	}
 	if len(data) > MaxModuleBytes {
-		return nil, fmt.Errorf("modstore: module %s exceeds %d bytes", hash, MaxModuleBytes)
+		return nil, fmt.Errorf("%w: %s exceeds %d bytes", ErrTooLarge, hash, MaxModuleBytes)
 	}
 	if HashOf(data) != hash {
 		return nil, fmt.Errorf("%w: %s", ErrHashMismatch, hash)

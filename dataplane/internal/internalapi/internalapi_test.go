@@ -92,6 +92,8 @@ func TestValidateRejectsBadRequests(t *testing.T) {
 		{"no hook", http.MethodPost, "Bearer " + token, `{"module_hash":"` + hash + `"}`, http.StatusBadRequest},
 		{"invalid hook", http.MethodPost, "Bearer " + token, `{"module_hash":"` + hash + `","hook":{"name":"h","def_version":0}}`, http.StatusBadRequest},
 		{"too big", http.MethodPost, "Bearer " + token, `{"pad":"` + strings.Repeat("x", maxBodyBytes) + `"}`, http.StatusRequestEntityTooLarge},
+		{"no sample input", http.MethodPost, "Bearer " + token, `{"module_hash":"` + hash + `","hook":{"name":"h","def_version":1,"input_schema":{},"output_schema":{},"timeout_ms":50,"memory_max_pages":64}}`, http.StatusBadRequest},
+		{"empty name", http.MethodPost, "Bearer " + token, `{"module_hash":"` + hash + `","hook":{"name":"","def_version":1,"input_schema":{},"output_schema":{},"timeout_ms":50,"memory_max_pages":64,"sample_input":{}}}`, http.StatusBadRequest},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -114,6 +116,14 @@ func TestValidateUnavailableIs503(t *testing.T) {
 	f := &fakeValidator{err: errors.Join(executor.ErrUnavailable, errors.New("minio down"))}
 	resp, raw := do(t, f, http.MethodPost, "Bearer "+token, `{"module_hash":"`+hash+`","hook":`+hook+`}`)
 	if resp.StatusCode != http.StatusServiceUnavailable || !strings.Contains(raw, "minio down") {
+		t.Fatalf("status %d: %s", resp.StatusCode, raw)
+	}
+}
+
+func TestInvalidHookIs400(t *testing.T) {
+	f := &fakeValidator{err: errors.Join(executor.ErrInvalidHook, errors.New("output_schema: lookahead"))}
+	resp, raw := do(t, f, http.MethodPost, "Bearer "+token, `{"module_hash":"`+hash+`","hook":`+hook+`}`)
+	if resp.StatusCode != http.StatusBadRequest || !strings.Contains(raw, "lookahead") {
 		t.Fatalf("status %d: %s", resp.StatusCode, raw)
 	}
 }

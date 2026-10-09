@@ -35,13 +35,16 @@ func (p *Poller) Run(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		stale := false
 		if err == nil && snap != nil {
 			err = p.Store.Update(snap)
 			switch {
 			case errors.Is(err, ErrStaleSnapshot):
-				// Not newer than what we have: nothing to apply. The next
-				// long-poll asks for anything newer than our version.
-				err = nil
+				// Not newer than what we have: nothing to apply. A real
+				// control plane never answers like this, but a caching proxy
+				// or an old build might, and every time: pause instead of
+				// downloading the snapshot in a tight loop.
+				err, stale = nil, true
 			case err == nil:
 				after = snap.Version
 				p.Log.Info("snapshot applied", "version", snap.Version, "hooks", len(snap.Hooks), "bindings", len(snap.Bindings))
@@ -52,32 +55,47 @@ func (p *Poller) Run(ctx context.Context) error {
 		}
 		if err == nil {
 			failures = 0
-			continue // success and 304 both go straight into the next long-poll
+			if stale && !p.sleep(ctx, p.minBackoff()) {
+				return ctx.Err()
+			}
+			continue // success and 304 go straight into the next long-poll
 		}
 
 		failures++
 		wait := p.backoff(failures)
 		if errors.Is(err, ErrUnauthorized) {
-			p.Log.Error("control plane rejected the internal token; check WASMHOOKS_INTERNAL_TOKEN", "err", err, "retry_in", wait)
+			p.Log.Error("control plane rejected the internal token; check WASMHOOKS_INTERNAL_TOKEN", "err", err, "retry_in", wait.String())
 		} else {
-			p.Log.Error("snapshot rejected or control plane unreachable; keeping the current snapshot", "err", err, "retry_in", wait)
+			p.Log.Error("snapshot rejected or control plane unreachable; keeping the current snapshot", "err", err, "retry_in", wait.String())
 		}
-		timer := time.NewTimer(wait)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
+		if !p.sleep(ctx, wait) {
 			return ctx.Err()
-		case <-timer.C:
 		}
 	}
 }
 
+// sleep waits d or until ctx is done; it reports whether the wait completed.
+func (p *Poller) sleep(ctx context.Context, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func (p *Poller) minBackoff() time.Duration {
+	if p.MinBackoff <= 0 {
+		return 500 * time.Millisecond
+	}
+	return p.MinBackoff
+}
+
 // backoff is exponential with full jitter: uniform in [0, min(max, min*2^(n-1))].
 func (p *Poller) backoff(failures int) time.Duration {
-	lo, hi := p.MinBackoff, p.MaxBackoff
-	if lo <= 0 {
-		lo = 500 * time.Millisecond
-	}
+	lo, hi := p.minBackoff(), p.MaxBackoff
 	if hi <= 0 {
 		hi = 10 * time.Second
 	}

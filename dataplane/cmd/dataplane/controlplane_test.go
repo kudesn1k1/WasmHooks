@@ -242,7 +242,7 @@ func TestInternalValidate(t *testing.T) {
 
 	hash := modstore.HashOf(sandboxtest.Fixture(t, "discount"))
 	body := `{"module_hash":"` + hash + `","hook":{"name":"checkout.discount","def_version":1,
-		"input_schema":{"type":"object"},"output_schema":{"type":"object"},"timeout_ms":50,
+		"input_schema":{"type":"object"},"output_schema":{"type":"object"},"timeout_ms":2000,
 		"memory_max_pages":64,"allowed_host_functions":[],"allowed_effect_types":[],
 		"sample_input":{"cart_total":1,"customer":{"id":"c","lifetime_spend":5000}}}}`
 	req, _ := http.NewRequest(http.MethodPost, internal+"/internal/v1/modules/validate", strings.NewReader(body))
@@ -253,11 +253,18 @@ func TestInternalValidate(t *testing.T) {
 	}
 	defer resp.Body.Close()
 	var report struct {
-		OK bool `json:"ok"`
+		OK     bool `json:"ok"`
+		Checks []struct {
+			Name   string `json:"name"`
+			OK     bool   `json:"ok"`
+			Detail string `json:"detail"`
+		} `json:"checks"`
 	}
-	json.NewDecoder(resp.Body).Decode(&report)
+	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
+		t.Fatalf("decode report (status %d): %v", resp.StatusCode, err)
+	}
 	if resp.StatusCode != http.StatusOK || !report.OK {
-		t.Fatalf("validate = %d ok=%v", resp.StatusCode, report.OK)
+		t.Fatalf("validate = %d ok=%v checks=%+v", resp.StatusCode, report.OK, report.Checks)
 	}
 }
 

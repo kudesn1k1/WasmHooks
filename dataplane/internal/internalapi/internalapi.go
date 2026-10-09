@@ -75,8 +75,15 @@ func (h *handler) validate(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.Hook == nil {
+	switch {
+	case req.Hook == nil:
 		problem(w, http.StatusBadRequest, "hook is required")
+		return
+	case strings.TrimSpace(req.Hook.Name) == "":
+		problem(w, http.StatusBadRequest, "hook.name is required")
+		return
+	case len(req.Hook.SampleInput) == 0:
+		problem(w, http.StatusBadRequest, "hook.sample_input is required")
 		return
 	}
 	if err := req.Hook.Validate(); err != nil {
@@ -87,6 +94,10 @@ func (h *handler) validate(w http.ResponseWriter, r *http.Request) {
 	report, err := h.v.Validate(r.Context(), executor.ValidateRequest{
 		ModuleHash: req.ModuleHash, Hook: *req.Hook, Config: req.Config,
 	})
+	if errors.Is(err, executor.ErrInvalidHook) {
+		problem(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if errors.Is(err, executor.ErrUnavailable) {
 		h.log.Warn("module validation unavailable", "module_hash", req.ModuleHash, "err", err)
 		problem(w, http.StatusServiceUnavailable, err.Error())
