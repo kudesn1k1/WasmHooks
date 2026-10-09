@@ -212,15 +212,23 @@ paths:
                         detail: "skipped"
         '400':
           description: >
-            Некорректный запрос: неверный формат `module_hash` или определение
-            хука, которое не прошло бы проверку снимка. Повтор без изменений
-            бессмыслен. Добавлено в M1.
+            Некорректный запрос: неверный формат `module_hash`, определение
+            хука, которое не прошло бы проверку снимка, нет `name` или
+            `sample_input`, или схема хука, которую data plane не может
+            скомпилировать (вина определения хука, а не модуля). Повтор без
+            изменений бессмыслен. Добавлено в M1.
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
         '401':
           description: Нет внутреннего токена или он неверный.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          description: Тело запроса больше 1 МиБ. Добавлено в M1.
           content:
             application/problem+json:
               schema:
