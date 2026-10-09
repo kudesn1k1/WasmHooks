@@ -13,6 +13,8 @@ from controlplane.configstate.snapshot import SnapshotService
 from controlplane.configstate.watcher import VersionWatcher
 from controlplane.db import create_engine
 from controlplane.errors import install_error_handlers, problem_response
+from controlplane.hooks import router as hooks_router
+from controlplane.hooks.service import HookService
 from controlplane.settings import Settings
 
 
@@ -44,6 +46,7 @@ def create_app(settings: Settings) -> FastAPI:
 
     app.include_router(configstate_router.build_router(snapshots, watcher, internal_auth))
     app.include_router(auth_router.build_router(engine, tenant_tokens, operator_auth))
+    app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
 
     @app.get("/healthz", include_in_schema=False)
     async def healthz() -> dict[str, str]:
