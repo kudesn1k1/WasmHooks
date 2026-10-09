@@ -45,5 +45,6 @@ async def test_golden_snapshot(client: httpx.AsyncClient, engine: AsyncEngine) -
 
     if os.environ.get("UPDATE_GOLDEN") == "1":
         GOLDEN.parent.mkdir(parents=True, exist_ok=True)
-        GOLDEN.write_text(json.dumps(got, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        text = json.dumps(got, indent=2, ensure_ascii=False) + "\n"
+        GOLDEN.write_text(text, encoding="utf-8", newline="\n")
     assert got == json.loads(GOLDEN.read_text(encoding="utf-8"))

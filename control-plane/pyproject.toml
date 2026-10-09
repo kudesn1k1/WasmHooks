@@ -62,4 +62,4 @@ files = ["src"]
 plugins = ["pydantic.mypy"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S106"]
+"tests/*" = ["S105", "S106"]
