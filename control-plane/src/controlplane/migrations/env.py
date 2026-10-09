@@ -6,9 +6,10 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from controlplane.settings import Settings
+from controlplane.tables import metadata
 
 config = context.config
-target_metadata = None
+target_metadata = metadata
 
 
 def _database_url() -> str:
