@@ -137,20 +137,8 @@ func validate(snap *Snapshot) error {
 		}
 		hookNames[h.Name] = true
 
-		if h.DefVersion < 1 {
-			return fmt.Errorf("config: hook %q: def_version %d must be >= 1", h.Name, h.DefVersion)
-		}
-		if h.TimeoutMS <= 0 || h.TimeoutMS > MaxTimeoutMS {
-			return fmt.Errorf("config: hook %q: timeout_ms %d must be in [1, %d]", h.Name, h.TimeoutMS, MaxTimeoutMS)
-		}
-		if h.MemoryMaxPages < MinMemoryPages || h.MemoryMaxPages > MaxMemoryPages {
-			return fmt.Errorf("config: hook %q: memory_max_pages %d must be in [%d, %d]", h.Name, h.MemoryMaxPages, MinMemoryPages, MaxMemoryPages)
-		}
-		if !isJSONObject(h.InputSchema) {
-			return fmt.Errorf("config: hook %q: input_schema must be a JSON object", h.Name)
-		}
-		if !isJSONObject(h.OutputSchema) {
-			return fmt.Errorf("config: hook %q: output_schema must be a JSON object", h.Name)
+		if err := h.Validate(); err != nil {
+			return err
 		}
 	}
 
@@ -192,6 +180,27 @@ func validate(snap *Snapshot) error {
 		}
 	}
 
+	return nil
+}
+
+// Validate checks one hook definition the way Parse checks every hook of a
+// snapshot: def_version, limits within bounds, schemas that are JSON objects.
+func (h HookDef) Validate() error {
+	if h.DefVersion < 1 {
+		return fmt.Errorf("config: hook %q: def_version %d must be >= 1", h.Name, h.DefVersion)
+	}
+	if h.TimeoutMS <= 0 || h.TimeoutMS > MaxTimeoutMS {
+		return fmt.Errorf("config: hook %q: timeout_ms %d must be in [1, %d]", h.Name, h.TimeoutMS, MaxTimeoutMS)
+	}
+	if h.MemoryMaxPages < MinMemoryPages || h.MemoryMaxPages > MaxMemoryPages {
+		return fmt.Errorf("config: hook %q: memory_max_pages %d must be in [%d, %d]", h.Name, h.MemoryMaxPages, MinMemoryPages, MaxMemoryPages)
+	}
+	if !isJSONObject(h.InputSchema) {
+		return fmt.Errorf("config: hook %q: input_schema must be a JSON object", h.Name)
+	}
+	if !isJSONObject(h.OutputSchema) {
+		return fmt.Errorf("config: hook %q: output_schema must be a JSON object", h.Name)
+	}
 	return nil
 }
 

@@ -62,3 +62,43 @@ func TestCheckModuleReportsAllViolations(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckModuleErrorKinds(t *testing.T) {
+	base := []Import{env("input_length"), env("output_set")}
+	cases := []struct {
+		name              string
+		info              ModuleInfo
+		export, forbidden bool
+	}{
+		{"missing export", ModuleInfo{Imports: base, Exports: []string{"run"}}, true, false},
+		{"forbidden import", ModuleInfo{Imports: append(base, env("http_request")), Exports: []string{"handle"}}, false, true},
+		{"memory import", ModuleInfo{Imports: base, MemoryImports: []Import{{"env", "memory"}}, Exports: []string{"handle"}}, false, true},
+		{"both", ModuleInfo{Imports: append(base, env("http_request")), Exports: []string{"run"}}, true, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := CheckModule(tc.info, ModuleSpec{})
+			if !errors.Is(err, ErrInvalidModule) {
+				t.Fatalf("not ErrInvalidModule: %v", err)
+			}
+			if errors.Is(err, ErrMissingExport) != tc.export {
+				t.Errorf("ErrMissingExport = %v, want %v", errors.Is(err, ErrMissingExport), tc.export)
+			}
+			if errors.Is(err, ErrForbiddenImport) != tc.forbidden {
+				t.Errorf("ErrForbiddenImport = %v, want %v", errors.Is(err, ErrForbiddenImport), tc.forbidden)
+			}
+			var me *ModuleError
+			if !errors.As(err, &me) {
+				t.Fatalf("not a *ModuleError: %T", err)
+			}
+		})
+	}
+}
+
+func TestModuleErrorKeepsMessageFormat(t *testing.T) {
+	err := CheckModule(ModuleInfo{Imports: []Import{env("http_request")}}, ModuleSpec{})
+	want := `sandbox: module violates spec: missing export "handle"; import extism:host/env.http_request is not allowed`
+	if err.Error() != want {
+		t.Fatalf("error = %q, want %q", err, want)
+	}
+}

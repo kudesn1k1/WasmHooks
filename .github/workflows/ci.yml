@@ -59,3 +59,50 @@ jobs:
       - name: build fixtures
         working-directory: examples/scripts/rust
         run: cargo build --release --target wasm32-unknown-unknown
+
+  control-plane:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: control-plane
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: control-plane/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+      - name: openapi drift
+        run: |
+          uv run controlplane openapi > /tmp/control-plane.openapi.yaml
+          diff -u ../api/control-plane.openapi.yaml /tmp/control-plane.openapi.yaml
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: e2e/go.mod
+          # Standard library only: no go.sum to key a module cache on.
+          cache: false
+      - name: compose up
+        run: docker compose up -d --build --wait control-plane dataplane
+      - name: scenario
+        working-directory: e2e
+        env:
+          E2E: "1"
+        run: go test -count=1 -v ./...
+      - name: compose logs
+        if: failure()
+        run: |
+          docker compose ps -a
+          docker compose logs --no-color
+      - name: compose down
+        if: always()
+        run: docker compose down -v
