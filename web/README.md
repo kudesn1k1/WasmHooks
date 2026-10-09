@@ -5,6 +5,7 @@
 - Владелец: frontend (см. `docs/TEAM.md`).
 - Потребляет: `api/control-plane.openapi.yaml` (консоли), `api/demo-shop.openapi.yaml` (витрина). В data plane не ходит никогда.
 - Моки API (MSW) по контрактам из `api/` для работы до готовности бэкенда.
+- Задачи Milestone 1 и точки синхронизации с backend: `docs/handoff/frontend.md`.
 
 ## Запуск
 
@@ -37,24 +38,15 @@ npm run build
 
 - Загруженная версия около 3 с проверяется, потом становится `validated`. Если в имени файла есть `http`, она отклоняется с причиной из проверки `imports`.
 - В лог вызовов каждые несколько секунд добавляются новые записи, так что видно обновление опросом.
-- Чтобы работать с настоящим бэкендом, задай в `.env.local` `NEXT_PUBLIC_API_MOCKING=disabled` и `NEXT_PUBLIC_API_BASE_URL=<адрес control plane>/api/v1`.
+- Настоящий control plane подключается через прокси Next.js (задача F2 в `docs/handoff/frontend.md`). Напрямую из браузера в control plane ходить нельзя: CORS там нет.
 
 Тесты (Vitest) используют те же обработчики через `msw/node`.
 
-### Черновик API консоли тенанта
+### API консоли тенанта
 
-Контракта `api/control-plane.openapi.yaml` ещё нет. Фронтенд пока работает по этому черновику, составленному по модели данных основного спека (§10.1). Схемы ответов описаны в `src/entities/*/model/schema.ts`. Тенант определяется сессией, поэтому его id в путях нет. Ошибки приходят в формате RFC 9457 (`application/problem+json`).
+Контракт — `api/control-plane.openapi.yaml`, он генерируется из кода control plane. Моки повторяют его формы, схемы ответов описаны в `src/entities/*/model/schema.ts`. Тенант определяется токеном консоли, поэтому его id в путях нет. Ошибки приходят в формате RFC 9457 (`application/problem+json`).
 
-| Метод и путь | Ответ | Назначение |
-|---|---|---|
-| `GET /api/v1/tenant/hooks` | `{ items: TenantHook[] }` | хуки с привязкой тенанта |
-| `GET /api/v1/tenant/hooks/{hook}` | `TenantHook` | один хук |
-| `GET /api/v1/tenant/hooks/{hook}/modules` | `{ items: Module[] }` | версии модуля, новые сверху |
-| `POST /api/v1/tenant/hooks/{hook}/modules` | `201 Module` | загрузка `.wasm` (multipart, поле `file`); 409, если такой хеш уже есть |
-| `PUT /api/v1/tenant/hooks/{hook}/binding` | `Binding` | тело `{ active_module_id }`; активация и откат; 409, если версия не `validated` |
-| `GET /api/v1/tenant/invocations?outcome=&hook=&limit=` | `{ items: Invocation[] }` | лог вызовов, новые сверху |
-
-Когда контракт появится, схемы сверяются с ним или заменяются сгенерированными, а моки переписываются по нему.
+Лог вызовов `GET /api/v1/tenant/invocations?outcome=&hook=&limit=` (`{ items: Invocation[] }`, новые сверху) в контракт не входит до MVP и есть только в моках.
 
 ## Стек
 
