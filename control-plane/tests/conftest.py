@@ -1,6 +1,7 @@
 import os
 from collections.abc import AsyncIterator, Iterator
 
+import boto3
 import httpx
 import pytest
 import pytest_asyncio
@@ -8,6 +9,7 @@ from alembic import command
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+from testcontainers.community.minio import MinioContainer
 from testcontainers.community.postgres import PostgresContainer
 
 from controlplane.app import create_app
@@ -69,3 +71,33 @@ async def client(settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://cp") as c:
             yield c
+
+
+MINIO_BUCKET = "modules"
+
+
+@pytest.fixture(scope="session")
+def minio() -> Iterator[dict[str, str]]:
+    # chainguard/minio: the official minio images can no longer be pulled. Its
+    # non-root user cannot initialise the data dir, hence user="0".
+    container = MinioContainer(image="chainguard/minio:latest").with_kwargs(user="0")
+    container.with_env("MINIO_ROOT_USER", container.access_key)
+    container.with_env("MINIO_ROOT_PASSWORD", container.secret_key)
+    with container:
+        config = container.get_config()
+        endpoint = f"http://{config['endpoint']}"
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint,
+            aws_access_key_id=config["access_key"],
+            aws_secret_access_key=config["secret_key"],
+            region_name="us-east-1",
+        )
+        s3.create_bucket(Bucket=MINIO_BUCKET)
+        yield {
+            "endpoint": endpoint,
+            "bucket": MINIO_BUCKET,
+            "access_key": config["access_key"],
+            "secret_key": config["secret_key"],
+            "region": "us-east-1",
+        }
