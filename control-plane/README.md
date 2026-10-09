@@ -29,8 +29,12 @@ docker compose up -d --build --wait control-plane
 Локальная разработка против PostgreSQL из compose:
 
 ```bash
-docker compose up -d --wait postgres
-CP_DATABASE_URL=postgresql+asyncpg://wasmhooks:wasmhooks@localhost:5432/controlplane \
-CP_INTERNAL_TOKEN=dev CP_TENANT_JWT_SECRET=dev-tenant-jwt-secret-change-me-0123456789 \
-  uv run uvicorn --factory controlplane.app:create_app_from_env --reload
+docker compose up -d --wait postgres minio
+export CP_DATABASE_URL=postgresql+asyncpg://wasmhooks:wasmhooks@localhost:5432/controlplane
+export CP_INTERNAL_TOKEN=dev-internal-token-change-me
+export CP_TENANT_JWT_SECRET=dev-tenant-jwt-secret-change-me-0123456789
+uv run controlplane migrate
+uv run uvicorn --factory controlplane.app:create_app_from_env --reload
 ```
+
+Подробно, с первым ключом и первым хуком: `docs/handoff/backend.md`, раздел 3.

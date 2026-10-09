@@ -22,7 +22,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-minioadmin}
-    ports: ["127.0.0.1:9001:9001"]
+    # 9000: S3 API for a control plane run locally with uvicorn; 9001: console.
+    ports: ["127.0.0.1:9000:9000", "127.0.0.1:9001:9001"]
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 2s

@@ -86,3 +86,40 @@ async def test_400_is_error_with_body_text() -> None:
     client = client_with(httpx.MockTransport(lambda r: httpx.Response(400, text="bad hook")))
     with pytest.raises(DataPlaneError, match="bad hook"):
         await client.validate(HASH, HOOK)
+
+
+def test_passed_checks_carry_no_detail_key() -> None:
+    from controlplane.dpclient.schemas import ValidationCheck, ValidationReport
+
+    report = ValidationReport(
+        ok=False,
+        checks=[
+            ValidationCheck(name="fetch", ok=True),
+            ValidationCheck(name="imports", ok=False, detail="http_request"),
+        ],
+    )
+    assert report.model_dump(mode="json") == {
+        "ok": False,
+        "checks": [
+            {"name": "fetch", "ok": True},
+            {"name": "imports", "ok": False, "detail": "http_request"},
+        ],
+    }
+
+
+def test_fastapi_responses_omit_detail_too() -> None:
+    # What the console receives once T3/T4 return reports: FastAPI must apply
+    # the same rule as model_dump.
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from controlplane.dpclient.schemas import ValidationCheck, ValidationReport
+
+    app = FastAPI()
+
+    @app.get("/report", response_model=ValidationReport)
+    def report() -> ValidationReport:
+        return ValidationReport(ok=True, checks=[ValidationCheck(name="fetch", ok=True)])
+
+    body = TestClient(app).get("/report").json()
+    assert body == {"ok": True, "checks": [{"name": "fetch", "ok": True}]}
