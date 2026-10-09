@@ -2,11 +2,13 @@ import { z } from "zod";
 
 import { API_BASE_URL } from "@/shared/config/env";
 
+import { clearToken, consoleForPath, getToken } from "./session";
+
 const problemSchema = z.object({
-  type: z.string().optional(),
-  title: z.string().optional(),
-  status: z.number().optional(),
-  detail: z.string().optional(),
+  type: z.string().nullish(),
+  title: z.string().nullish(),
+  status: z.number().nullish(),
+  detail: z.string().nullish(),
 });
 
 export class ApiError extends Error {
@@ -22,7 +24,7 @@ export class ApiError extends Error {
 
 type RequestOptions<T> = {
   schema: z.ZodType<T>;
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   query?: Record<string, string | number | undefined>;
   signal?: AbortSignal;
@@ -40,23 +42,30 @@ export function apiUrl(path: string, query?: RequestOptions<unknown>["query"]): 
 export async function apiRequest<T>(path: string, options: RequestOptions<T>): Promise<T> {
   const { schema, method = "GET", body, query, signal } = options;
   const isForm = body instanceof FormData;
+  const kind = consoleForPath(path);
+  const token = getToken(kind);
+
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (body !== undefined && !isForm) headers.set("Content-Type", "application/json");
 
   const response = await fetch(apiUrl(path, query), {
     method,
     signal,
-    credentials: "include",
-    headers: body !== undefined && !isForm ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
 
   if (!response.ok) {
+    if (response.status === 401) clearToken(kind);
     const problem = problemSchema.safeParse(await response.json().catch(() => null));
     const title = problem.success ? problem.data.title : undefined;
     const detail = problem.success ? problem.data.detail : undefined;
-    throw new ApiError(response.status, title ?? `HTTP ${response.status}`, detail);
+    throw new ApiError(response.status, title ?? `HTTP ${response.status}`, detail ?? undefined);
   }
 
-  const parsed = schema.safeParse(await response.json());
+  const payload = response.status === 204 ? undefined : await response.json();
+  const parsed = schema.safeParse(payload);
   if (!parsed.success) {
     throw new ApiError(
       response.status,
