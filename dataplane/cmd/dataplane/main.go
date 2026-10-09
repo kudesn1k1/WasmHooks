@@ -31,6 +31,7 @@ import (
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/executor"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway/httpapi"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/internalapi"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/modstore"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/observe"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
@@ -187,6 +188,8 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 		Schemas:    schemas,
 		Sink:       observe.SlogSink{Logger: log},
 		ExecutorID: f.executorID,
+
+		ValidateConcurrency: f.validateConcurrency,
 	})
 	gw := gateway.New(cfg, exec, schemas, gateway.Options{})
 
@@ -205,6 +208,26 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- srv.Serve(ln) }()
+
+	// The internal API (module validation for the control plane) has its own
+	// listener so an installation can publish the public port alone.
+	var internal *http.Server
+	internalErr := make(chan error, 1)
+	if f.internalToken != "" {
+		internal = &http.Server{
+			Handler:           internalapi.New(exec, f.internalToken, log.With("component", "internalapi")),
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       10 * time.Second,
+			WriteTimeout:      60 * time.Second, // a validation compiles a module and runs it once
+		}
+		iln, err := net.Listen("tcp", f.internalListen)
+		if err != nil {
+			srv.Close()
+			return fmt.Errorf("internal listener: %w", err)
+		}
+		fmt.Fprintf(stdout, "internal listening on %s\n", iln.Addr())
+		go func() { internalErr <- internal.Serve(iln) }()
+	}
 
 	// Background work that must finish before the runtime is closed.
 	var background sync.WaitGroup
@@ -268,6 +291,8 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 	select {
 	case err := <-serveErr:
 		return err
+	case err := <-internalErr:
+		return fmt.Errorf("internal API: %w", err)
 	case <-ctx.Done():
 	}
 	log.Info("shutting down")
@@ -277,6 +302,10 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 	defer cancel()
 	err = srv.Shutdown(shutdownCtx)
 	<-serveErr // http.ErrServerClosed after Shutdown
+	if internal != nil {
+		err = errors.Join(err, internal.Shutdown(shutdownCtx))
+		<-internalErr
+	}
 	background.Wait()
 	return errors.Join(err, pools.Close(shutdownCtx), exec.Close(shutdownCtx), rt.Close(shutdownCtx))
 }

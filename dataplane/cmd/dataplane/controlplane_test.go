@@ -9,11 +9,15 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/modstore"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/sandboxtest"
 )
 
 // fakeControlPlane serves the snapshot long-poll from an in-memory snapshot.
@@ -91,13 +95,15 @@ func (f *fakeControlPlane) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func startDataPlane(t *testing.T, args ...string) string {
+// startDataPlane runs the data plane and returns the base URL of its public
+// API and, when WASMHOOKS_INTERNAL_TOKEN is set, of its internal API.
+func startDataPlane(t *testing.T, args ...string) (public, internal string) {
 	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 	pr, pw := io.Pipe()
 	done := make(chan error, 1)
 	go func() {
-		done <- run(ctx, append([]string{"-listen", "127.0.0.1:0", "-log-level", "error"}, args...), pw)
+		done <- run(ctx, append([]string{"-listen", "127.0.0.1:0", "-internal-listen", "127.0.0.1:0", "-log-level", "error"}, args...), pw)
 		pw.Close()
 	}()
 	t.Cleanup(func() {
@@ -106,12 +112,20 @@ func startDataPlane(t *testing.T, args ...string) string {
 			t.Errorf("run: %v", err)
 		}
 	})
-	line, err := bufio.NewReader(pr).ReadString('\n')
-	if err != nil {
-		t.Fatalf("no listen line: %v", err)
+	lines := bufio.NewReader(pr)
+	read := func(prefix string) string {
+		line, err := lines.ReadString('\n')
+		if err != nil || !strings.HasPrefix(line, prefix) {
+			t.Fatalf("want a %q line, got %q (%v)", prefix, line, err)
+		}
+		return "http://" + strings.TrimSpace(strings.TrimPrefix(line, prefix))
+	}
+	public = read("listening on ")
+	if os.Getenv("WASMHOOKS_INTERNAL_TOKEN") != "" {
+		internal = read("internal listening on ")
 	}
 	go io.Copy(io.Discard, pr)
-	return "http://" + strings.TrimSpace(strings.TrimPrefix(line, "listening on "))
+	return public, internal
 }
 
 func request(t *testing.T, method, url, body string) (int, string) {
@@ -143,7 +157,7 @@ func TestControlPlaneMode(t *testing.T) {
 	cp := httptest.NewServer(fake)
 	t.Cleanup(cp.Close)
 	t.Setenv("WASMHOOKS_INTERNAL_TOKEN", "internal-test-token")
-	base := startDataPlane(t, "-control-plane-url", cp.URL, "-modules-dir", modules)
+	base, _ := startDataPlane(t, "-control-plane-url", cp.URL, "-modules-dir", modules)
 
 	invoke := func(hook string) (int, string) {
 		return request(t, http.MethodPost, base+"/v1/hooks/"+hook+"/invoke", `{"tenant_id":"merchant-a","payload":{}}`)
@@ -218,5 +232,40 @@ func TestProbe(t *testing.T) {
 	}
 	if got := probe("http://127.0.0.1:1/"); got != 1 {
 		t.Errorf("probe on a closed port = %d, want 1", got)
+	}
+}
+
+func TestInternalValidate(t *testing.T) {
+	snapshot, modules := writeEnv(t)
+	t.Setenv("WASMHOOKS_INTERNAL_TOKEN", "internal-test-token")
+	_, internal := startDataPlane(t, "-snapshot", snapshot, "-modules-dir", modules)
+
+	hash := modstore.HashOf(sandboxtest.Fixture(t, "discount"))
+	body := `{"module_hash":"` + hash + `","hook":{"name":"checkout.discount","def_version":1,
+		"input_schema":{"type":"object"},"output_schema":{"type":"object"},"timeout_ms":50,
+		"memory_max_pages":64,"allowed_host_functions":[],"allowed_effect_types":[],
+		"sample_input":{"cart_total":1,"customer":{"id":"c","lifetime_spend":5000}}}}`
+	req, _ := http.NewRequest(http.MethodPost, internal+"/internal/v1/modules/validate", strings.NewReader(body))
+	req.Header.Set("Authorization", "Bearer internal-test-token")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var report struct {
+		OK bool `json:"ok"`
+	}
+	json.NewDecoder(resp.Body).Decode(&report)
+	if resp.StatusCode != http.StatusOK || !report.OK {
+		t.Fatalf("validate = %d ok=%v", resp.StatusCode, report.OK)
+	}
+}
+
+func TestNoInternalListenerWithoutToken(t *testing.T) {
+	snapshot, modules := writeEnv(t)
+	t.Setenv("WASMHOOKS_INTERNAL_TOKEN", "")
+	_, internal := startDataPlane(t, "-snapshot", snapshot, "-modules-dir", modules)
+	if internal != "" {
+		t.Fatalf("internal API started without a token at %s", internal)
 	}
 }
