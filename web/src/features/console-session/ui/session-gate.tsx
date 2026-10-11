@@ -14,6 +14,7 @@ type Props = {
   label: string;
   verify?: (token: string) => Promise<unknown>;
   rejectedMessage?: string;
+  hint?: ReactNode;
   children: ReactNode;
 };
 
@@ -24,6 +25,7 @@ export function SessionGate({
   label,
   verify,
   rejectedMessage = "Токен не подошёл",
+  hint,
   children,
 }: Props) {
   const token = useSessionToken(kind);
@@ -60,7 +62,7 @@ export function SessionGate({
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-6">
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <label htmlFor={inputId} className="text-sm font-medium">
             {label}
@@ -87,6 +89,7 @@ export function SessionGate({
             {checking ? "Проверка…" : "Войти"}
           </Button>
         </form>
+        {hint}
       </CardContent>
     </Card>
   );

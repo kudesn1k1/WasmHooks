@@ -1,6 +1,7 @@
 export {
   bindingSchema,
   hookSchema,
+  tenantHookListSchema,
   tenantHookSchema,
   type Binding,
   type Hook,
