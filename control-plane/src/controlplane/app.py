@@ -26,6 +26,7 @@ from controlplane.modules import router as modules_router
 from controlplane.settings import Settings
 from controlplane.tenantconsole import router as tenantconsole_router
 from controlplane.tenants import router as tenants_router
+from controlplane.tenants.service import TenantService
 
 
 def create_app(settings: Settings) -> FastAPI:
@@ -69,8 +70,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(configstate_router.build_router(snapshots, watcher, internal_auth))
     app.include_router(auth_router.build_router(engine, tenant_tokens, operator_auth))
     app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
-    # Stubs answering 501 until the backend tasks T1-T6 implement them.
-    app.include_router(tenants_router.build_router(operator_auth))
+    app.include_router(tenants_router.build_router(TenantService(engine), operator_auth))
+    # Stubs answering 501 until the backend tasks T2-T6 implement them.
     app.include_router(apikeys_router.build_router(operator_auth))
     app.include_router(tenantconsole_router.build_router(tenant_auth))
     app.include_router(modules_router.build_router(tenant_auth))

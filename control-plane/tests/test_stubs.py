@@ -13,16 +13,6 @@ WASM = {"file": ("m.wasm", b"\x00asm\x01\x00\x00\x00", "application/wasm")}
 
 # (method, path, task, request kwargs, caller)
 ENDPOINTS: list[tuple[str, str, str, dict[str, Any], str]] = [
-    ("GET", "/api/v1/tenants", "T1", {}, "operator"),
-    (
-        "POST",
-        "/api/v1/tenants",
-        "T1",
-        {"json": {"external_id": "merchant-a", "name": "A"}},
-        "operator",
-    ),
-    ("GET", "/api/v1/tenants/merchant-a", "T1", {}, "operator"),
-    ("PATCH", "/api/v1/tenants/merchant-a", "T1", {"json": {"name": "B"}}, "operator"),
     ("GET", "/api/v1/api-keys", "T2", {}, "operator"),
     ("POST", "/api/v1/api-keys", "T2", {"json": {"name": "ci"}}, "operator"),
     ("DELETE", "/api/v1/api-keys/abc", "T2", {}, "operator"),

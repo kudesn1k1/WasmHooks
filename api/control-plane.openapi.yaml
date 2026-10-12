@@ -213,7 +213,6 @@ paths:
       tags:
       - tenants
       summary: Список тенантов
-      description: Реализуется в T1, см. docs/handoff/backend.md.
       operationId: list_tenants_api_v1_tenants_get
       responses:
         '200':
@@ -246,7 +245,6 @@ paths:
       tags:
       - tenants
       summary: Создать тенанта
-      description: Реализуется в T1, см. docs/handoff/backend.md.
       operationId: create_tenant_api_v1_tenants_post
       requestBody:
         content:
@@ -286,7 +284,6 @@ paths:
       tags:
       - tenants
       summary: Получить тенанта
-      description: Реализуется в T1, см. docs/handoff/backend.md.
       operationId: get_tenant_api_v1_tenants__external_id__get
       security:
       - operatorKey: []
@@ -326,7 +323,7 @@ paths:
       tags:
       - tenants
       summary: Изменить тенанта
-      description: Реализуется в T1, см. docs/handoff/backend.md.
+      description: Меняет имя и/или квоты; external_id неизменяем.
       operationId: patch_tenant_api_v1_tenants__external_id__patch
       security:
       - operatorKey: []
