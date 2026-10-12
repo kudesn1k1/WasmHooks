@@ -7,9 +7,12 @@ import { API_MOCKING } from "@/shared/config/env";
 let started: Promise<unknown> | undefined;
 
 function startWorker() {
-  if (process.env.NODE_ENV !== "development") return Promise.resolve();
-  started ??= import("@/mocks/browser").then(({ worker }) =>
-    worker.start({ onUnhandledRequest: "bypass" }),
+  if (process.env.NODE_ENV !== "development" || API_MOCKING === "disabled") {
+    return Promise.resolve();
+  }
+  const mode = API_MOCKING;
+  started ??= import("@/mocks/browser").then(({ createWorker }) =>
+    createWorker(mode).start({ onUnhandledRequest: "bypass" }),
   );
   return started;
 }
@@ -17,10 +20,10 @@ function startWorker() {
 type State = "starting" | "ready" | "failed";
 
 export function MockProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<State>(API_MOCKING ? "starting" : "ready");
+  const [state, setState] = useState<State>(API_MOCKING === "disabled" ? "ready" : "starting");
 
   useEffect(() => {
-    if (!API_MOCKING) return;
+    if (API_MOCKING === "disabled") return;
     startWorker().then(
       () => setState("ready"),
       (error: unknown) => {

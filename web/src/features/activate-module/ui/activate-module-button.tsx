@@ -2,6 +2,7 @@
 
 import { RotateCcw, Zap } from "lucide-react";
 
+import { describeError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 
 import { useActivateModule } from "../api/use-activate-module";
@@ -20,7 +21,7 @@ export function ActivateModuleButton({ hook, moduleId, kind }: Props) {
     <div className="flex items-center justify-end gap-2">
       {activate.isError && (
         <span role="alert" className="text-destructive text-xs">
-          {activate.error.message}
+          {describeError(activate.error)}
         </span>
       )}
       <Button

@@ -7,3 +7,34 @@ Control plane WasmHooks: API-ключи, тенанты, хуки, модули,
 - Потребляет: `POST /internal/v1/modules/validate` из того же контракта.
 - Публикует: `api/control-plane.openapi.yaml` (API консолей, генерируется из FastAPI).
 - Реализация ведётся backend, Python, начиная с M0.
+- С чего начать backend-разработчику: [docs/handoff/backend.md](../docs/handoff/backend.md) — картина, запуск, разбор эталонного среза, задачи T1–T8.
+
+## Как запустить
+
+Нужны Python 3.13, [uv](https://docs.astral.sh/uv/) и Docker (тесты поднимают PostgreSQL через testcontainers).
+
+```bash
+cd control-plane
+uv sync                 # зависимости
+uv run pytest           # тесты (нужен запущенный Docker)
+uv run ruff format . && uv run ruff check . && uv run mypy
+```
+
+Весь стенд (PostgreSQL, MinIO, control plane) из корня репозитория:
+
+```bash
+docker compose up -d --build --wait control-plane
+```
+
+Локальная разработка против PostgreSQL из compose:
+
+```bash
+docker compose up -d --wait postgres minio
+export CP_DATABASE_URL=postgresql+asyncpg://wasmhooks:wasmhooks@localhost:5432/controlplane
+export CP_INTERNAL_TOKEN=dev-internal-token-change-me
+export CP_TENANT_JWT_SECRET=dev-tenant-jwt-secret-change-me-0123456789
+uv run controlplane migrate
+uv run uvicorn --factory controlplane.app:create_app_from_env --reload
+```
+
+Подробно, с первым ключом и первым хуком: `docs/handoff/backend.md`, раздел 3.
