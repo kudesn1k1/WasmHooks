@@ -12,6 +12,8 @@ export const routes = {
   operator: {
     root: "/operator",
     hooks: "/operator/hooks",
+    newHook: "/operator/hooks/new-hook",
+    hook: (name: string) => `/operator/hooks/${encodeURIComponent(name)}`,
     tenants: "/operator/tenants",
   },
 } as const;

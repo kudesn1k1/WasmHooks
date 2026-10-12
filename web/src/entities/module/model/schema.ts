@@ -7,7 +7,7 @@ export type ModuleStatus = z.infer<typeof moduleStatusSchema>;
 export const validationCheckSchema = z.object({
   name: z.enum(["fetch", "compile", "exports", "imports", "sample_call"]),
   ok: z.boolean(),
-  detail: z.string().optional(),
+  detail: z.string().nullish(),
 });
 export type ValidationCheck = z.infer<typeof validationCheckSchema>;
 
@@ -22,7 +22,7 @@ export const moduleSchema = z.object({
   content_hash: z.string(),
   size_bytes: z.number().int().nonnegative(),
   status: moduleStatusSchema,
-  validation_report: validationReportSchema.nullable(),
+  validation_report: validationReportSchema.nullish(),
   uploaded_at: z.iso.datetime({ offset: true }),
 });
 export type Module = z.infer<typeof moduleSchema>;

@@ -16,6 +16,7 @@ export type ConsoleNavItem = {
 type ConsoleShellProps = {
   title: string;
   nav: ConsoleNavItem[];
+  footer?: ReactNode;
   children: ReactNode;
 };
 
@@ -23,7 +24,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function ConsoleShell({ title, nav, children }: ConsoleShellProps) {
+export function ConsoleShell({ title, nav, footer, children }: ConsoleShellProps) {
   const pathname = usePathname();
 
   return (
@@ -54,6 +55,7 @@ export function ConsoleShell({ title, nav, children }: ConsoleShellProps) {
             );
           })}
         </nav>
+        {footer && <div className="mt-auto border-t p-3">{footer}</div>}
       </aside>
       <main className="flex-1 px-8 py-6">{children}</main>
     </div>

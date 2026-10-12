@@ -1,5 +1,10 @@
 import { setupWorker } from "msw/browser";
 
-import { handlers } from "./handlers";
+import type { MockingMode } from "@/shared/config/env";
 
-export const worker = setupWorker(...handlers);
+import { handlers } from "./handlers";
+import { pendingHandlers } from "./pending";
+
+export function createWorker(mode: Exclude<MockingMode, "disabled">) {
+  return setupWorker(...(mode === "all" ? handlers : pendingHandlers));
+}
