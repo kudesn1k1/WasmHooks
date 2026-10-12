@@ -554,7 +554,6 @@ paths:
       tags:
       - tenant
       summary: Версии модуля хука
-      description: Реализуется в T3, см. docs/handoff/backend.md.
       operationId: list_modules_api_v1_tenant_hooks__hook__modules_get
       security:
       - tenantToken: []
@@ -594,7 +593,7 @@ paths:
       tags:
       - tenant
       summary: Загрузить версию модуля
-      description: Тело multipart/form-data, поле file. Реализуется в T3, см. docs/handoff/backend.md.
+      description: Тело multipart/form-data, поле file.
       operationId: upload_module_api_v1_tenant_hooks__hook__modules_post
       security:
       - tenantToken: []

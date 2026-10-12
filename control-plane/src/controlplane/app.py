@@ -24,7 +24,9 @@ from controlplane.errors import (
 from controlplane.hooks import router as hooks_router
 from controlplane.hooks.service import HookService
 from controlplane.modules import router as modules_router
+from controlplane.modules.service import ModuleService
 from controlplane.settings import Settings
+from controlplane.storage.s3 import ModuleStorage
 from controlplane.tenantconsole import router as tenantconsole_router
 from controlplane.tenants import router as tenants_router
 from controlplane.tenants.service import TenantService
@@ -42,6 +44,7 @@ def create_app(settings: Settings) -> FastAPI:
         settings.tenant_jwt_secret.get_secret_value(), settings.tenant_token_ttl_s
     )
     tenant_auth = TenantAuth(tenant_tokens)
+    module_storage = ModuleStorage.from_settings(settings)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -73,9 +76,13 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
     app.include_router(tenants_router.build_router(TenantService(engine), operator_auth))
     app.include_router(apikeys_router.build_router(ApiKeyService(engine), operator_auth))
-    # Stubs answering 501 until the backend tasks T3-T6 implement them.
+    # Stubs answering 501 until the backend tasks T4-T6 implement them.
     app.include_router(tenantconsole_router.build_router(tenant_auth))
-    app.include_router(modules_router.build_router(tenant_auth))
+    app.include_router(
+        modules_router.build_router(
+            ModuleService(engine, module_storage, settings.max_module_bytes), tenant_auth
+        )
+    )
     app.include_router(bindings_router.build_router(tenant_auth))
 
     @app.get("/healthz", include_in_schema=False)
