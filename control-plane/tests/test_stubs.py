@@ -11,8 +11,6 @@ from controlplane.settings import Settings
 
 # (method, path, task, request kwargs, caller)
 ENDPOINTS: list[tuple[str, str, str, dict[str, Any], str]] = [
-    ("GET", "/api/v1/tenant/hooks", "T6", {}, "tenant"),
-    ("GET", "/api/v1/tenant/hooks/order.validate", "T6", {}, "tenant"),
     (
         "PUT",
         "/api/v1/tenant/hooks/order.validate/binding",

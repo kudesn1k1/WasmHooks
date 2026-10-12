@@ -479,7 +479,6 @@ paths:
       tags:
       - tenant
       summary: Хуки тенанта
-      description: Реализуется в T6, см. docs/handoff/backend.md.
       operationId: list_hooks_api_v1_tenant_hooks_get
       responses:
         '200':
@@ -513,7 +512,6 @@ paths:
       tags:
       - tenant
       summary: Хук тенанта
-      description: Реализуется в T6, см. docs/handoff/backend.md.
       operationId: get_hook_api_v1_tenant_hooks__hook__get
       security:
       - tenantToken: []

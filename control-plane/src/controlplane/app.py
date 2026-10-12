@@ -28,6 +28,7 @@ from controlplane.modules.service import ModuleService
 from controlplane.settings import Settings
 from controlplane.storage.s3 import ModuleStorage
 from controlplane.tenantconsole import router as tenantconsole_router
+from controlplane.tenantconsole.service import TenantConsoleService
 from controlplane.tenants import router as tenants_router
 from controlplane.tenants.service import TenantService
 
@@ -76,8 +77,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
     app.include_router(tenants_router.build_router(TenantService(engine), operator_auth))
     app.include_router(apikeys_router.build_router(ApiKeyService(engine), operator_auth))
-    # Stubs answering 501 until the backend tasks T4-T6 implement them.
-    app.include_router(tenantconsole_router.build_router(tenant_auth))
+    # T4 background validation and the T5 binding endpoint remain to implement.
+    app.include_router(tenantconsole_router.build_router(TenantConsoleService(engine), tenant_auth))
     app.include_router(
         modules_router.build_router(
             ModuleService(engine, module_storage, settings.max_module_bytes), tenant_auth
