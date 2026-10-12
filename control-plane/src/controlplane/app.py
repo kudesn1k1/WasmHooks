@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from controlplane.apikeys import router as apikeys_router
+from controlplane.apikeys.service import ApiKeyService
 from controlplane.auth import router as auth_router
 from controlplane.auth.deps import InternalAuth, OperatorAuth, TenantAuth
 from controlplane.auth.tenant_tokens import TenantTokens
@@ -71,8 +72,8 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(auth_router.build_router(engine, tenant_tokens, operator_auth))
     app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
     app.include_router(tenants_router.build_router(TenantService(engine), operator_auth))
-    # Stubs answering 501 until the backend tasks T2-T6 implement them.
-    app.include_router(apikeys_router.build_router(operator_auth))
+    app.include_router(apikeys_router.build_router(ApiKeyService(engine), operator_auth))
+    # Stubs answering 501 until the backend tasks T3-T6 implement them.
     app.include_router(tenantconsole_router.build_router(tenant_auth))
     app.include_router(modules_router.build_router(tenant_auth))
     app.include_router(bindings_router.build_router(tenant_auth))
