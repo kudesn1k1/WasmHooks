@@ -8,6 +8,7 @@ from controlplane.hooks import repo as hooks_repo
 from controlplane.hooks.service import NOT_FOUND as HOOK_NOT_FOUND
 from controlplane.modules import repo
 from controlplane.modules.schemas import Module
+from controlplane.modules.validator import ModuleValidator
 from controlplane.storage.s3 import ModuleStorage
 from controlplane.tenants import repo as tenants_repo
 
@@ -25,10 +26,17 @@ def _to_module(row: repo.ModuleRow) -> Module:
 
 
 class ModuleService:
-    def __init__(self, engine: AsyncEngine, storage: ModuleStorage, max_module_bytes: int) -> None:
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        storage: ModuleStorage,
+        max_module_bytes: int,
+        validator: ModuleValidator,
+    ) -> None:
         self._engine = engine
         self._storage = storage
         self._max_module_bytes = max_module_bytes
+        self._validator = validator
 
     async def list_all(self, external_id: str, hook: str) -> list[Module]:
         async with self._engine.connect() as conn:
@@ -70,4 +78,5 @@ class ModuleService:
             )
             if row is None:
                 raise ProblemError(409, "Такая версия уже загружена", content_hash)
+        self._validator.enqueue(row.id)
         return _to_module(row)

@@ -1,3 +1,5 @@
+import asyncio
+import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -11,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from controlplane.app import create_app
 from controlplane.auth.keys import create_api_key
 from controlplane.auth.tenant_tokens import TenantTokens
+from controlplane.configstate.schemas import HookDefOut
+from controlplane.dpclient.schemas import ValidationReport
 from controlplane.settings import Settings
 from controlplane.storage.s3 import ModuleStorage, module_hash
 from controlplane.tables import config_state, modules
@@ -20,6 +24,21 @@ HOOK = "checkout.discount"
 URL = f"/api/v1/tenant/hooks/{HOOK}/modules"
 WASM_A = b"\x00asm\x01\x00\x00\x00"
 WASM_B = b"\x00asm\x01\x00\x00\x00second"
+
+
+class DormantValidationClient:
+    def __init__(self) -> None:
+        self.called = asyncio.Event()
+
+    async def validate(
+        self, module_hash: str, hook: HookDefOut, config: dict[str, str] | None = None
+    ) -> ValidationReport:
+        self.called.set()
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    async def aclose(self) -> None:
+        pass
 
 
 @pytest.fixture
@@ -39,12 +58,19 @@ def module_settings(pg_url: str, engine: AsyncEngine, minio: dict[str, str]) -> 
 
 
 @pytest_asyncio.fixture
-async def module_client(module_settings: Settings) -> AsyncIterator[httpx.AsyncClient]:
-    app = create_app(module_settings)
+async def module_client(
+    module_settings: Settings, validation_client: DormantValidationClient
+) -> AsyncIterator[httpx.AsyncClient]:
+    app = create_app(module_settings, validation_client=validation_client)
     async with LifespanManager(app):
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://cp") as client:
             yield client
+
+
+@pytest.fixture
+def validation_client() -> DormantValidationClient:
+    return DormantValidationClient()
 
 
 def tenant_auth(settings: Settings, external_id: str) -> dict[str, str]:
@@ -74,6 +100,7 @@ async def test_upload_stores_module_and_metadata_without_snapshot_bump(
     module_client: httpx.AsyncClient,
     module_settings: Settings,
     engine: AsyncEngine,
+    validation_client: DormantValidationClient,
 ) -> None:
     await seed(engine, "merchant-a")
     before = await snapshot_version(engine)
@@ -92,6 +119,14 @@ async def test_upload_stores_module_and_metadata_without_snapshot_bump(
     assert created["id"]
     assert created["uploaded_at"]
     assert await snapshot_version(engine) == before
+
+    # The response does not wait for validation, but the committed id is queued.
+    await asyncio.wait_for(validation_client.called.wait(), timeout=3)
+    async with engine.connect() as conn:
+        background_status = await conn.scalar(
+            select(modules.c.status).where(modules.c.id == uuid.UUID(created["id"]))
+        )
+    assert background_status == "validating"
 
     storage = ModuleStorage.from_settings(module_settings)
     assert await storage.get_module(created["content_hash"]) == WASM_A
