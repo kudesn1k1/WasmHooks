@@ -638,7 +638,7 @@ paths:
       tags:
       - tenant
       summary: Изменить привязку хука
-      description: Активная версия и/или конфиг. Реализуется в T5, см. docs/handoff/backend.md.
+      description: Активирует проверенную версию и/или изменяет конфиг хука.
       operationId: update_binding_api_v1_tenant_hooks__hook__binding_put
       security:
       - tenantToken: []

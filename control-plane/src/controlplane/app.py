@@ -11,6 +11,7 @@ from controlplane.auth import router as auth_router
 from controlplane.auth.deps import InternalAuth, OperatorAuth, TenantAuth
 from controlplane.auth.tenant_tokens import TenantTokens
 from controlplane.bindings import router as bindings_router
+from controlplane.bindings.service import BindingService
 from controlplane.configstate import router as configstate_router
 from controlplane.configstate.snapshot import SnapshotService
 from controlplane.configstate.watcher import VersionWatcher
@@ -90,7 +91,6 @@ def create_app(
     app.include_router(hooks_router.build_router(HookService(engine), operator_auth))
     app.include_router(tenants_router.build_router(TenantService(engine), operator_auth))
     app.include_router(apikeys_router.build_router(ApiKeyService(engine), operator_auth))
-    # The T5 binding endpoint remains to implement.
     app.include_router(tenantconsole_router.build_router(TenantConsoleService(engine), tenant_auth))
     app.include_router(
         modules_router.build_router(
@@ -103,7 +103,7 @@ def create_app(
             tenant_auth,
         )
     )
-    app.include_router(bindings_router.build_router(tenant_auth))
+    app.include_router(bindings_router.build_router(BindingService(engine), tenant_auth))
 
     @app.get("/healthz", include_in_schema=False)
     async def healthz() -> dict[str, str]:
