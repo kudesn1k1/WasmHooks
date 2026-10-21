@@ -1,34 +1,31 @@
 from fastapi import APIRouter, Depends
 
 from controlplane.apikeys.schemas import ApiKeyCreate, ApiKeyCreated, ApiKeyList
+from controlplane.apikeys.service import ApiKeyService
 from controlplane.auth.deps import OperatorAuth
 
-_NOTE = "Реализуется в T2, см. docs/handoff/backend.md."
 
-
-def build_router(operator: OperatorAuth) -> APIRouter:
+def build_router(service: ApiKeyService, operator: OperatorAuth) -> APIRouter:
     router = APIRouter(
         prefix="/api/v1/api-keys", tags=["api-keys"], dependencies=[Depends(operator)]
     )
 
-    @router.get(
-        "", response_model=ApiKeyList, status_code=200, summary="Список ключей", description=_NOTE
-    )
+    @router.get("", response_model=ApiKeyList, status_code=200, summary="Список ключей")
     async def list_api_keys() -> ApiKeyList:
-        raise NotImplementedError("T2")
+        return ApiKeyList(items=await service.list_all())
 
     @router.post(
         "",
         response_model=ApiKeyCreated,
         status_code=201,
         summary="Выпустить ключ",
-        description=_NOTE + " Токен показывается один раз.",
+        description="Токен показывается один раз и затем не может быть получен через API.",
     )
     async def create_api_key(body: ApiKeyCreate) -> ApiKeyCreated:
-        raise NotImplementedError("T2")
+        return await service.create(body.name)
 
-    @router.delete("/{key_id}", status_code=204, summary="Отозвать ключ", description=_NOTE)
+    @router.delete("/{key_id}", status_code=204, summary="Отозвать ключ")
     async def revoke_api_key(key_id: str) -> None:
-        raise NotImplementedError("T2")
+        await service.revoke(key_id)
 
     return router
