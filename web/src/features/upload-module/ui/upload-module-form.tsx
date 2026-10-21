@@ -3,6 +3,7 @@
 import { Upload } from "lucide-react";
 import { useId, useRef, useState, type FormEvent } from "react";
 
+import { describeError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 
 import { useUploadModule } from "../api/use-upload-module";
@@ -31,7 +32,7 @@ export function UploadModuleForm({ hook }: { hook: string }) {
     });
   }
 
-  const error = fileError ?? (upload.isError ? upload.error.message : null);
+  const error = fileError ?? (upload.isError ? describeError(upload.error) : null);
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-2">

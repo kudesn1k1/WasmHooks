@@ -4,8 +4,8 @@ export function OperatorTenantsPage() {
   return (
     <PageStub
       title="Тенанты"
-      milestone="MVP"
-      description="Подключённые тенанты и их квоты: параллельность и частота вызовов."
+      milestone="M1"
+      description="Подключённые тенанты и их квоты, вход в консоль тенанта, ключи установки."
     />
   );
 }

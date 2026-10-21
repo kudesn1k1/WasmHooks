@@ -1,4 +1,6 @@
-import { ApiError } from "@/shared/api";
+import { Construction } from "lucide-react";
+
+import { ApiError, describeError } from "@/shared/api";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 export function LoadingRows({ rows = 3 }: { rows?: number }) {
@@ -11,12 +13,21 @@ export function LoadingRows({ rows = 3 }: { rows?: number }) {
   );
 }
 
+function NotImplementedState({ error }: { error: ApiError }) {
+  return (
+    <div role="status" className="text-muted-foreground flex items-center gap-3 rounded-md border border-dashed p-4 text-sm">
+      <Construction className="size-5 shrink-0" />
+      <p>{describeError(error)}. Экран заработает, когда бэкенд реализует эту задачу.</p>
+    </div>
+  );
+}
+
 export function ErrorState({ error }: { error: unknown }) {
-  const message = error instanceof Error ? error.message : "Неизвестная ошибка";
+  if (error instanceof ApiError && error.status === 501) return <NotImplementedState error={error} />;
   const detail = error instanceof ApiError ? error.detail : undefined;
   return (
     <div role="alert" className="border-destructive/50 text-destructive rounded-md border p-4 text-sm">
-      <p className="font-medium">Не удалось загрузить данные: {message}</p>
+      <p className="font-medium">Не удалось загрузить данные: {error instanceof Error ? error.message : "Неизвестная ошибка"}</p>
       {detail && <pre className="mt-2 text-xs whitespace-pre-wrap">{detail}</pre>}
     </div>
   );

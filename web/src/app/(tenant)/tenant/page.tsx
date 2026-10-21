@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
-
+import { TenantEntryRedirect } from "@/features/console-session";
 import { routes } from "@/shared/config/routes";
 
 export default function TenantIndex() {
-  redirect(routes.tenant.hooks);
+  return <TenantEntryRedirect to={routes.tenant.hooks} />;
 }

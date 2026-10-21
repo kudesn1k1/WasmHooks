@@ -59,3 +59,25 @@ jobs:
       - name: build fixtures
         working-directory: examples/scripts/rust
         run: cargo build --release --target wasm32-unknown-unknown
+
+  control-plane:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: control-plane
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: control-plane/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+      - name: openapi drift
+        run: |
+          uv run controlplane openapi > /tmp/control-plane.openapi.yaml
+          diff -u ../api/control-plane.openapi.yaml /tmp/control-plane.openapi.yaml
