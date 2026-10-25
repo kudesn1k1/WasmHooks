@@ -10,7 +10,7 @@ import { clearToken, getToken, setToken } from "@/shared/api";
 import { makeJwt, renderWithQuery } from "@/shared/lib/test-utils";
 
 import { TenantSessionGate } from "./tenant-session-gate";
-import { TenantSessionInfo } from "./tenant-session-info";
+import { TenantName, TenantSessionInfo } from "./tenant-session-info";
 
 const EXPIRED_TITLE = "Сессия консоли не начата или истекла";
 
@@ -155,21 +155,31 @@ describe("TenantSessionGate", () => {
   });
 });
 
-describe("TenantSessionInfo", () => {
-  it("shows the tenant and when the session ends", () => {
+describe("TenantName and TenantSessionInfo", () => {
+  it("show the tenant and when the session ends", () => {
     const exp = Date.UTC(2026, 9, 10, 12, 0, 0) / 1000;
-    setToken("tenant", makeJwt({ sub: "merchant-a", exp }));
-    renderWithQuery(<TenantSessionInfo />);
+    setToken("tenant", makeJwt({ sub: "merchant-b", exp }));
+    renderWithQuery(
+      <>
+        <TenantName />
+        <TenantSessionInfo />
+      </>,
+    );
 
-    expect(screen.getByText("merchant-a")).toBeInTheDocument();
+    expect(screen.getByText("merchant-b")).toBeInTheDocument();
     expect(screen.getByText("Сессия до")).toBeInTheDocument();
   });
 
-  it("names the mock session", () => {
+  it("use the mock tenant for the mock token", () => {
     setToken("tenant", "mock");
-    renderWithQuery(<TenantSessionInfo />);
+    renderWithQuery(
+      <>
+        <TenantName />
+        <TenantSessionInfo />
+      </>,
+    );
 
-    expect(screen.getByText("мок-сессия")).toBeInTheDocument();
+    expect(screen.getByText("merchant-a")).toBeInTheDocument();
     expect(screen.queryByText("Сессия до")).not.toBeInTheDocument();
   });
 });

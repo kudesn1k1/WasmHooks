@@ -2,6 +2,7 @@ import { delay, http, HttpResponse, type RequestHandler } from "msw";
 
 import type { TenantHook } from "@/entities/hook";
 import { outcomeSchema } from "@/entities/invocation";
+import { MAX_MODULE_BYTES } from "@/entities/module";
 
 import {
   addUploadedModule,
@@ -66,7 +67,9 @@ const tenantModules = [
       const name = String(params.hook);
       if (!tenantHook(name)) return problem(404, "Хук не найден", name);
       const file = (await request.formData()).get("file");
-      if (!(file instanceof File)) return problem(422, "Некорректный запрос", "body.file: Field required");
+      if (file === null || typeof file === "string") return problem(422, "Некорректный запрос", "body.file: Field required");
+      if (file.size > MAX_MODULE_BYTES) return problem(413, "Модуль слишком большой");
+      if (file.size === 0) return problem(422, "Пустой модуль");
       const bytes = await file.arrayBuffer();
       const contentHash = await sha256(bytes);
       if (db.modules.some((m) => m.hook === name && m.content_hash === contentHash)) {
@@ -85,18 +88,26 @@ const tenantBinding = [
       await delay();
       const name = String(params.hook);
       if (!tenantHook(name)) return problem(404, "Хук не найден", name);
-      const body = (await request.json()) as { active_module_id?: string };
-      const mod = db.modules.find((m) => m.id === body.active_module_id && m.hook === name);
-      if (!mod) return problem(404, "Версия не найдена", body.active_module_id);
-      if (mod.status !== "validated") {
-        return problem(409, "Активировать можно только проверенную версию", `Статус: ${mod.status}`);
-      }
+      const body = (await request.json()) as { active_module_id?: string | null; config?: Record<string, string> | null };
+      if (body.active_module_id == null && body.config == null) return problem(400, "Нечего менять");
       const previous = db.bindings.get(name);
+      let mod: (typeof db.modules)[number] | undefined;
+      if (body.active_module_id != null) {
+        mod = db.modules.find((m) => m.id === body.active_module_id && m.hook === name);
+        if (!mod) return problem(404, "Версия не найдена", body.active_module_id);
+        if (mod.status !== "validated") {
+          return problem(409, "Активировать можно только проверенную версию", `Статус: ${mod.status}`);
+        }
+      }
+      const configChanged =
+        previous !== undefined && body.config != null && JSON.stringify(body.config) !== JSON.stringify(previous.config);
+      const moduleChanged = mod !== undefined && mod.id !== previous?.active_module_id;
+      if (previous && !configChanged && !moduleChanged) return HttpResponse.json(previous);
       const binding = {
-        active_module_id: mod.id,
-        active_module_hash: mod.content_hash,
-        config: previous?.config ?? {},
-        config_version: previous?.config_version ?? 1,
+        active_module_id: mod?.id ?? previous?.active_module_id ?? null,
+        active_module_hash: mod?.content_hash ?? previous?.active_module_hash ?? null,
+        config: body.config ?? previous?.config ?? {},
+        config_version: previous ? previous.config_version + (configChanged ? 1 : 0) : 1,
         updated_at: new Date().toISOString(),
       };
       db.bindings.set(name, binding);

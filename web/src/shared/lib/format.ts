@@ -22,5 +22,5 @@ export function formatWasmPages(pages: number): string {
 }
 
 export function shortHash(hash: string): string {
-  return hash.replace(/^sha256:/, "").slice(0, 8);
+  return hash.replace(/^sha256:/, "").slice(0, 12);
 }

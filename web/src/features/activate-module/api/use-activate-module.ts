@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { bindingSchema, hookKeys } from "@/entities/hook";
+import { bindingSchema, hookKeys, type Binding } from "@/entities/hook";
 import { moduleKeys } from "@/entities/module";
 import { apiRequest } from "@/shared/api";
 
-export function useActivateModule(hook: string) {
+export function useActivateModule(hook: string, onActivated?: (binding: Binding) => void) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -14,10 +14,12 @@ export function useActivateModule(hook: string) {
         schema: bindingSchema,
         body: { active_module_id: moduleId },
       }),
-    onSuccess: () =>
-      Promise.all([
+    onSuccess: (binding) => {
+      onActivated?.(binding);
+      return Promise.all([
         queryClient.invalidateQueries({ queryKey: hookKeys.all }),
         queryClient.invalidateQueries({ queryKey: moduleKeys.byHook(hook) }),
-      ]),
+      ]);
+    },
   });
 }

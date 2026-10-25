@@ -31,6 +31,22 @@ describe("ConsoleShell", () => {
     expect(screen.getByText("контент")).toBeInTheDocument();
   });
 
+  it("shows the console context and nav hints", () => {
+    render(
+      <ConsoleShell
+        title="Консоль тенанта"
+        context="merchant-a"
+        nav={[{ href: "/tenant/hooks", label: "Хуки", hint: "Управление обработчиками" }]}
+      >
+        {null}
+      </ConsoleShell>,
+    );
+
+    expect(screen.getByText("merchant-a")).toBeInTheDocument();
+    expect(screen.getByText("Управление обработчиками")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Хуки" })).toBeInTheDocument();
+  });
+
   it("marks the current section, including nested pages", () => {
     pathname.current = "/tenant/hooks/checkout.discount";
     render(
