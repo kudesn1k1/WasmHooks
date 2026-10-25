@@ -13,6 +13,7 @@ import {
 } from "./db";
 import { authed, problem, url } from "./http";
 import { operatorHooks } from "./operator-hooks";
+import { apiKeys, consoleSessions, tenants } from "./operator-tenants";
 
 function tenantHook(name: string): TenantHook | undefined {
   const hook = db.hooks.find((h) => h.name === name);
@@ -138,6 +139,9 @@ const invocations = [
 
 export const handlerGroups = {
   operatorHooks,
+  tenants,
+  consoleSessions,
+  apiKeys,
   tenantHooks,
   tenantModules,
   tenantBinding,

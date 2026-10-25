@@ -1,15 +1,57 @@
+import type { ApiKey } from "@/entities/api-key";
 import type { Binding, OperatorHook } from "@/entities/hook";
 import type { Invocation, Outcome } from "@/entities/invocation";
 import type { Module, ValidationCheck } from "@/entities/module";
+import type { Tenant } from "@/entities/tenant";
 
 type PendingModule = Module & { validatesAt: number; rejectReason?: string };
+
+export type StoredApiKey = ApiKey & { token: string };
 
 type Db = {
   hooks: OperatorHook[];
   modules: PendingModule[];
   bindings: Map<string, Binding>;
   invocations: Invocation[];
+  tenants: Tenant[];
+  apiKeys: StoredApiKey[];
 };
+
+const TENANTS: Tenant[] = [
+  {
+    external_id: "merchant-a",
+    name: "Магазин A",
+    rate_limit_rps: 0,
+    concurrency_limit: 0,
+    created_at: "2026-09-05T09:00:00Z",
+    updated_at: "2026-09-05T09:00:00Z",
+  },
+  {
+    external_id: "merchant-b",
+    name: "Магазин B",
+    rate_limit_rps: 50,
+    concurrency_limit: 4,
+    created_at: "2026-09-12T12:30:00Z",
+    updated_at: "2026-09-19T08:15:00Z",
+  },
+];
+
+const API_KEYS: StoredApiKey[] = [
+  {
+    id: "key_5f2c9a1e0b7d4c3a",
+    name: "bootstrap",
+    created_at: "2026-09-05T08:55:00Z",
+    revoked_at: null,
+    token: "whk_mockBootstrapKey000000000000000",
+  },
+  {
+    id: "key_a1b2c3d4e5f60718",
+    name: "old-shop-backend",
+    created_at: "2026-09-08T10:00:00Z",
+    revoked_at: "2026-09-15T17:20:00Z",
+    token: "whk_mockRevokedKey00000000000000000",
+  },
+];
 
 const HOOKS: OperatorHook[] = [
   {
@@ -196,6 +238,8 @@ function initialDb(): Db {
       ],
     ]),
     invocations: initialInvocations(active.content_hash),
+    tenants: structuredClone(TENANTS),
+    apiKeys: structuredClone(API_KEYS),
   };
 }
 
