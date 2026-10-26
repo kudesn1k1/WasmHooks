@@ -1,5 +1,5 @@
-// Package e2e runs the Milestone 1 scenario (spec M1 §8.2) against the
-// compose in the repository root. It needs Docker and a running compose, so
+// Package e2e runs the end-to-end scenario (spec M1 §8.2, spec M2 §9.3)
+// against the compose in the repository root. It needs Docker and a running compose, so
 // it is skipped unless E2E=1:
 //
 //	docker compose up -d --build --wait control-plane dataplane
@@ -20,6 +20,7 @@ func TestScenario(t *testing.T) {
 	}
 	steps, err := scenario.Run(t.Context(), scenario.Config{
 		ComposeDir:    "..",
+		FixturesDir:   "../dataplane/testdata/wasm",
 		ControlPlane:  "http://localhost:8000",
 		DataPlane:     "http://localhost:8080",
 		IncludeShould: true,
