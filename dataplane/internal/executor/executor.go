@@ -1,13 +1,15 @@
 // Package executor runs tenant scripts: it resolves the pinned hook
 // definition and module, compiles modules once per (hash, hook definition),
-// leases a tenant-scoped instance, calls the script and checks its output
-// against the hook contract. It implements execproto.Executor.
+// takes a running slot, leases a tenant-scoped instance, calls the script
+// and checks its output against the hook contract. It implements
+// execproto.Executor.
 package executor
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"runtime"
 	"slices"
 	"strconv"
@@ -26,14 +28,18 @@ import (
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/schema"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/slots"
 )
 
 // Options wire the executor's dependencies. Zero limits take the defaults.
 type Options struct {
-	Runtime        sandbox.Runtime
-	Modules        modstore.Store
-	Config         *config.Store
-	Pools          *pool.Manager
+	Runtime sandbox.Runtime
+	Modules modstore.Store
+	Config  *config.Store
+	Pools   *pool.Manager
+	// Slots bounds running calls (decision D30, spec M2); nil leaves them
+	// unbounded, as before M2.
+	Slots          *slots.Limiter
 	Schemas        *schema.Cache
 	Sink           observe.Sink
 	ExecutorID     string
@@ -187,15 +193,27 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		return fail(execproto.OutcomeUnavailable, execproto.ReasonStaleConfig,
 			fmt.Errorf("binding %s/%s with config version %d is unknown to this executor", req.TenantID, req.Hook, req.ConfigVersion))
 	}
-	limit := config.DefaultConcurrencyLimit
-	if tenant, ok := view.Tenant(req.TenantID); ok {
-		limit = tenant.ConcurrencyLimit
-	}
-
 	mod, f := e.module(ctx, req.ModuleHash, hook)
 	if f != nil {
 		return f
 	}
+
+	// The slot covers creating the instance and the call, both CPU work, so
+	// a call waiting for a slot holds no instance (decision D31, spec M2).
+	releaseSlot := func() {}
+	if e.opts.Slots != nil {
+		release, err := e.opts.Slots.Acquire(ctx, req.TenantID)
+		switch {
+		case errors.Is(err, slots.ErrOverloaded):
+			return fail(execproto.OutcomeUnavailable, execproto.ReasonOverloaded, errors.New("executor overloaded: no room in the queue for a running slot"))
+		case err != nil:
+			return notStarted(ctx)
+		}
+		releaseSlot = release
+	}
+	// Release is idempotent; the explicit calls below free the slot as soon
+	// as the instance is back in the pool.
+	defer releaseSlot()
 
 	key := pool.Key{
 		TenantID:       req.TenantID,
@@ -204,7 +222,7 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		ModuleHash:     req.ModuleHash,
 		ConfigVersion:  req.ConfigVersion,
 	}
-	lease, err := e.opts.Pools.Acquire(ctx, key, limit, func(ctx context.Context) (sandbox.Instance, error) {
+	lease, err := e.opts.Pools.Acquire(ctx, key, e.keyLimit(), func(ctx context.Context) (sandbox.Instance, error) {
 		return mod.Instantiate(ctx, binding.Config)
 	})
 	switch {
@@ -232,10 +250,12 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	res.Logs = formatLogs(out.Logs)
 	if err != nil {
 		lease.Release(false)
+		releaseSlot()
 		return callFailure(err, w)
 	}
 	// From here on the instance is healthy whatever the output says.
 	lease.Release(true)
+	releaseSlot()
 
 	result, effects, err := parseOutput(out.Output, e.opts.MaxOutputBytes, hook.AllowedEffectTypes, req.IdempotencyKey)
 	if err != nil {
@@ -252,6 +272,17 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	}
 	res.Result, res.Effects = result, effects
 	return nil
+}
+
+// keyLimit caps the instances of one pool key. A key belongs to one tenant,
+// and every lease is taken under one of the tenant's running slots, so the
+// tenant's share of slots is the most a key can use; without slots only the
+// pool's global cap applies.
+func (e *Executor) keyLimit() int {
+	if e.opts.Slots == nil {
+		return math.MaxInt
+	}
+	return e.opts.Slots.TenantShare()
 }
 
 // notStarted reports a call whose script never started because the
