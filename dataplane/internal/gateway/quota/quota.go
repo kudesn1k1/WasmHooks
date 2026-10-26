@@ -189,7 +189,8 @@ func (m *Manager) tenantCount() int {
 	return len(m.tenants)
 }
 
-func (m *Manager) waiting(id string) int {
+// Waiting reports how many calls of tenantID wait in its queue.
+func (m *Manager) Waiting(id string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if t, ok := m.tenants[id]; ok {

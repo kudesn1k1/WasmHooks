@@ -22,23 +22,29 @@ const (
 	hash     = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
 )
 
-// fakeExecutor records requests and returns a canned result.
+// fakeExecutor records requests and returns a canned result. With block
+// set, each call waits for a value on it before returning.
 type fakeExecutor struct {
 	mu        sync.Mutex
 	reqs      []execproto.ExecuteRequest
 	deadlines []time.Duration
 	res       execproto.ExecuteResult
 	err       error
+	block     chan struct{}
 }
 
 func (f *fakeExecutor) Execute(ctx context.Context, req execproto.ExecuteRequest) (execproto.ExecuteResult, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.reqs = append(f.reqs, req)
 	if d, ok := ctx.Deadline(); ok {
 		f.deadlines = append(f.deadlines, time.Until(d))
 	}
-	return f.res, f.err
+	res, err, block := f.res, f.err, f.block
+	f.mu.Unlock()
+	if block != nil {
+		<-block
+	}
+	return res, err
 }
 
 func (f *fakeExecutor) calls() int {
@@ -214,5 +220,174 @@ func TestAuthenticate(t *testing.T) {
 		if g.Authenticate(bad) {
 			t.Fatalf("token %q accepted", bad)
 		}
+	}
+}
+
+// newQuotaGateway serves tenant "a" with the given quotas.
+func newQuotaGateway(t *testing.T, exec *fakeExecutor, tenant config.Tenant) (*Gateway, *config.Store) {
+	t.Helper()
+	snap := testSnapshot()
+	tenant.ExternalID = "a"
+	snap.Tenants = []config.Tenant{tenant}
+	cfg := config.NewStore()
+	if err := cfg.Update(snap); err != nil {
+		t.Fatal(err)
+	}
+	return New(cfg, exec, schema.NewCache(), Options{}), cfg
+}
+
+func invokeA(g *Gateway, ctx context.Context) Response {
+	resp, err := g.Invoke(ctx, Request{Hook: hookName, TenantID: "a", Payload: validPayload})
+	if err != nil {
+		panic(err)
+	}
+	return resp
+}
+
+func TestInvokeRateLimit(t *testing.T) {
+	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{RateLimitRPS: 2})
+	for i := range 2 {
+		if r := invokeA(g, context.Background()); r.Outcome != execproto.OutcomeOK {
+			t.Fatalf("call %d: outcome %s", i, r.Outcome)
+		}
+	}
+	r := invokeA(g, context.Background())
+	if r.Outcome != execproto.OutcomeQuotaExceeded || r.Reason != execproto.ReasonRateLimit || r.ModuleHash != "" {
+		t.Fatalf("got %+v, want quota_exceeded/rate_limit without module_hash", r)
+	}
+	if exec.calls() != 2 {
+		t.Fatalf("executor saw %d calls, want 2", exec.calls())
+	}
+}
+
+func TestInvokeConcurrencyLimit(t *testing.T) {
+	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}, block: make(chan struct{})}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
+
+	first := make(chan Response, 1)
+	go func() { first <- invokeA(g, context.Background()) }()
+	waitCalls(t, exec, 1)
+	second := make(chan Response, 1)
+	go func() { second <- invokeA(g, context.Background()) }() // waits in the tenant's queue
+	waitQueued(t, g, "a", 1)
+
+	r := invokeA(g, context.Background()) // the queue of length 1 is full
+	if r.Outcome != execproto.OutcomeQuotaExceeded || r.Reason != execproto.ReasonConcurrencyLimit {
+		t.Fatalf("got %+v, want quota_exceeded/concurrency_limit", r)
+	}
+
+	exec.block <- struct{}{}
+	if r := <-first; r.Outcome != execproto.OutcomeOK {
+		t.Fatalf("first: %+v", r)
+	}
+	waitCalls(t, exec, 2)
+	exec.block <- struct{}{}
+	if r := <-second; r.Outcome != execproto.OutcomeOK {
+		t.Fatalf("second: %+v", r)
+	}
+}
+
+func TestInvokeConcurrencyWaitSpendsDeadline(t *testing.T) {
+	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}, block: make(chan struct{})}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
+	go invokeA(g, context.Background())
+	waitCalls(t, exec, 1)
+	defer func() { exec.block <- struct{}{} }()
+
+	resp, err := g.Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload, Deadline: 20 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Outcome != execproto.OutcomeQuotaExceeded || resp.Reason != execproto.ReasonConcurrencyLimit {
+		t.Fatalf("got %+v, want quota_exceeded/concurrency_limit", resp)
+	}
+}
+
+func TestInvokeCallerGoneWhileQueued(t *testing.T) {
+	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}, block: make(chan struct{})}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
+	go invokeA(g, context.Background())
+	waitCalls(t, exec, 1)
+	defer func() { exec.block <- struct{}{} }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	got := make(chan Response, 1)
+	go func() { got <- invokeA(g, ctx) }()
+	waitQueued(t, g, "a", 1)
+	cancel()
+	if r := <-got; r.Outcome != execproto.OutcomeUnavailable || r.Reason != execproto.ReasonCallerCanceled {
+		t.Fatalf("got %+v, want unavailable/caller_canceled", r)
+	}
+}
+
+// TestInvokeQuotaReleasedOnExecutorError: a transport failure still ends
+// the call for the quota.
+func TestInvokeQuotaReleasedOnExecutorError(t *testing.T) {
+	exec := &fakeExecutor{err: errors.New("connection refused")}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
+	for range 3 {
+		if r := invokeA(g, context.Background()); r.Outcome != execproto.OutcomeUnavailable {
+			t.Fatalf("got %+v", r)
+		}
+	}
+	if exec.calls() != 3 {
+		t.Fatalf("executor saw %d calls, want 3", exec.calls())
+	}
+}
+
+func TestInvokeQuotaChangeApplies(t *testing.T) {
+	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}}
+	g, cfg := newQuotaGateway(t, exec, config.Tenant{})
+	for range 10 {
+		if r := invokeA(g, context.Background()); r.Outcome != execproto.OutcomeOK {
+			t.Fatalf("unlimited: %+v", r)
+		}
+	}
+	snap := testSnapshot()
+	snap.Version++
+	snap.Tenants = []config.Tenant{{ExternalID: "a", RateLimitRPS: 1}}
+	if err := cfg.Update(snap); err != nil {
+		t.Fatal(err)
+	}
+	invokeA(g, context.Background())
+	if r := invokeA(g, context.Background()); r.Outcome != execproto.OutcomeQuotaExceeded {
+		t.Fatalf("after the change: %+v, want quota_exceeded", r)
+	}
+}
+
+func TestInvokeNoHandlerSkipsQuotas(t *testing.T) {
+	exec := &fakeExecutor{}
+	g, _ := newQuotaGateway(t, exec, config.Tenant{RateLimitRPS: 1})
+	for range 5 {
+		resp, err := g.Invoke(context.Background(), Request{Hook: hookName, TenantID: "nobody", Payload: validPayload})
+		if err != nil || resp.Outcome != execproto.OutcomeNoHandler {
+			t.Fatalf("got %+v, %v", resp, err)
+		}
+	}
+	if r := invokeA(g, context.Background()); r.Outcome == execproto.OutcomeQuotaExceeded {
+		t.Fatalf("tenant a was charged for others' calls: %+v", r)
+	}
+}
+
+func waitCalls(t *testing.T, exec *fakeExecutor, n int) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for exec.calls() < n {
+		if time.Now().After(deadline) {
+			t.Fatalf("executor saw %d calls, want %d", exec.calls(), n)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func waitQueued(t *testing.T, g *Gateway, tenant string, n int) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for g.quotas.Waiting(tenant) < n {
+		if time.Now().After(deadline) {
+			t.Fatalf("%d calls of %s queued, want %d", g.quotas.Waiting(tenant), tenant, n)
+		}
+		time.Sleep(time.Millisecond)
 	}
 }

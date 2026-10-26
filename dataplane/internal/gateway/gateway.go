@@ -1,7 +1,7 @@
 // Package gateway admits operator invocations: it authenticates the
 // operator, resolves the hook, validates the payload against the hook's
-// input schema, resolves the tenant's binding and hands the call to an
-// execproto.Executor with every version pinned.
+// input schema, resolves the tenant's binding, applies the tenant's quotas
+// and hands the call to an execproto.Executor with every version pinned.
 //
 // The gateway never imports the executor: the two are joined only through
 // execproto, so they can run as separate processes (see internal/archtest).
@@ -16,6 +16,7 @@ import (
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/config"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/execproto"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway/quota"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/schema"
 )
 
@@ -68,13 +69,14 @@ type Gateway struct {
 	cfg     *config.Store
 	exec    execproto.Executor
 	schemas *schema.Cache
+	quotas  *quota.Manager
 	opts    Options
 }
 
 // New creates a gateway.
 func New(cfg *config.Store, exec execproto.Executor, schemas *schema.Cache, opts Options) *Gateway {
 	opts.setDefaults()
-	return &Gateway{cfg: cfg, exec: exec, schemas: schemas, opts: opts}
+	return &Gateway{cfg: cfg, exec: exec, schemas: schemas, quotas: quota.New(nil), opts: opts}
 }
 
 // scriptRan reports whether the outcome means the script started: the
@@ -87,6 +89,32 @@ func scriptRan(res execproto.ExecuteResult) bool {
 		return res.Reason != execproto.ReasonInvalidModule
 	}
 	return false
+}
+
+// tenantLimits returns the tenant's quotas from the snapshot. A tenant the
+// snapshot does not list gets the defaults.
+func tenantLimits(view *config.View, tenantID string) quota.Limits {
+	t, ok := view.Tenant(tenantID)
+	if !ok {
+		return quota.Limits{Concurrency: config.DefaultConcurrencyLimit}
+	}
+	return quota.Limits{RateRPS: t.RateLimitRPS, Concurrency: t.ConcurrencyLimit}
+}
+
+// rejected maps a quota refusal. The script never started.
+func rejected(err error) Response {
+	switch {
+	case errors.Is(err, quota.ErrRateLimited):
+		return Response{Outcome: execproto.OutcomeQuotaExceeded, Reason: execproto.ReasonRateLimit}
+	case errors.Is(err, quota.ErrConcurrency):
+		return Response{Outcome: execproto.OutcomeQuotaExceeded, Reason: execproto.ReasonConcurrencyLimit}
+	case errors.Is(err, context.Canceled):
+		return Response{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonCallerCanceled,
+			Error: "caller went away before the script started"}
+	default:
+		return Response{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonDeadline,
+			Error: "deadline expired before the script started"}
+	}
 }
 
 // ConfigLoaded reports whether a config snapshot has been applied. Until then
@@ -133,6 +161,16 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 	deadline = min(deadline, g.opts.MaxDeadline)
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
+
+	// Quotas count from here to the executor's answer; waiting for room
+	// spends the call's deadline.
+	release, err := g.quotas.Admit(ctx, req.TenantID, tenantLimits(view, req.TenantID))
+	if err != nil {
+		resp := rejected(err)
+		resp.Duration = time.Since(start)
+		return resp, nil
+	}
+	defer release()
 
 	res, err := g.exec.Execute(ctx, execproto.ExecuteRequest{
 		TenantID:       req.TenantID,

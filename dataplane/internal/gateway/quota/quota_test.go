@@ -187,7 +187,7 @@ func TestConcurrencyQueueFull(t *testing.T) {
 	lim := Limits{Concurrency: 1} // the queue holds one waiter
 	hold := mustAdmit(t, m, "a", lim)
 	waiting := admitAsync(m, context.Background(), "a", lim)
-	waitFor(t, "a queued", func() bool { return m.waiting("a") == 1 })
+	waitFor(t, "a queued", func() bool { return m.Waiting("a") == 1 })
 
 	if _, err := m.Admit(context.Background(), "a", lim); !errors.Is(err, ErrConcurrency) {
 		t.Fatalf("err = %v, want ErrConcurrency", err)
@@ -212,7 +212,7 @@ func TestConcurrencyDeadline(t *testing.T) {
 	if !errors.Is(err, ErrConcurrency) || !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("err = %v, want ErrConcurrency wrapping DeadlineExceeded", err)
 	}
-	if n := m.waiting("a"); n != 0 {
+	if n := m.Waiting("a"); n != 0 {
 		t.Fatalf("%d waiters left", n)
 	}
 }
@@ -224,7 +224,7 @@ func TestConcurrencyCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	ch := admitAsync(m, ctx, "a", lim)
-	waitFor(t, "a queued", func() bool { return m.waiting("a") == 1 })
+	waitFor(t, "a queued", func() bool { return m.Waiting("a") == 1 })
 	cancel()
 	r := received(t, ch)
 	if !errors.Is(r.err, context.Canceled) || errors.Is(r.err, ErrConcurrency) {
@@ -246,7 +246,7 @@ func TestConcurrencyLowered(t *testing.T) {
 	}
 	low := Limits{Concurrency: 2}
 	ch := admitAsync(m, context.Background(), "a", low)
-	waitFor(t, "a queued", func() bool { return m.waiting("a") == 1 })
+	waitFor(t, "a queued", func() bool { return m.Waiting("a") == 1 })
 
 	for _, release := range held[:6] {
 		release()
@@ -270,7 +270,7 @@ func TestConcurrencyRaised(t *testing.T) {
 	m, _ := newManager()
 	hold := mustAdmit(t, m, "a", Limits{Concurrency: 1})
 	waiting := admitAsync(m, context.Background(), "a", Limits{Concurrency: 1})
-	waitFor(t, "a queued", func() bool { return m.waiting("a") == 1 })
+	waitFor(t, "a queued", func() bool { return m.Waiting("a") == 1 })
 
 	next := mustAdmit(t, m, "a", Limits{Concurrency: 3})
 	r := received(t, waiting)
@@ -307,7 +307,7 @@ func TestCancelRacesWake(t *testing.T) {
 		hold := mustAdmit(t, m, "a", lim)
 		ctx, cancel := context.WithCancel(context.Background())
 		ch := admitAsync(m, ctx, "a", lim)
-		waitFor(t, "a queued", func() bool { return m.waiting("a") == 1 })
+		waitFor(t, "a queued", func() bool { return m.Waiting("a") == 1 })
 
 		var wg sync.WaitGroup
 		wg.Go(hold)
