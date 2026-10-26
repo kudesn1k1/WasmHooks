@@ -201,12 +201,19 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 
 	// The slot covers creating the instance and the call, both CPU work, so
 	// a call waiting for a slot holds no instance (decision D31, spec M2).
+	// The wait may spend only the deadline beyond the hook's limit: a call
+	// that gets its slot runs for its full time, one that does not is
+	// unavailable, never a timeout the queue caused (decision D28).
 	releaseSlot := func() {}
 	if e.opts.Slots != nil {
-		release, err := e.opts.Slots.Acquire(ctx, req.TenantID)
+		waitCtx, cancelWait := waitBudget(ctx, hook.Timeout())
+		release, err := e.opts.Slots.Acquire(waitCtx, req.TenantID)
+		cancelWait()
 		switch {
 		case errors.Is(err, slots.ErrOverloaded):
 			return fail(execproto.OutcomeUnavailable, execproto.ReasonOverloaded, errors.New("executor overloaded: no room in the queue for a running slot"))
+		case err != nil && ctx.Err() == nil:
+			return fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("no running slot freed up while the deadline still left the script its full time limit"))
 		case err != nil:
 			return notStarted(ctx)
 		}
@@ -273,6 +280,17 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	}
 	res.Result, res.Effects = result, effects
 	return nil
+}
+
+// waitBudget bounds a wait before the script starts to the part of ctx's
+// deadline beyond limit, the script's own time. The gateway has the same
+// rule for its quota queue.
+func waitBudget(ctx context.Context, limit time.Duration) (context.Context, context.CancelFunc) {
+	dl, ok := ctx.Deadline()
+	if !ok {
+		return ctx, func() {}
+	}
+	return context.WithDeadline(ctx, dl.Add(-limit))
 }
 
 // keyLimit caps the instances of one pool key. A key belongs to one tenant,

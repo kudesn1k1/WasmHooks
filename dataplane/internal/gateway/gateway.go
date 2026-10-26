@@ -96,9 +96,20 @@ func scriptRan(res execproto.ExecuteResult) bool {
 func tenantLimits(view *config.View, tenantID string) quota.Limits {
 	t, ok := view.Tenant(tenantID)
 	if !ok {
-		return quota.Limits{Concurrency: config.DefaultConcurrencyLimit}
+		return quota.Limits{Concurrency: config.DefaultConcurrencyLimit, Version: view.Version()}
 	}
-	return quota.Limits{RateRPS: t.RateLimitRPS, Concurrency: t.ConcurrencyLimit}
+	return quota.Limits{RateRPS: t.RateLimitRPS, Concurrency: t.ConcurrencyLimit, Version: view.Version()}
+}
+
+// waitBudget bounds a wait before the script starts to the part of ctx's
+// deadline beyond limit, the script's own time (review 1, I1). A wait that
+// runs out leaves the script never started rather than started short.
+func waitBudget(ctx context.Context, limit time.Duration) (context.Context, context.CancelFunc) {
+	dl, ok := ctx.Deadline()
+	if !ok {
+		return ctx, func() {}
+	}
+	return context.WithDeadline(ctx, dl.Add(-limit))
 }
 
 // rejected maps a quota refusal. The script never started.
@@ -162,9 +173,12 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 	ctx, cancel := context.WithTimeout(ctx, deadline)
 	defer cancel()
 
-	// Quotas count from here to the executor's answer; waiting for room
-	// spends the call's deadline.
-	release, err := g.quotas.Admit(ctx, req.TenantID, tenantLimits(view, req.TenantID))
+	// Quotas count from here to the executor's answer. Waiting for room may
+	// spend only the deadline beyond the hook's limit, so an admitted script
+	// keeps its full time; with a shorter deadline there is no waiting.
+	waitCtx, cancelWait := waitBudget(ctx, hook.Timeout())
+	release, err := g.quotas.Admit(waitCtx, req.TenantID, tenantLimits(view, req.TenantID))
+	cancelWait()
 	if err != nil {
 		resp := rejected(err)
 		resp.Duration = time.Since(start)

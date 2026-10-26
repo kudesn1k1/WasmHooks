@@ -5,9 +5,10 @@
 // the scheduler (spike S7b). A Limiter keeps running calls below GOMAXPROCS
 // by default, caps the slots one tenant may hold, and queues the rest in a
 // bounded queue that one tenant cannot fill alone. A freed slot goes to the
-// waiting tenant that holds the fewest slots, the oldest waiter on a tie, so
-// a tenant flooding the queue does not delay the others (decision D30, spec
-// M2).
+// waiting tenant that holds the fewest slots and, on a tie, to the one served
+// least recently, so a tenant flooding the queue does not delay the others
+// (decision D30, spec M2). Isolation needs TenantShare below Capacity: with
+// one slot, or a share of every slot, one tenant can hold them all.
 package slots
 
 import (
@@ -40,12 +41,14 @@ type Limiter struct {
 
 	mu      sync.Mutex
 	running int
+	served  uint64 // grants so far; stamps tenant.served
 	tenants map[string]*tenant
 	waiters []*waiter // in arrival order
 }
 
 type tenant struct {
 	running, waiting int
+	served           uint64 // when the tenant last got a slot; 0: never since it was idle
 }
 
 type waiter struct {
@@ -86,23 +89,26 @@ func (l *Limiter) TenantShare() int { return l.share }
 // Queue returns how many calls may wait for a slot.
 func (l *Limiter) Queue() int { return l.queue }
 
-// Acquire takes a slot for tenantID, waiting while ctx allows if none is
-// free to it. It fails with ErrOverloaded at once when the queue or the
-// tenant's share of the queue is full, and with ctx.Err() when ctx ends
-// first. release frees the slot; only its first call has an effect.
+// Acquire takes a slot for tenantID. A slot free to the tenant is taken at
+// once, whatever the state of ctx; otherwise the call waits while ctx
+// allows, so a ctx that is already done means "no waiting". It fails with
+// ErrOverloaded at once when the queue or the tenant's share of the queue is
+// full, and with ctx.Err() when ctx ends first. release frees the slot; only
+// its first call has an effect.
 func (l *Limiter) Acquire(ctx context.Context, tenantID string) (release func(), err error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
 	l.mu.Lock()
 	t := l.tenant(tenantID)
 	// A freed slot is granted to an eligible waiter at once, so with a slot
 	// free no eligible waiter exists and taking it jumps nobody.
 	if l.running < l.capacity && t.running < l.share {
-		t.running++
-		l.running++
+		l.grantLocked(t)
 		l.mu.Unlock()
 		return l.releaser(tenantID, t), nil
+	}
+	if err := ctx.Err(); err != nil {
+		l.dropIfIdleLocked(tenantID, t)
+		l.mu.Unlock()
+		return nil, err
 	}
 	if len(l.waiters) >= l.queue || t.waiting >= l.queueShare {
 		l.dropIfIdleLocked(tenantID, t)
@@ -142,21 +148,36 @@ func (l *Limiter) release(id string, t *tenant) {
 	l.mu.Lock()
 	t.running--
 	l.running--
-	l.grantLocked()
+	l.handOverLocked()
 	l.dropIfIdleLocked(id, t)
 	l.mu.Unlock()
 }
 
-// grantLocked hands free slots to waiting tenants below their share, the
-// one holding the fewest slots first, the oldest waiter on a tie.
-func (l *Limiter) grantLocked() {
+// grantLocked gives t a slot.
+func (l *Limiter) grantLocked(t *tenant) {
+	t.running++
+	l.running++
+	l.served++
+	t.served = l.served
+}
+
+// handOverLocked hands free slots to waiting tenants below their share: the
+// tenant holding the fewest slots first, then the one served least
+// recently, then the oldest waiter. The second rule keeps a flooding tenant
+// from winning every tie with its own queued calls when shares are large.
+func (l *Limiter) handOverLocked() {
 	for l.running < l.capacity {
 		best := -1
 		for i, w := range l.waiters {
 			if w.t.running >= l.share {
 				continue
 			}
-			if best < 0 || w.t.running < l.waiters[best].t.running {
+			if best < 0 {
+				best = i
+				continue
+			}
+			b := l.waiters[best].t
+			if w.t.running < b.running || (w.t.running == b.running && w.t.served < b.served) {
 				best = i
 			}
 		}
@@ -166,8 +187,7 @@ func (l *Limiter) grantLocked() {
 		w := l.waiters[best]
 		l.waiters = slices.Delete(l.waiters, best, best+1)
 		w.t.waiting--
-		w.t.running++
-		l.running++
+		l.grantLocked(w.t)
 		w.done = true
 		close(w.granted)
 	}

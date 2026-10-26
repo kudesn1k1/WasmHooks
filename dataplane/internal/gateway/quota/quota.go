@@ -28,8 +28,9 @@ var (
 
 // Limits are a tenant's quotas as the snapshot defines them.
 type Limits struct {
-	RateRPS     int // calls per second, burst max(1, RateRPS); 0: unlimited
-	Concurrency int // concurrent calls, also the queue length; below 1 counts as 1
+	RateRPS     int   // calls per second, burst max(1, RateRPS); 0: unlimited
+	Concurrency int   // concurrent calls, also the queue length; below 1 counts as 1
+	Version     int64 // snapshot version; limits older than the applied ones are ignored
 }
 
 // Manager is safe for concurrent use.
@@ -41,6 +42,7 @@ type Manager struct {
 }
 
 type tenant struct {
+	version  int64 // snapshot version of the applied limits
 	rateRPS  int
 	bucket   *rate.Limiter // nil while the rate is unlimited
 	limit    int
@@ -63,16 +65,17 @@ func New(now func() time.Time) *Manager {
 }
 
 // Admit counts one call of tenantID against lim. A call over the rate fails
-// at once with ErrRateLimited. A call over the concurrency limit waits in
-// the tenant's queue while ctx allows; a full queue or an expired deadline
-// fails with ErrConcurrency, a canceled ctx with ctx.Err(). release ends the
-// call; only its first call has an effect.
+// at once with ErrRateLimited. A call within the concurrency limit is
+// admitted at once, whatever the state of ctx; over the limit it waits in
+// the tenant's queue while ctx allows, so a ctx that is already done means
+// "no waiting". A full queue or an expired ctx deadline fails with
+// ErrConcurrency, a canceled ctx with ctx.Err(). release ends the call; only
+// its first call has an effect.
 func (m *Manager) Admit(ctx context.Context, tenantID string, lim Limits) (release func(), err error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	now := m.now()
 	m.mu.Lock()
+	// Read the clock under the lock: a stale time passed to the limiter
+	// would refill the bucket twice for the same interval.
+	now := m.now()
 	t := m.tenant(tenantID)
 	m.applyLocked(t, lim, now)
 
@@ -90,6 +93,10 @@ func (m *Manager) Admit(ctx context.Context, tenantID string, lim Limits) (relea
 	if len(t.waiters) >= t.limit {
 		m.mu.Unlock()
 		return nil, ErrConcurrency
+	}
+	if err := ctx.Err(); err != nil {
+		m.mu.Unlock()
+		return nil, waitError(err)
 	}
 	w := &waiter{ready: make(chan struct{})}
 	t.waiters = append(t.waiters, w)
@@ -110,14 +117,26 @@ func (m *Manager) Admit(ctx context.Context, tenantID string, lim Limits) (relea
 		m.dropIfIdleLocked(tenantID, t, m.now())
 		m.mu.Unlock()
 	}
-	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-		return nil, fmt.Errorf("%w: %w", ErrConcurrency, ctx.Err())
-	}
-	return nil, ctx.Err()
+	return nil, waitError(ctx.Err())
 }
 
-// applyLocked brings the tenant's state to lim.
+// waitError maps the end of a wait for room: an expired deadline is the
+// concurrency quota's refusal, a cancellation is the caller's.
+func waitError(err error) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("%w: %w", ErrConcurrency, err)
+	}
+	return err
+}
+
+// applyLocked brings the tenant's state to lim. Limits from a snapshot older
+// than the applied ones are ignored: a call that read the previous snapshot
+// just before a change must not roll the change back.
 func (m *Manager) applyLocked(t *tenant, lim Limits, now time.Time) {
+	if lim.Version < t.version {
+		return
+	}
+	t.version = lim.Version
 	if r := max(0, lim.RateRPS); r != t.rateRPS {
 		switch {
 		case r == 0:
@@ -171,8 +190,9 @@ func (m *Manager) tenant(id string) *tenant {
 
 // dropIfIdleLocked forgets a tenant with nothing in flight, nobody queued
 // and a full bucket: a new state is the same as the forgotten one, so this
-// never resets a quota. A tenant whose last call was rejected keeps its
-// state; the map is bounded by the tenants with bindings.
+// never resets a quota. A tenant whose bucket was not full at its last call
+// keeps its state, a few hundred bytes each; the map is bounded by the
+// tenants that had a binding since the process started.
 func (m *Manager) dropIfIdleLocked(id string, t *tenant, now time.Time) {
 	if t.inFlight > 0 || len(t.waiters) > 0 {
 		return

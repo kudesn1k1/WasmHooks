@@ -178,8 +178,9 @@ func writeOutcome(w http.ResponseWriter, resp gateway.Response) {
 	switch resp.Outcome {
 	case execproto.OutcomeQuotaExceeded:
 		status = http.StatusTooManyRequests
-		// A bucket of max(1, rate) refills within a second; a concurrency
-		// slot frees within one script timeout.
+		// A heuristic: a bucket of max(1, rate) refills a call within a
+		// second; room in the concurrency quota may take up to the hook's
+		// timeout.
 		w.Header().Set("Retry-After", "1")
 	case execproto.OutcomeUnavailable:
 		status = http.StatusServiceUnavailable

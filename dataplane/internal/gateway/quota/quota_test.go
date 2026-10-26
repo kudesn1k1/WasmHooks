@@ -324,3 +324,44 @@ func TestCancelRacesWake(t *testing.T) {
 		}
 	}
 }
+
+// TestStaleLimitsIgnored: a call that read the previous snapshot just before
+// a change does not roll the change back (review 1, M3).
+func TestStaleLimitsIgnored(t *testing.T) {
+	m, _ := newManager()
+	for range 5 {
+		mustAdmit(t, m, "a", Limits{RateRPS: 5, Concurrency: 10, Version: 2})()
+	}
+	// Version 1 had no rate limit; it must not drop the bucket.
+	if _, err := m.Admit(context.Background(), "a", Limits{RateRPS: 0, Concurrency: 10, Version: 1}); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("stale limits applied: err = %v, want ErrRateLimited", err)
+	}
+	if _, err := m.Admit(context.Background(), "a", Limits{RateRPS: 5, Concurrency: 10, Version: 2}); !errors.Is(err, ErrRateLimited) {
+		t.Fatalf("err = %v, want ErrRateLimited", err)
+	}
+}
+
+// TestDoneContextMeansNoWait: a done ctx is admitted while there is room,
+// but never waits for room.
+func TestDoneContextMeansNoWait(t *testing.T) {
+	m, _ := newManager()
+	lim := Limits{Concurrency: 1}
+	expired, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+	defer cancel()
+	release, err := m.Admit(expired, "a", lim)
+	if err != nil {
+		t.Fatalf("room left: err = %v", err)
+	}
+	if _, err := m.Admit(expired, "a", lim); !errors.Is(err, ErrConcurrency) || !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("no room: err = %v, want ErrConcurrency wrapping DeadlineExceeded", err)
+	}
+	canceled, cancel2 := context.WithCancel(context.Background())
+	cancel2()
+	if _, err := m.Admit(canceled, "a", lim); !errors.Is(err, context.Canceled) || errors.Is(err, ErrConcurrency) {
+		t.Fatalf("no room, canceled: err = %v, want context.Canceled only", err)
+	}
+	release()
+	if n := m.tenantCount(); n != 0 {
+		t.Fatalf("%d tenants left, want 0", n)
+	}
+}

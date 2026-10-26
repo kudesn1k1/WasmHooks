@@ -31,8 +31,9 @@ const (
 // TestSpikeAdmissionUnderSaturation is S7b one layer above the runtime:
 // through the executor with its pool and running slots. merchant-b keeps N
 // infinite-loop calls going while merchant-a makes sequential warm calls.
-// One run compares slots on (the defaults) with slots off (nil, as before
-// M2) on the same machine. Overshoot is the script's own time past its
+// One run compares slots on (the defaults) with slots off (nil: no
+// admission control at all, not M1, which still capped instances per pool
+// key) on the same machine. Overshoot is the script's own time past its
 // limit (ExecNanos), so waiting for a slot does not count as overshoot; the
 // time a refused or queued call spent shows in its outcome instead.
 func TestSpikeAdmissionUnderSaturation(t *testing.T) {

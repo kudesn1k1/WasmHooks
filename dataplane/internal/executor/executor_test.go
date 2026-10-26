@@ -681,3 +681,34 @@ func TestExecutorSlotWaitEndedByDeadline(t *testing.T) {
 	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
 	<-done
 }
+
+// TestExecutorSlotWaitKeepsScriptBudget: a call waits for a slot only while
+// its deadline still leaves the hook's full 100ms limit; otherwise it is
+// unavailable and never runs short (review 1, I1; decision D28).
+func TestExecutorSlotWaitKeepsScriptBudget(t *testing.T) {
+	sl := slots.New(slots.Options{Capacity: 1, Queue: 4})
+	e := newEnvWithSlots(t, map[string]binding{
+		"a": {fixture: "discount", config: map[string]string{"threshold": "100", "percent": "10"}},
+		"b": {fixture: "infinite-loop"},
+	}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { e.run(t, "b", nil); close(done) }() // holds the slot for 100ms
+	for sl.Stats().Running == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond) // 50ms to wait
+	defer cancel()
+	start := time.Now()
+	res, _ := e.exec.Execute(ctx, e.req("a", discountIn))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
+	if d := time.Since(start); d > 90*time.Millisecond {
+		t.Fatalf("gave up after %v, want about 50ms", d)
+	}
+	if res.ExecNanos != 0 {
+		t.Fatalf("script ran for %v", time.Duration(res.ExecNanos))
+	}
+	<-done
+}

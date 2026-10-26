@@ -140,13 +140,14 @@ func TestQueueBounds(t *testing.T) {
 	}
 
 	hold()
-	first := received(t, a2) // a and b both hold 0 slots: the older waiter wins
+	// a and b both hold 0 slots; a was served last, so b goes first.
+	first := received(t, b1)
 	if first.err != nil {
 		t.Fatal(first.err)
 	}
-	pending(t, b1)
+	pending(t, a2)
 	first.release()
-	second := received(t, b1)
+	second := received(t, a2)
 	if second.err != nil {
 		t.Fatal(second.err)
 	}
@@ -246,16 +247,53 @@ func TestDeadlineWhileWaiting(t *testing.T) {
 	}
 }
 
-func TestDoneContextTakesNoSlot(t *testing.T) {
+// TestDoneContextMeansNoWait: a done ctx still takes a free slot, but never
+// waits for one.
+func TestDoneContextMeansNoWait(t *testing.T) {
 	l := New(Options{Capacity: 1})
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := l.Acquire(ctx, "a"); !errors.Is(err, context.Canceled) {
-		t.Fatalf("err = %v, want context.Canceled", err)
+	release, err := l.Acquire(ctx, "a")
+	if err != nil {
+		t.Fatalf("free slot: err = %v", err)
 	}
-	if s := l.Stats(); s != (Stats{}) {
+	if _, err := l.Acquire(ctx, "b"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("busy slot: err = %v, want context.Canceled", err)
+	}
+	if s := l.Stats(); s.Running != 1 || s.Waiting != 0 {
 		t.Fatalf("Stats = %+v", s)
 	}
+	release()
+	if n := l.tenantCount(); n != 0 {
+		t.Fatalf("%d tenants left in the map", n)
+	}
+}
+
+// TestTieGoesToLeastRecentlyServed: with one slot (share = capacity) a
+// flooding tenant's queued calls do not hold a neighbour back (review 1, I2).
+func TestTieGoesToLeastRecentlyServed(t *testing.T) {
+	l := New(Options{Capacity: 1, Queue: 8})
+	b1 := mustAcquire(t, l, "b")
+	b2 := acquireAsync(l, context.Background(), "b")
+	waitFor(t, "b2 queued", func() bool { return l.Stats().Waiting == 1 })
+	b3 := acquireAsync(l, context.Background(), "b")
+	waitFor(t, "b3 queued", func() bool { return l.Stats().Waiting == 2 })
+	a := acquireAsync(l, context.Background(), "a")
+	waitFor(t, "a queued", func() bool { return l.Stats().Waiting == 3 })
+
+	b1()
+	ra := received(t, a) // b was served last, a never: a goes first
+	if ra.err != nil {
+		t.Fatal(ra.err)
+	}
+	pending(t, b2)
+	ra.release()
+	rb := received(t, b2)
+	if rb.err != nil {
+		t.Fatal(rb.err)
+	}
+	rb.release()
+	received(t, b3).release()
 }
 
 func TestReleaseIsIdempotent(t *testing.T) {

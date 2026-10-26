@@ -288,19 +288,33 @@ func TestInvokeConcurrencyLimit(t *testing.T) {
 	}
 }
 
-func TestInvokeConcurrencyWaitSpendsDeadline(t *testing.T) {
+// TestInvokeConcurrencyWaitKeepsScriptBudget: a queued call waits only for
+// the part of its deadline beyond the hook's 50ms limit, so a call admitted
+// late never starts short of time (review 1, I1).
+func TestInvokeConcurrencyWaitKeepsScriptBudget(t *testing.T) {
 	exec := &fakeExecutor{res: execproto.ExecuteResult{Outcome: execproto.OutcomeOK, Result: []byte(`{}`)}, block: make(chan struct{})}
 	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
 	go invokeA(g, context.Background())
 	waitCalls(t, exec, 1)
 	defer func() { exec.block <- struct{}{} }()
 
-	resp, err := g.Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload, Deadline: 20 * time.Millisecond})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.Outcome != execproto.OutcomeQuotaExceeded || resp.Reason != execproto.ReasonConcurrencyLimit {
-		t.Fatalf("got %+v, want quota_exceeded/concurrency_limit", resp)
+	for _, tc := range []struct {
+		deadline, atMost time.Duration
+	}{
+		{80 * time.Millisecond, 70 * time.Millisecond}, // waits 30ms
+		{20 * time.Millisecond, 15 * time.Millisecond}, // shorter than the limit: no wait
+	} {
+		start := time.Now()
+		resp, err := g.Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload, Deadline: tc.deadline})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.Outcome != execproto.OutcomeQuotaExceeded || resp.Reason != execproto.ReasonConcurrencyLimit {
+			t.Fatalf("deadline %v: got %+v, want quota_exceeded/concurrency_limit", tc.deadline, resp)
+		}
+		if d := time.Since(start); d > tc.atMost {
+			t.Fatalf("deadline %v: gave up after %v, want at most %v", tc.deadline, d, tc.atMost)
+		}
 	}
 }
 
