@@ -412,14 +412,21 @@ components:
         concurrency_limit:
           type: integer
           description: >
-            Лимит одновременных инстансов на ключ пула для этого тенанта.
-            Значение 0 в снимке трактуется data plane как значение по
-            умолчанию (`config.DefaultConcurrencyLimit` = 4).
+            Квота параллельности: сколько вызовов тенанта по всем его хукам
+            одновременно обслуживает одна реплика gateway (решение D27,
+            спек M2). Вызов сверх квоты ждёт в очереди тенанта длиной
+            `concurrency_limit` не дольше своего дедлайна, затем получает
+            `quota_exceeded`. Значение 0 трактуется data plane как значение
+            по умолчанию (`config.DefaultConcurrencyLimit` = 4). Число
+            инстансов в пуле — внутренняя деталь executor-а, этим полем не
+            задаётся.
         rate_limit_rps:
           type: integer
           description: >
-            Лимит запросов в секунду. В M0 игнорируется data plane, поле
-            присутствует в контракте ради совместимости с MVP.
+            Квота частоты: token bucket на реплике gateway с пополнением
+            `rate_limit_rps` в секунду и ёмкостью `max(1, rate_limit_rps)`.
+            Вызов при пустом bucket сразу получает `quota_exceeded`.
+            Значение 0 — без ограничения частоты (решение D32, спек M2).
 
     Binding:
       type: object
