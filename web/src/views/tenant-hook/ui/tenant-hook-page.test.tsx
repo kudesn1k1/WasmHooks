@@ -157,6 +157,74 @@ describe("TenantHookPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("saves only the config and shows the new config version", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.put("*/api/v1/tenant/hooks/:hook/binding", async ({ request }) => {
+        bodies.push(await request.clone().json());
+      }),
+    );
+    const user = userEvent.setup();
+    renderWithQuery(<TenantHookPage hook="checkout.discount" />);
+
+    const percent = await screen.findByDisplayValue("10");
+    expect(screen.getByText(/Версия конфига: 7/)).toBeInTheDocument();
+    await user.clear(percent);
+    await user.type(percent, "15");
+    await user.click(screen.getByRole("button", { name: "Добавить параметр" }));
+    await user.type(screen.getByLabelText("Ключ 3"), "label");
+    await user.type(screen.getByLabelText("Значение 3"), "Скидка постоянным");
+    await user.click(screen.getByRole("button", { name: "Сохранить параметры" }));
+
+    expect(await screen.findByText("Сохранено. Версия конфига: 8")).toBeInTheDocument();
+    expect(bodies).toEqual([{ config: { label: "Скидка постоянным", percent: "15", threshold: "1000" } }]);
+  });
+
+  it("does not send an unchanged config", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.put("*/api/v1/tenant/hooks/:hook/binding", async ({ request }) => {
+        bodies.push(await request.clone().json());
+      }),
+    );
+    const user = userEvent.setup();
+    renderWithQuery(<TenantHookPage hook="checkout.discount" />);
+
+    await screen.findByDisplayValue("10");
+    await user.click(screen.getByRole("button", { name: "Сохранить параметры" }));
+
+    expect(await screen.findByText("Изменений нет")).toBeInTheDocument();
+    expect(bodies).toEqual([]);
+  });
+
+  it("requires unique non-empty keys", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TenantHookPage hook="checkout.discount" />);
+
+    await screen.findByDisplayValue("10");
+    await user.click(screen.getByRole("button", { name: "Добавить параметр" }));
+    await user.type(screen.getByLabelText("Ключ 3"), "percent");
+    await user.click(screen.getByRole("button", { name: "Добавить параметр" }));
+    await user.type(screen.getByLabelText("Значение 4"), "5");
+    await user.click(screen.getByRole("button", { name: "Сохранить параметры" }));
+
+    expect(await screen.findByText("Такой ключ уже есть")).toBeInTheDocument();
+    expect(screen.getByText("Укажите ключ")).toBeInTheDocument();
+  });
+
+  it("lets you set the config before any version is active", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TenantHookPage hook="order.validate" />);
+
+    expect(await screen.findByText(/Параметры можно задать до активации версии/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Ключ 1"), "max_items");
+    await user.type(screen.getByLabelText("Значение 1"), "20");
+    await user.click(screen.getByRole("button", { name: "Сохранить параметры" }));
+
+    expect(await screen.findByText("Сохранено. Версия конфига: 1")).toBeInTheDocument();
+    expect(screen.getByText("Активной версии нет")).toBeInTheDocument();
+  });
+
   it("shows an error for an unknown hook", async () => {
     renderWithQuery(<TenantHookPage hook="nope" />);
 

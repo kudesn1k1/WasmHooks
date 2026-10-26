@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { hookQueries } from "@/entities/hook";
 import { useTenantSession } from "@/features/console-session";
+import { BindingConfigEditor } from "@/features/edit-binding-config";
 import { routes } from "@/shared/config/routes";
 import { shortHash } from "@/shared/lib/format";
 import { Breadcrumbs } from "@/shared/ui/breadcrumbs";
@@ -25,7 +26,7 @@ export function TenantHookPage({ hook: name }: { hook: string }) {
       />
       <div className="flex flex-col gap-4">
         <h1 className="text-[28px] font-semibold tracking-tight break-all">{name}</h1>
-        <p className="text-muted-foreground text-sm">Загрузка, проверка и активация обработчика</p>
+        <p className="text-muted-foreground text-sm">Загрузка, проверка и активация обработчика, параметры скрипта</p>
       </div>
 
       {isPending ? (
@@ -43,6 +44,7 @@ export function TenantHookPage({ hook: name }: { hook: string }) {
             </span>
           </div>
           <ModuleVersions hook={name} binding={data.binding} />
+          <BindingConfigEditor hook={name} binding={data.binding} />
         </>
       )}
     </div>
