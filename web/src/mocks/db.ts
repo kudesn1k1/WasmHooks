@@ -142,7 +142,8 @@ function initialModules(): PendingModule[] {
   ];
 }
 
-const HTTP_IMPORT_DETAIL = "import extism:host/env.http_request is not allowed for this hook";
+const HTTP_IMPORT_DETAIL =
+  "import extism:host/env.http_request is not allowed; import extism:host/env.http_status_code is not allowed; import extism:host/env.http_headers is not allowed";
 
 function checksOk(): ValidationCheck[] {
   return [
