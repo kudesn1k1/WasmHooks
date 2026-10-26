@@ -29,6 +29,7 @@ type rule struct {
 var rules = map[string]rule{
 	"gateway":          {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
 	"gateway/httpapi":  {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
+	"gateway/quota":    {only: []string{}},
 	"internalapi":      {deny: []string{"gateway", "gateway/httpapi"}},
 	"executor":         {deny: []string{"gateway", "gateway/httpapi"}},
 	"execproto":        {only: []string{}},
