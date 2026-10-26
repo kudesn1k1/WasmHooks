@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -37,6 +38,7 @@ import (
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/schema"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/slots"
 )
 
 func main() {
@@ -83,6 +85,8 @@ type flags struct {
 	poolAcquireTimeout time.Duration
 	poolMaxUses        int
 	poolIdleTTL        time.Duration
+
+	execSlots, execTenantShare, execQueue int
 }
 
 func parseFlags(args []string, getenv func(string) string) (flags, error) {
@@ -98,6 +102,9 @@ func parseFlags(args []string, getenv func(string) string) (flags, error) {
 	fs.DurationVar(&f.poolAcquireTimeout, "pool-acquire-timeout", 10*time.Millisecond, "max wait for a free instance")
 	fs.IntVar(&f.poolMaxUses, "pool-max-uses", 1000, "calls before an instance is recycled")
 	fs.DurationVar(&f.poolIdleTTL, "pool-idle-ttl", 60*time.Second, "idle instances older than this are closed")
+	fs.IntVar(&f.execSlots, "exec-slots", 0, "max scripts running at once; 0: max(1, GOMAXPROCS-1)")
+	fs.IntVar(&f.execTenantShare, "exec-tenant-share", 0, "max scripts of one tenant running at once; 0: half the slots")
+	fs.IntVar(&f.execQueue, "exec-queue", 0, "max calls waiting for a slot; 0: 4 x slots")
 	fs.StringVar(&f.controlPlaneURL, "control-plane-url", "", "control plane base URL; config snapshots are long-polled from it")
 	fs.StringVar(&f.internalListen, "internal-listen", ":8081", "address of the internal API (module validation); started only with WASMHOOKS_INTERNAL_TOKEN")
 	fs.IntVar(&f.validateConcurrency, "validate-concurrency", 1, "max module validations running at once")
@@ -121,6 +128,8 @@ func parseFlags(args []string, getenv func(string) string) (flags, error) {
 		return f, errors.New("-control-plane-url needs WASMHOOKS_INTERNAL_TOKEN")
 	case f.s3Endpoint != "" && (f.s3AccessKey == "" || f.s3SecretKey == ""):
 		return f, errors.New("-s3-endpoint needs WASMHOOKS_S3_ACCESS_KEY and WASMHOOKS_S3_SECRET_KEY")
+	case f.execSlots < 0 || f.execTenantShare < 0 || f.execQueue < 0:
+		return f, errors.New("-exec-slots, -exec-tenant-share and -exec-queue must be >= 0")
 	}
 	return f, nil
 }
@@ -179,12 +188,15 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 		IdleTTL:        f.poolIdleTTL,
 		ReapInterval:   10 * time.Second,
 	})
+	sl := slots.New(slots.Options{Capacity: f.execSlots, TenantShare: f.execTenantShare, Queue: f.execQueue})
+	log.Info("running slots", "slots", sl.Capacity(), "tenant_share", sl.TenantShare(), "queue", sl.Queue(), "gomaxprocs", runtime.GOMAXPROCS(0))
 	schemas := schema.NewCache()
 	exec := executor.New(executor.Options{
 		Runtime:    rt,
 		Modules:    modules,
 		Config:     cfg,
 		Pools:      pools,
+		Slots:      sl,
 		Schemas:    schemas,
 		Sink:       observe.SlogSink{Logger: log},
 		ExecutorID: f.executorID,

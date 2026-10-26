@@ -205,6 +205,9 @@ func TestFlagValidation(t *testing.T) {
 		{"two module stores", []string{"-snapshot", "s", "-modules-dir", "m", "-s3-endpoint", "e"}, nil, "exactly one of -modules-dir and -s3-endpoint"},
 		{"control plane without token", []string{"-control-plane-url", "u", "-modules-dir", "m"}, nil, "WASMHOOKS_INTERNAL_TOKEN"},
 		{"s3 without keys", []string{"-snapshot", "s", "-s3-endpoint", "e"}, nil, "WASMHOOKS_S3_ACCESS_KEY"},
+		{"negative slots", []string{"-snapshot", "s", "-modules-dir", "m", "-exec-slots", "-1"}, nil, "-exec-slots"},
+		{"negative tenant share", []string{"-snapshot", "s", "-modules-dir", "m", "-exec-tenant-share", "-1"}, nil, "-exec-tenant-share"},
+		{"slots set", []string{"-snapshot", "s", "-modules-dir", "m", "-exec-slots", "8", "-exec-tenant-share", "8", "-exec-queue", "32"}, nil, ""},
 		{"control plane and s3", []string{"-control-plane-url", "u", "-s3-endpoint", "e"}, map[string]string{
 			"WASMHOOKS_INTERNAL_TOKEN": "t", "WASMHOOKS_S3_ACCESS_KEY": "a", "WASMHOOKS_S3_SECRET_KEY": "s",
 		}, ""},
