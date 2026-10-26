@@ -1,2 +1,2 @@
 export { useActivateModule } from "./api/use-activate-module";
-export { ActivateModuleButton } from "./ui/activate-module-button";
+export { ActivateModuleDialog } from "./ui/activate-module-dialog";

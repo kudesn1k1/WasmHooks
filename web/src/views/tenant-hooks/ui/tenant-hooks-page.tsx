@@ -4,28 +4,25 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { hookQueries } from "@/entities/hook";
+import { useTenantSession } from "@/features/console-session";
 import { routes } from "@/shared/config/routes";
-import { formatDateTime, formatWasmPages, shortHash } from "@/shared/lib/format";
-import { Badge } from "@/shared/ui/badge";
+import { shortHash } from "@/shared/lib/format";
+import { Breadcrumbs } from "@/shared/ui/breadcrumbs";
+import { Button } from "@/shared/ui/button";
+import { InfoPanel } from "@/shared/ui/info-panel";
 import { EmptyState, ErrorState, LoadingRows } from "@/shared/ui/query-state";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/ui/table";
 
 export function TenantHooksPage() {
+  const session = useTenantSession();
   const { data: hooks, error, isPending } = useQuery(hookQueries.list());
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Хуки</h1>
+    <div className="flex max-w-245 flex-col gap-6">
+      <Breadcrumbs items={[...(session?.tenant ? [{ label: session.tenant }] : []), { label: "Хуки" }]} />
+      <div className="flex flex-col gap-4">
+        <h1 className="text-[28px] font-semibold tracking-tight">Хуки</h1>
         <p className="text-muted-foreground text-sm">
-          Точки расширения, на которые можно загрузить свой обработчик.
+          Выберите точку расширения, чтобы управлять версиями обработчика.
         </p>
       </div>
 
@@ -36,44 +33,33 @@ export function TenantHooksPage() {
       ) : hooks.length === 0 ? (
         <EmptyState>Оператор ещё не открыл ни одного хука.</EmptyState>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Хук</TableHead>
-              <TableHead>Лимит времени</TableHead>
-              <TableHead>Лимит памяти</TableHead>
-              <TableHead>Активная версия</TableHead>
-              <TableHead>Изменена</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {hooks.map(({ hook, binding }) => (
-              <TableRow key={hook.name}>
-                <TableCell>
-                  <Link
-                    href={routes.tenant.hook(hook.name)}
-                    className="font-mono font-medium underline-offset-4 hover:underline"
-                  >
-                    {hook.name}
-                  </Link>
-                </TableCell>
-                <TableCell>{hook.timeout_ms} мс</TableCell>
-                <TableCell>{formatWasmPages(hook.memory_max_pages)}</TableCell>
-                <TableCell>
-                  {binding?.active_module_hash ? (
-                    <span className="font-mono">{shortHash(binding.active_module_hash)}</span>
-                  ) : (
-                    <Badge variant="outline">нет обработчика</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {binding ? formatDateTime(binding.updated_at) : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ul className="flex flex-col gap-4">
+          {hooks.map(({ hook, binding }) => (
+            <li key={hook.name} className="flex items-start justify-between gap-4 rounded-md border px-6 py-6">
+              <div className="flex flex-col gap-2">
+                <h2 className="text-lg font-semibold">{hook.name}</h2>
+                <p className="text-sm">
+                  {binding?.active_module_hash
+                    ? `Активная версия: ${shortHash(binding.active_module_hash)}`
+                    : "Активной версии нет: хук работает без обработчика"}
+                </p>
+              </div>
+              <Button asChild>
+                <Link href={routes.tenant.hook(hook.name)} aria-label={`Открыть ${hook.name}`}>
+                  Открыть
+                </Link>
+              </Button>
+            </li>
+          ))}
+        </ul>
       )}
+
+      <InfoPanel title="Как работает обновление">
+        <p>
+          Загрузите готовый .wasm, дождитесь проверки и активируйте версию. До активации продолжает работать
+          текущий обработчик.
+        </p>
+      </InfoPanel>
     </div>
   );
 }

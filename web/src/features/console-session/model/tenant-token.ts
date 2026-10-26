@@ -4,6 +4,8 @@ import { isJwtExpired } from "@/shared/lib/jwt";
 
 export const MOCK_TENANT_TOKEN = "mock";
 
+export const MOCK_TENANT = "merchant-a";
+
 export const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 export function takeTokenFromFragment(): string | null {

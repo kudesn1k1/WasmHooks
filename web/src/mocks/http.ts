@@ -2,6 +2,8 @@ import { HttpResponse, type HttpResponseResolver } from "msw";
 
 import { API_BASE_URL } from "@/shared/config/env";
 
+import { db } from "./db";
+
 export const url = (path: string) => `*${API_BASE_URL}${path}`;
 
 export function problem(
@@ -17,8 +19,8 @@ export function problem(
 }
 
 function hasBearer(request: Request): boolean {
-  const header = request.headers.get("Authorization") ?? "";
-  return /^Bearer\s+\S+/.test(header);
+  const match = /^Bearer\s+(\S+)/.exec(request.headers.get("Authorization") ?? "");
+  return match !== null && !db.apiKeys.some((key) => key.revoked_at && key.token === match[1]);
 }
 
 export function authed(resolver: HttpResponseResolver): HttpResponseResolver {

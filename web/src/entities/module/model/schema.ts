@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const MAX_MODULE_BYTES = 10 * 1024 * 1024;
+
 export const moduleStatuses = ["uploaded", "validating", "validated", "rejected", "archived"] as const;
 export const moduleStatusSchema = z.enum(moduleStatuses);
 export type ModuleStatus = z.infer<typeof moduleStatusSchema>;

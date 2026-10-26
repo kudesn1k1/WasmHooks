@@ -19,6 +19,7 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
       "public/mockServiceWorker.js",
+      "src/shared/api/contract.gen.ts",
     ],
   },
 ];

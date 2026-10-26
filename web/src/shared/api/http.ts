@@ -4,7 +4,7 @@ import { API_BASE_URL } from "@/shared/config/env";
 
 import { clearToken, consoleForPath, getToken } from "./session";
 
-const problemSchema = z.object({
+export const problemSchema = z.object({
   type: z.string().nullish(),
   title: z.string().nullish(),
   status: z.number().nullish(),

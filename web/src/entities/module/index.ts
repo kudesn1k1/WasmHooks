@@ -1,5 +1,6 @@
 export {
   firstFailedCheck,
+  MAX_MODULE_BYTES,
   isPending,
   moduleSchema,
   moduleStatuses,
@@ -7,5 +8,5 @@ export {
   type ModuleStatus,
   type ValidationCheck,
 } from "./model/schema";
+export { describeCheckFailure, moduleStatusLabels } from "./model/labels";
 export { moduleKeys, moduleQueries } from "./api/queries";
-export { ModuleStatusBadge } from "./ui/module-status-badge";

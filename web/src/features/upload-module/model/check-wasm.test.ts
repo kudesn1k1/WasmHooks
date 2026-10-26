@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { MAX_MODULE_BYTES } from "@/entities/module";
+
 import { checkWasmFile } from "./check-wasm";
 
 const file = (bytes: number[]) => new File([new Uint8Array(bytes)], "m.wasm");
@@ -15,5 +17,10 @@ describe("checkWasmFile", () => {
 
   it("rejects an empty file", async () => {
     await expect(checkWasmFile(file([]))).resolves.toMatch(/пустой/);
+  });
+
+  it("rejects a file over the platform limit", async () => {
+    const big = new File([new Uint8Array(MAX_MODULE_BYTES + 1)], "big.wasm");
+    await expect(checkWasmFile(big)).resolves.toMatch(/больше 10 МиБ/);
   });
 });
