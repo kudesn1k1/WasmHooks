@@ -282,6 +282,13 @@ func TestInvokeConcurrencyLimit(t *testing.T) {
 		t.Fatalf("first: %+v", r)
 	}
 	waitCalls(t, exec, 2)
+	// The call admitted from the queue still has the hook's full 50ms.
+	exec.mu.Lock()
+	left := exec.deadlines[1]
+	exec.mu.Unlock()
+	if left < 50*time.Millisecond {
+		t.Fatalf("call admitted from the queue reached the executor with %v left, want at least the hook's 50ms", left)
+	}
 	exec.block <- struct{}{}
 	if r := <-second; r.Outcome != execproto.OutcomeOK {
 		t.Fatalf("second: %+v", r)

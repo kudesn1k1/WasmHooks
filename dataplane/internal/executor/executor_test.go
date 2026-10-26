@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -711,4 +712,44 @@ func TestExecutorSlotWaitKeepsScriptBudget(t *testing.T) {
 		t.Fatalf("script ran for %v", time.Duration(res.ExecNanos))
 	}
 	<-done
+}
+
+// TestExecutorDefaultSlotsAtTwoProcs: with 2 Ps the default sizes still keep
+// a hung tenant's neighbour running; with one slot every other call of the
+// neighbour was refused (review 2, I2).
+func TestExecutorDefaultSlotsAtTwoProcs(t *testing.T) {
+	prev := runtime.GOMAXPROCS(2)
+	defer runtime.GOMAXPROCS(prev)
+	sl := slots.New(slots.Options{})
+	e := newEnvWithSlots(t, map[string]binding{
+		"a": {fixture: "discount", config: map[string]string{"threshold": "100", "percent": "10"}},
+		"b": {fixture: "infinite-loop"},
+	}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			for ctx.Err() == nil {
+				cctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+				e.exec.Execute(cctx, e.req("b", nil))
+				cancel()
+			}
+		})
+	}
+	for sl.Stats().Running == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	for i := range 20 {
+		cctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		res, _ := e.exec.Execute(cctx, e.req("a", discountIn))
+		cancel()
+		if res.Outcome != execproto.OutcomeOK {
+			t.Errorf("merchant-a call %d: %s/%s", i, res.Outcome, res.Reason)
+		}
+	}
+	stop()
+	wg.Wait()
 }

@@ -68,7 +68,7 @@ func pending(t *testing.T, ch <-chan result) {
 
 func TestDefaults(t *testing.T) {
 	l := New(Options{})
-	want := max(1, runtime.GOMAXPROCS(0)-1)
+	want := defaultCapacity(runtime.GOMAXPROCS(0))
 	if l.Capacity() != want {
 		t.Fatalf("Capacity = %d, want %d", l.Capacity(), want)
 	}
@@ -77,6 +77,19 @@ func TestDefaults(t *testing.T) {
 	}
 	if l.Queue() != 4*want {
 		t.Fatalf("Queue = %d, want %d", l.Queue(), 4*want)
+	}
+
+	for procs, want := range map[int]int{1: 1, 2: 2, 3: 2, 4: 3, 16: 15} {
+		if got := defaultCapacity(procs); got != want {
+			t.Fatalf("defaultCapacity(%d) = %d, want %d", procs, got, want)
+		}
+	}
+	// With 2 Ps the default keeps a tenant's share below the capacity.
+	prev := runtime.GOMAXPROCS(2)
+	l = New(Options{})
+	runtime.GOMAXPROCS(prev)
+	if l.Capacity() != 2 || l.TenantShare() != 1 {
+		t.Fatalf("GOMAXPROCS=2: capacity %d, share %d; want 2, 1", l.Capacity(), l.TenantShare())
 	}
 
 	l = New(Options{Capacity: 3, TenantShare: 10})

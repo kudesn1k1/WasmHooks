@@ -191,9 +191,12 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 	sl := slots.New(slots.Options{Capacity: f.execSlots, TenantShare: f.execTenantShare, Queue: f.execQueue})
 	log.Info("running slots", "slots", sl.Capacity(), "tenant_share", sl.TenantShare(), "queue", sl.Queue(), "gomaxprocs", runtime.GOMAXPROCS(0))
 	if sl.TenantShare() >= sl.Capacity() {
-		// One slot (GOMAXPROCS <= 2) or a share of every slot: a tenant with
-		// hung scripts can hold them all (ADR 0005).
-		log.Warn("tenant isolation is off: one tenant may hold every running slot; isolation needs -exec-tenant-share below -exec-slots and GOMAXPROCS >= 3")
+		// One slot or a share of every slot: a tenant with hung scripts can
+		// hold them all (ADR 0005).
+		log.Warn("tenant isolation is off: one tenant may hold every running slot; it needs -exec-tenant-share below -exec-slots")
+	}
+	if sl.Capacity() >= runtime.GOMAXPROCS(0) {
+		log.Warn("no P is left for the deadline watcher: timeouts of spinning scripts may overrun; keep -exec-slots below GOMAXPROCS where there are 3 or more")
 	}
 	schemas := schema.NewCache()
 	exec := executor.New(executor.Options{

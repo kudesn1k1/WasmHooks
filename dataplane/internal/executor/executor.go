@@ -206,7 +206,7 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	// unavailable, never a timeout the queue caused (decision D28).
 	releaseSlot := func() {}
 	if e.opts.Slots != nil {
-		waitCtx, cancelWait := waitBudget(ctx, hook.Timeout())
+		waitCtx, cancelWait := waitBudget(ctx, hook.Timeout()+startReserve)
 		release, err := e.opts.Slots.Acquire(waitCtx, req.TenantID)
 		cancelWait()
 		switch {
@@ -281,6 +281,12 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	res.Result, res.Effects = result, effects
 	return nil
 }
+
+// startReserve is kept out of the slot wait for what still comes before
+// the script starts: a cold instance takes about 1.4ms to create (spike
+// S4), more under load. Without it a call granted at the very end of its
+// wait could start a little short of its limit (review 2, m1).
+const startReserve = 5 * time.Millisecond
 
 // waitBudget bounds a wait before the script starts to the part of ctx's
 // deadline beyond limit, the script's own time. The gateway has the same

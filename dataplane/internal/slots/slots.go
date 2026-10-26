@@ -7,8 +7,10 @@
 // bounded queue that one tenant cannot fill alone. A freed slot goes to the
 // waiting tenant that holds the fewest slots and, on a tie, to the one served
 // least recently, so a tenant flooding the queue does not delay the others
-// (decision D30, spec M2). Isolation needs TenantShare below Capacity: with
-// one slot, or a share of every slot, one tenant can hold them all.
+// (decision D30, spec M2). A tenant that went idle starts over as never
+// served, so a light tenant wins ties against one with a standing queue.
+// Isolation needs TenantShare below Capacity: with one slot, or a share of
+// every slot, one tenant can hold them all.
 package slots
 
 import (
@@ -24,7 +26,7 @@ var ErrOverloaded = errors.New("slots: overloaded")
 
 // Options size a Limiter. Zero values take the defaults.
 type Options struct {
-	Capacity    int // running calls; default max(1, GOMAXPROCS-1)
+	Capacity    int // running calls; default GOMAXPROCS-1, but 2 with 2 Ps and 1 with 1
 	TenantShare int // running calls of one tenant; default max(1, Capacity/2), at most Capacity
 	Queue       int // waiting calls; default 4*Capacity, one tenant may hold max(1, Queue/2)
 }
@@ -61,9 +63,7 @@ type waiter struct {
 // New creates a Limiter.
 func New(opts Options) *Limiter {
 	if opts.Capacity <= 0 {
-		// One P stays free for the deadline watcher that closes a module
-		// whose call ran out of time.
-		opts.Capacity = max(1, runtime.GOMAXPROCS(0)-1)
+		opts.Capacity = defaultCapacity(runtime.GOMAXPROCS(0))
 	}
 	if opts.TenantShare <= 0 {
 		opts.TenantShare = max(1, opts.Capacity/2)
@@ -78,6 +78,18 @@ func New(opts Options) *Limiter {
 		queueShare: max(1, opts.Queue/2),
 		tenants:    make(map[string]*tenant),
 	}
+}
+
+// defaultCapacity leaves one P free for the deadline watcher that closes a
+// module whose call ran out of time. With 2 Ps that would leave one slot and
+// no isolation at all: a hung tenant's neighbour would be refused on every
+// other call (review 2, I2). Two slots there let the neighbour run, and the
+// watcher shares a P, so timeouts overrun by milliseconds.
+func defaultCapacity(procs int) int {
+	if procs == 2 {
+		return 2
+	}
+	return max(1, procs-1)
 }
 
 // Capacity returns how many calls may run at once.

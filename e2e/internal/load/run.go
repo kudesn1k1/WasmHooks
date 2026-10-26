@@ -96,8 +96,10 @@ func fixedDialer(baseURL string) (func(ctx context.Context, network, addr string
 //
 // A ticker only wakes the loop (its resolution is coarse on some systems);
 // the schedule is call i at start + i/rps, and a wakeup sends every call that
-// is due, so a late wakeup is caught up instead of lowering the rate.
-func (g *generator) run(ctx context.Context, warmup, measure time.Duration) []sample {
+// is due, so a late wakeup is caught up instead of lowering the rate. It
+// also returns how long sending took: a generator that fell behind sends
+// every call but late, which would quietly lower the rate.
+func (g *generator) run(ctx context.Context, warmup, measure time.Duration) ([]sample, time.Duration) {
 	total := int(float64(g.rps) * (warmup + measure).Seconds())
 	skip := int(float64(g.rps) * warmup.Seconds())
 	samples := make([]sample, total)
@@ -123,8 +125,9 @@ func (g *generator) run(ctx context.Context, warmup, measure time.Duration) []sa
 			}(sent)
 		}
 	}
+	sending := time.Since(start)
 	wg.Wait()
-	return samples[skip:]
+	return samples[skip:], sending
 }
 
 // Phase is the measured result of one tenant in one phase.
@@ -134,10 +137,12 @@ type Phase struct {
 	P50, P99     time.Duration
 	Max          time.Duration
 	Outcomes     map[string]int
+	Planned      time.Duration // warmup plus measured part, as scheduled
+	Sending      time.Duration // how long sending the phase's calls took
 }
 
-func summarize(tenant, name string, samples []sample) Phase {
-	p := Phase{Tenant: tenant, Name: name, N: len(samples), Outcomes: map[string]int{}}
+func summarize(tenant, name string, samples []sample, planned, sending time.Duration) Phase {
+	p := Phase{Tenant: tenant, Name: name, N: len(samples), Outcomes: map[string]int{}, Planned: planned, Sending: sending}
 	took := make([]time.Duration, len(samples))
 	for i, s := range samples {
 		took[i] = s.took
@@ -179,23 +184,24 @@ func Run(ctx context.Context, cfg Config, env Env, progress func(string)) (Resul
 
 	note("phase quiet: merchant-a alone")
 	var res Result
-	res.AQuiet = summarize(env.TenantA, "quiet", a.run(ctx, cfg.Warmup, cfg.Phase))
+	planned := cfg.Warmup + cfg.Phase
+	quiet, sending := a.run(ctx, cfg.Warmup, cfg.Phase)
+	res.AQuiet = summarize(env.TenantA, "quiet", quiet, planned, sending)
 
 	note("phase noisy: merchant-a plus merchant-b")
 	b, err := newGenerator(cfg, env, env.TenantB, cfg.BRPS)
 	if err != nil {
 		return Result{}, err
 	}
-	var bSamples []sample
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		bSamples = b.run(ctx, cfg.Warmup, cfg.Phase)
-	}()
-	aNoisy := a.run(ctx, cfg.Warmup, cfg.Phase)
+	var (
+		bSamples []sample
+		bSending time.Duration
+		wg       sync.WaitGroup
+	)
+	wg.Go(func() { bSamples, bSending = b.run(ctx, cfg.Warmup, cfg.Phase) })
+	aNoisy, aSending := a.run(ctx, cfg.Warmup, cfg.Phase)
 	wg.Wait()
-	res.ANoisy = summarize(env.TenantA, "noisy", aNoisy)
-	res.BNoisy = summarize(env.TenantB, "noisy", bSamples)
+	res.ANoisy = summarize(env.TenantA, "noisy", aNoisy, planned, aSending)
+	res.BNoisy = summarize(env.TenantB, "noisy", bSamples, planned, bSending)
 	return res, nil
 }
