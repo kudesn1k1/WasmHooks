@@ -50,7 +50,9 @@ func writeEnv(t *testing.T) (snapshot, modules string) {
 				},
 			},
 			"output_schema":          map[string]any{"type": "object", "required": []string{"discount_percent", "reason"}},
-			"timeout_ms":             50,
+			// The memory bomb must hit its memory limit, not this one: under
+			// -race on a shared 4 vCPU runner it can take over 50ms.
+			"timeout_ms":             250,
 			"memory_max_pages":       64,
 			"allowed_host_functions": []string{},
 			"allowed_effect_types":   []string{},
