@@ -37,8 +37,9 @@ type Options struct {
 	Modules modstore.Store
 	Config  *config.Store
 	Pools   *pool.Manager
-	// Slots bounds running calls (decision D30, spec M2); nil leaves them
-	// unbounded, as before M2.
+	// Slots bounds running calls (decision D30, spec M2). nil leaves running
+	// calls and the instances of a pool key unbounded but for the pool's
+	// global cap: no admission control, for tests and the S7b baseline.
 	Slots          *slots.Limiter
 	Schemas        *schema.Cache
 	Sink           observe.Sink

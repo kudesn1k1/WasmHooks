@@ -315,10 +315,11 @@ func TestExecutorTenantIsolationSameModule(t *testing.T) {
 		}
 	})
 	t.Run("config", func(t *testing.T) {
-		e := newEnv(t, map[string]binding{
+		// Isolation, not throughput: every call must run, a few at a time.
+		e := newEnvWithSlots(t, map[string]binding{
 			"a": {fixture: "echo-config", config: map[string]string{"k": "a"}},
 			"b": {fixture: "echo-config", config: map[string]string{"k": "b"}},
-		}, anyOut, pool.Options{AcquireTimeout: 5 * time.Second}) // isolation, not throughput: every call must run
+		}, anyOut, pool.Options{}, slots.New(slots.Options{Capacity: 4, TenantShare: 4, Queue: 64}))
 		var wg sync.WaitGroup
 		errs := make(chan string, 50)
 		for i := range 50 {
