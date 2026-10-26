@@ -27,8 +27,9 @@ type rule struct {
 }
 
 var rules = map[string]rule{
-	"gateway":          {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore"}},
-	"gateway/httpapi":  {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore"}},
+	"gateway":          {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
+	"gateway/httpapi":  {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
+	"internalapi":      {deny: []string{"gateway", "gateway/httpapi"}},
 	"executor":         {deny: []string{"gateway", "gateway/httpapi"}},
 	"execproto":        {only: []string{}},
 	"sandbox":          {only: []string{}},
@@ -42,7 +43,7 @@ var rules = map[string]rule{
 }
 
 // exempt packages are test helpers and this package itself.
-var exempt = []string{"archtest", "sandbox/sandboxtest"}
+var exempt = []string{"archtest", "sandbox/sandboxtest", "modstore/storetest"}
 
 type goPackage struct {
 	ImportPath string

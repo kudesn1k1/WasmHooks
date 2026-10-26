@@ -76,6 +76,17 @@ const maxDeadlineMS = 30000
 
 func (h *handler) invoke(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+	if !h.g.ConfigLoaded() {
+		// Before the first snapshot every key would look invalid; answer
+		// "not ready" so an operator with a correct key is not told it is wrong.
+		writeOutcome(w, gateway.Response{
+			Outcome:  execproto.OutcomeUnavailable,
+			Reason:   execproto.ReasonInternal,
+			Error:    gateway.ErrNotReady.Error(),
+			Duration: time.Since(start),
+		})
+		return
+	}
 	if !h.g.Authenticate(bearerToken(r)) {
 		w.Header().Set("WWW-Authenticate", `Bearer realm="wasmhooks"`)
 		problem(w, http.StatusUnauthorized, "missing or invalid API key")

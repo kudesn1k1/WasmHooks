@@ -25,29 +25,55 @@ var kernelAllowed = map[string]bool{
 	"get_log_level": true,
 }
 
+// ModuleError lists every static violation of a module's spec. It matches
+// ErrInvalidModule, and also ErrMissingExport or ErrForbiddenImport when the
+// corresponding list is non-empty, so callers that only care whether a
+// module is invalid keep using errors.Is(err, ErrInvalidModule), while module
+// validation can report exports and imports as separate checks.
+type ModuleError struct {
+	Export  []string // problems with the required export
+	Imports []string // forbidden function and memory imports
+}
+
+func (e *ModuleError) Error() string {
+	return ErrInvalidModule.Error() + ": " + strings.Join(slices.Concat(e.Export, e.Imports), "; ")
+}
+
+func (e *ModuleError) Is(target error) bool {
+	switch target {
+	case ErrInvalidModule:
+		return true
+	case ErrMissingExport:
+		return len(e.Export) > 0
+	case ErrForbiddenImport:
+		return len(e.Imports) > 0
+	}
+	return false
+}
+
 // CheckModule verifies a module's static shape against its spec: the
 // required export is present with type () -> i32 (or () -> ()), and every
 // import is either an allowed kernel function or a host function granted by
 // the hook. Imported memories are never allowed. All violations are reported
-// at once, wrapped in ErrInvalidModule.
+// at once, as a *ModuleError.
 func CheckModule(info ModuleInfo, spec ModuleSpec) error {
-	var violations []string
+	var e ModuleError
 	if !slices.Contains(info.Exports, Export) {
-		violations = append(violations, fmt.Sprintf("missing export %q", Export))
+		e.Export = append(e.Export, fmt.Sprintf("missing export %q", Export))
 	} else if sig, ok := info.Signatures[Export]; ok && !validHandle(sig) {
-		violations = append(violations, fmt.Sprintf("export %q must have type () -> i32, has (%s) -> (%s)",
+		e.Export = append(e.Export, fmt.Sprintf("export %q must have type () -> i32, has (%s) -> (%s)",
 			Export, strings.Join(sig.Params, ", "), strings.Join(sig.Results, ", ")))
 	}
 	for _, imp := range info.Imports {
 		if !importAllowed(imp, spec) {
-			violations = append(violations, fmt.Sprintf("import %s.%s is not allowed", imp.Module, imp.Name))
+			e.Imports = append(e.Imports, fmt.Sprintf("import %s.%s is not allowed", imp.Module, imp.Name))
 		}
 	}
 	for _, imp := range info.MemoryImports {
-		violations = append(violations, fmt.Sprintf("import %s.%s (memory) is not allowed", imp.Module, imp.Name))
+		e.Imports = append(e.Imports, fmt.Sprintf("import %s.%s (memory) is not allowed", imp.Module, imp.Name))
 	}
-	if len(violations) > 0 {
-		return fmt.Errorf("%w: %s", ErrInvalidModule, strings.Join(violations, "; "))
+	if len(e.Export) > 0 || len(e.Imports) > 0 {
+		return &e
 	}
 	return nil
 }

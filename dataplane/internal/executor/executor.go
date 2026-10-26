@@ -43,6 +43,8 @@ type Options struct {
 	// module store and runtime honour the context; the wazero compiler
 	// itself does not. Default 30s.
 	CompileTimeout time.Duration
+	// ValidateConcurrency caps module validations running at once. Default 1.
+	ValidateConcurrency int
 }
 
 func (o *Options) setDefaults() {
@@ -54,6 +56,9 @@ func (o *Options) setDefaults() {
 	}
 	if o.CompileTimeout <= 0 {
 		o.CompileTimeout = 30 * time.Second
+	}
+	if o.ValidateConcurrency <= 0 {
+		o.ValidateConcurrency = 1
 	}
 }
 
@@ -97,6 +102,8 @@ type Executor struct {
 	closed  bool
 
 	compiles singleflight.Group
+
+	validateSem chan struct{} // one token per running validation
 }
 
 var _ execproto.Executor = (*Executor)(nil)
@@ -109,6 +116,8 @@ func New(opts Options) *Executor {
 		modules: make(map[modKey]sandbox.Module),
 		invalid: make(map[modKey]error),
 		hooks:   make(map[hookKey]config.HookDef),
+
+		validateSem: make(chan struct{}, opts.ValidateConcurrency),
 	}
 }
 

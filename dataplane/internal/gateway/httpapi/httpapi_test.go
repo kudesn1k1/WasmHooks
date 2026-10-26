@@ -283,3 +283,17 @@ func TestMethodNotAllowed(t *testing.T) {
 		t.Fatalf("status %d", resp.StatusCode)
 	}
 }
+
+func TestNoSnapshotYetIsUnavailableNotUnauthorized(t *testing.T) {
+	// In control-plane mode the data plane starts before its first snapshot,
+	// and API keys arrive in that snapshot: a correct key must not be told
+	// it is wrong.
+	srv := httptest.NewServer(New(gateway.New(config.NewStore(), &fakeExecutor{}, schema.NewCache(), gateway.Options{}), Options{}))
+	defer srv.Close()
+	for _, auth := range []string{bearer, ""} {
+		resp, body := post(t, srv, path, auth, okBody)
+		if resp.StatusCode != http.StatusServiceUnavailable || body["outcome"] != "unavailable" || resp.Header.Get(OutcomeHeader) != "unavailable" {
+			t.Fatalf("auth %q: status %d body %v", auth, resp.StatusCode, body)
+		}
+	}
+}

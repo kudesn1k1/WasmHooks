@@ -25,6 +25,12 @@ var (
 	ErrClosed = errors.New("sandbox: instance closed")
 	// ErrInvalidModule: the module is not valid wasm or violates its ModuleSpec.
 	ErrInvalidModule = errors.New("sandbox: module violates spec")
+	// ErrMissingExport: the module lacks the handle export or it has the
+	// wrong type. Always also ErrInvalidModule.
+	ErrMissingExport = errors.New("sandbox: missing or invalid handle export")
+	// ErrForbiddenImport: the module imports something its hook does not
+	// allow. Always also ErrInvalidModule.
+	ErrForbiddenImport = errors.New("sandbox: forbidden import")
 )
 
 // Runtime compiles modules. It is safe for concurrent use.

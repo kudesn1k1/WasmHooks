@@ -135,10 +135,15 @@ paths:
       tags: [modules]
       summary: Проверить модуль на соответствие определению хука
       description: >
-        Контракт фиксируется в M0 (раздел 6.3 спека M0), реализация —
-        stretch-цель. Проверки `exports` и `imports` executor выполняет при
-        любой компиляции модуля независимо от вызова этого эндпоинта, как
-        защиту на случай, если control plane валидацию пропустил.
+        Контракт зафиксирован в M0 (раздел 6.3 спека M0), реализован в M1
+        (раздел 7.3 спека M1). Эндпоинт слушает внутренний порт data plane
+        (по умолчанию `:8081`), который не публикуется наружу установки.
+        Проверки `exports` и `imports` executor выполняет при любой
+        компиляции модуля независимо от вызова этого эндпоинта, как защиту на
+        случай, если control plane валидацию пропустил. Валидация компилирует
+        модуль заново и не кладёт его в кеш модулей. Отчёт всегда содержит
+        все пять проверок в порядке перечисления; после первой проваленной
+        остальные приходят с `ok: false` и `detail: "skipped"`.
       requestBody:
         required: true
         content:
@@ -151,6 +156,14 @@ paths:
                   $ref: '#/components/schemas/ModuleHash'
                 hook:
                   $ref: '#/components/schemas/HookDef'
+                config:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: >
+                    Конфиг тенанта для пробного вызова, как `Binding.config`.
+                    Если не передан, пробный вызов идёт с пустым конфигом.
+                    Добавлено в M1.
             examples:
               validateDiscount:
                 summary: Валидация модуля для checkout.discount
@@ -197,6 +210,39 @@ paths:
                       - name: sample_call
                         ok: false
                         detail: "skipped"
+        '400':
+          description: >
+            Некорректный запрос: неверный формат `module_hash`, определение
+            хука, которое не прошло бы проверку снимка, нет `name` или
+            `sample_input`, или схема хука, которую data plane не может
+            скомпилировать (вина определения хука, а не модуля). Повтор без
+            изменений бессмыслен. Добавлено в M1.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Нет внутреннего токена или он неверный.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '413':
+          description: Тело запроса больше 1 МиБ. Добавлено в M1.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: >
+            Модуль сейчас нельзя оценить: хранилище модулей временно
+            недоступно или компиляция упала по вине платформы, а не модуля.
+            Control plane повторяет позже, модуль остаётся в статусе
+            `validating`. Добавлено в M1.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 
 components:
   securitySchemes:
@@ -208,13 +254,28 @@ components:
         API-ключом оператора из `invoke.openapi.yaml`.
 
   schemas:
+    Problem:
+      type: object
+      description: Ошибка в формате RFC 9457 (problem details).
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+
     ModuleHash:
       type: string
       pattern: '^sha256:[0-9a-f]{64}$'
       description: >
         Адрес модуля, вычисляемый из его содержимого: `sha256:` + hex-дайджест
-        в нижнем регистре. В M0 модуль хранится по пути
-        `<modules_dir>/<hex>.wasm`.
+        в нижнем регистре. Модуль хранится в бакете S3 по ключу `<hex>.wasm`
+        (в файловом режиме data plane — по пути `<modules_dir>/<hex>.wasm`).
       example: "sha256:1230c6a675e495a7bdcbc7695fe1344c0acd799d2dd07c1a2e01a071dd4ec724"
 
     Snapshot:

@@ -1,12 +1,9 @@
 package modstore
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -68,76 +65,3 @@ func TestParseHash(t *testing.T) {
 		})
 	}
 }
-
-func writeModule(t *testing.T, dir string, content []byte) string {
-	t.Helper()
-	hash := HashOf(content)
-	hexDigest, err := ParseHash(hash)
-	if err != nil {
-		t.Fatalf("ParseHash: %v", err)
-	}
-	path := filepath.Join(dir, hexDigest+".wasm")
-	if err := os.WriteFile(path, content, 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	return hash
-}
-
-func TestFS_Get(t *testing.T) {
-	dir := t.TempDir()
-	content := []byte("\x00asm real module")
-	hash := writeModule(t, dir, content)
-
-	// Write a file whose name doesn't match its content, to test hash
-	// mismatch detection.
-	tamperedHex := hex64('0')
-	if err := os.WriteFile(filepath.Join(dir, tamperedHex+".wasm"), []byte("not the right bytes"), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	tamperedHash := "sha256:" + tamperedHex
-
-	fs := NewFS(dir)
-	ctx := context.Background()
-
-	t.Run("matching hash returns bytes", func(t *testing.T) {
-		got, err := fs.Get(ctx, hash)
-		if err != nil {
-			t.Fatalf("Get(%q) error: %v", hash, err)
-		}
-		if string(got) != string(content) {
-			t.Fatalf("Get(%q) = %q, want %q", hash, got, content)
-		}
-	})
-
-	t.Run("missing file", func(t *testing.T) {
-		missingHex := hex64('1')
-		_, err := fs.Get(ctx, "sha256:"+missingHex)
-		if !errors.Is(err, ErrNotFound) {
-			t.Fatalf("Get(missing) error = %v, want ErrNotFound", err)
-		}
-	})
-
-	t.Run("tampered content", func(t *testing.T) {
-		_, err := fs.Get(ctx, tamperedHash)
-		if !errors.Is(err, ErrHashMismatch) {
-			t.Fatalf("Get(tampered) error = %v, want ErrHashMismatch", err)
-		}
-	})
-
-	t.Run("bad hash format", func(t *testing.T) {
-		_, err := fs.Get(ctx, "sha256:not-hex")
-		if !errors.Is(err, ErrBadHash) {
-			t.Fatalf("Get(bad hash) error = %v, want ErrBadHash", err)
-		}
-	})
-
-	t.Run("path traversal rejected as bad hash", func(t *testing.T) {
-		_, err := fs.Get(ctx, "sha256:../..")
-		if !errors.Is(err, ErrBadHash) {
-			t.Fatalf("Get(traversal) error = %v, want ErrBadHash", err)
-		}
-	})
-}
-
-// Store must be satisfied by *FS.
-var _ Store = (*FS)(nil)

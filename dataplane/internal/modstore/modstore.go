@@ -22,6 +22,9 @@ var (
 	// ErrBadHash: the hash string isn't "sha256:" followed by 64 lowercase
 	// hex characters.
 	ErrBadHash = errors.New("modstore: malformed module hash")
+	// ErrTooLarge: the stored object exceeds the size a module may have.
+	// Retrying does not help; the module is the problem.
+	ErrTooLarge = errors.New("modstore: module too large")
 )
 
 // hashFormat matches a well-formed module hash: "sha256:" plus 64 lowercase
@@ -60,12 +63,14 @@ type FS struct {
 // the first Get.
 func NewFS(dir string) *FS { return &FS{dir: dir} }
 
-// Get reads the module for hash and verifies its content matches. ctx is
-// accepted for interface compatibility with a future networked Store; this
-// implementation does local file I/O only and does not honor cancellation.
+// Get reads the module for hash and verifies its content matches. The file
+// read itself is not interruptible; ctx is checked once before it starts.
 func (s *FS) Get(ctx context.Context, hash string) ([]byte, error) {
 	hexDigest, err := ParseHash(hash)
 	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	path := filepath.Join(s.dir, hexDigest+".wasm")

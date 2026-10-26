@@ -1,0 +1,7 @@
+# Wasm fixtures and local build output are not part of the image.
+testdata
+modules-tmp
+bin
+*.test
+*.prof
+*.out

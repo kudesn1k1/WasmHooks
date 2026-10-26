@@ -398,3 +398,27 @@ func TestView_AuthenticateToken(t *testing.T) {
 		t.Fatal("AuthenticateToken(\"\") = true, want false")
 	}
 }
+
+func TestHookDefValidate(t *testing.T) {
+	good := HookDef{
+		Name: "h", DefVersion: 1, TimeoutMS: 50, MemoryMaxPages: 64,
+		InputSchema: json.RawMessage(`{}`), OutputSchema: json.RawMessage(`{}`),
+	}
+	if err := good.Validate(); err != nil {
+		t.Fatalf("valid hook: %v", err)
+	}
+	bad := map[string]func(*HookDef){
+		"def_version":      func(h *HookDef) { h.DefVersion = 0 },
+		"timeout_ms":       func(h *HookDef) { h.TimeoutMS = MaxTimeoutMS + 1 },
+		"memory_max_pages": func(h *HookDef) { h.MemoryMaxPages = MinMemoryPages - 1 },
+		"input_schema":     func(h *HookDef) { h.InputSchema = json.RawMessage(`[]`) },
+		"output_schema":    func(h *HookDef) { h.OutputSchema = nil },
+	}
+	for field, mutate := range bad {
+		h := good
+		mutate(&h)
+		if err := h.Validate(); err == nil || !strings.Contains(err.Error(), field) {
+			t.Errorf("%s: err = %v", field, err)
+		}
+	}
+}
