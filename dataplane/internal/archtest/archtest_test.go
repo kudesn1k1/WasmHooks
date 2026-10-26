@@ -27,15 +27,17 @@ type rule struct {
 }
 
 var rules = map[string]rule{
-	"gateway":          {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
-	"gateway/httpapi":  {deny: []string{"executor", "pool", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
-	"internalapi":      {deny: []string{"gateway", "gateway/httpapi"}},
-	"executor":         {deny: []string{"gateway", "gateway/httpapi"}},
+	"gateway":          {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
+	"gateway/httpapi":  {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
+	"gateway/quota":    {only: []string{}},
+	"internalapi":      {deny: []string{"gateway", "gateway/httpapi", "gateway/quota"}},
+	"executor":         {deny: []string{"gateway", "gateway/httpapi", "gateway/quota"}},
 	"execproto":        {only: []string{}},
 	"sandbox":          {only: []string{}},
 	"sandbox/extismrt": {only: []string{"sandbox", "sandbox/wasminfo"}},
 	"sandbox/wasminfo": {only: []string{"sandbox"}},
 	"pool":             {only: []string{"sandbox"}},
+	"slots":            {only: []string{}},
 	"config":           {only: []string{}},
 	"schema":           {only: []string{}},
 	"modstore":         {only: []string{}},

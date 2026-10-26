@@ -98,6 +98,9 @@ jobs:
         env:
           E2E: "1"
         run: go test -count=1 -v ./...
+      - name: loadgen
+        working-directory: e2e
+        run: go run ./cmd/loadgen
       - name: compose logs
         if: failure()
         run: |

@@ -66,8 +66,8 @@ func (h HookDef) SchemaKey(kind string) string {
 // D2).
 type Tenant struct {
 	ExternalID       string `json:"external_id"`
-	ConcurrencyLimit int    `json:"concurrency_limit"` // 0 -> DefaultConcurrencyLimit
-	RateLimitRPS     int    `json:"rate_limit_rps"`    // ignored in M0
+	ConcurrencyLimit int    `json:"concurrency_limit"` // concurrent calls per gateway replica; 0 -> DefaultConcurrencyLimit
+	RateLimitRPS     int    `json:"rate_limit_rps"`    // calls per second per gateway replica; 0: unlimited
 }
 
 // Binding connects a tenant's script to a hook: which module runs and what

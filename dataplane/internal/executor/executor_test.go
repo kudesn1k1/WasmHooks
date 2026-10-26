@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -22,6 +23,7 @@ import (
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/sandboxtest"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/schema"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/slots"
 )
 
 const hookName = "checkout.discount"
@@ -36,7 +38,6 @@ var (
 type binding struct {
 	fixture string
 	config  map[string]string
-	limit   int
 }
 
 // countingRuntime counts Compile calls.
@@ -63,6 +64,11 @@ type env struct {
 
 func newEnv(t *testing.T, bindings map[string]binding, outSchema json.RawMessage, poolOpts pool.Options) *env {
 	t.Helper()
+	return newEnvWithSlots(t, bindings, outSchema, poolOpts, nil)
+}
+
+func newEnvWithSlots(t *testing.T, bindings map[string]binding, outSchema json.RawMessage, poolOpts pool.Options, sl *slots.Limiter) *env {
+	t.Helper()
 	ctx := context.Background()
 	dir := t.TempDir()
 	snap := &config.Snapshot{
@@ -80,7 +86,7 @@ func newEnv(t *testing.T, bindings map[string]binding, outSchema json.RawMessage
 		if err := os.WriteFile(filepath.Join(dir, strings.TrimPrefix(hash, "sha256:")+".wasm"), wasm, 0o644); err != nil {
 			t.Fatal(err)
 		}
-		snap.Tenants = append(snap.Tenants, config.Tenant{ExternalID: tenant, ConcurrencyLimit: b.limit})
+		snap.Tenants = append(snap.Tenants, config.Tenant{ExternalID: tenant})
 		snap.Bindings = append(snap.Bindings, config.Binding{
 			TenantID: tenant, Hook: hookName, ModuleHash: hash, Config: b.config, ConfigVersion: 1,
 		})
@@ -100,7 +106,7 @@ func newEnv(t *testing.T, bindings map[string]binding, outSchema json.RawMessage
 	pools := pool.NewManager(poolOpts)
 	sink := &observe.MemorySink{}
 	exec := New(Options{
-		Runtime: rt, Modules: modstore.NewFS(dir), Config: cfg, Pools: pools,
+		Runtime: rt, Modules: modstore.NewFS(dir), Config: cfg, Pools: pools, Slots: sl,
 		Schemas: schema.NewCache(), Sink: sink, ExecutorID: "test",
 	})
 	t.Cleanup(func() {
@@ -275,7 +281,7 @@ func TestExecutorDeadlineBeforeStart(t *testing.T) {
 }
 
 func TestExecutorPoolSaturated(t *testing.T) {
-	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop", limit: 1}}, anyOut, pool.Options{})
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{GlobalMax: 1})
 	if err := e.exec.Preload(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -310,10 +316,11 @@ func TestExecutorTenantIsolationSameModule(t *testing.T) {
 		}
 	})
 	t.Run("config", func(t *testing.T) {
-		e := newEnv(t, map[string]binding{
+		// Isolation, not throughput: every call must run, a few at a time.
+		e := newEnvWithSlots(t, map[string]binding{
 			"a": {fixture: "echo-config", config: map[string]string{"k": "a"}},
 			"b": {fixture: "echo-config", config: map[string]string{"k": "b"}},
-		}, anyOut, pool.Options{AcquireTimeout: 5 * time.Second}) // isolation, not throughput: every call must run
+		}, anyOut, pool.Options{}, slots.New(slots.Options{Capacity: 4, TenantShare: 4, Queue: 64}))
 		var wg sync.WaitGroup
 		errs := make(chan string, 50)
 		for i := range 50 {
@@ -504,7 +511,7 @@ func TestExecutorCallerDeadlineLongerThanHook(t *testing.T) {
 }
 
 func TestExecutorPoolWaitEndedByDeadline(t *testing.T) {
-	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop", limit: 1}}, anyOut, pool.Options{AcquireTimeout: time.Second})
+	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{GlobalMax: 1, AcquireTimeout: time.Second})
 	if err := e.exec.Preload(context.Background()); err != nil {
 		t.Fatal(err)
 	}
@@ -590,4 +597,159 @@ func TestExecutorEffectsReturned(t *testing.T) {
 	if recs := e.sink.All(); recs[0].IdempotencyKey != "order-1" {
 		t.Fatalf("idempotency key not recorded: %+v", recs[0])
 	}
+}
+
+// TestExecutorSlotsIsolateHungTenant: merchant-b floods the executor with
+// hung scripts. They hold at most b's share of the running slots and of the
+// queue; merchant-a's calls run at once (spec M2 §9.1).
+func TestExecutorSlotsIsolateHungTenant(t *testing.T) {
+	sl := slots.New(slots.Options{Capacity: 2, TenantShare: 1, Queue: 4})
+	e := newEnvWithSlots(t, map[string]binding{
+		"a": {fixture: "discount", config: map[string]string{"threshold": "100", "percent": "10"}},
+		"b": {fixture: "infinite-loop"},
+	}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	const hung = 8
+	results := make([]execproto.ExecuteResult, hung)
+	var wg sync.WaitGroup
+	for i := range hung {
+		wg.Go(func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			results[i], _ = e.exec.Execute(ctx, e.req("b", nil))
+		})
+	}
+	// Let merchant-b take its slot and fill its share of the queue.
+	deadline := time.Now().Add(time.Second)
+	for s := sl.Stats(); s.Running < 1 || s.Waiting < 2; s = sl.Stats() {
+		if time.Now().After(deadline) {
+			t.Fatalf("merchant-b did not saturate its share: %+v", s)
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	for i := range 20 {
+		start := time.Now()
+		res, _ := e.exec.Execute(context.Background(), e.req("a", discountIn))
+		if res.Outcome != execproto.OutcomeOK {
+			t.Fatalf("merchant-a call %d: %s/%s %s", i, res.Outcome, res.Reason, res.Error)
+		}
+		if d := time.Since(start); d > 50*time.Millisecond {
+			t.Fatalf("merchant-a call %d took %v next to hung merchant-b", i, d)
+		}
+	}
+	wg.Wait()
+
+	overloaded := 0
+	for i, res := range results {
+		switch {
+		case res.Outcome == execproto.OutcomeTimeout:
+			if over := time.Duration(res.ExecNanos) - 100*time.Millisecond; over > 50*time.Millisecond {
+				t.Errorf("merchant-b call %d timed out %v late", i, over)
+			}
+		case res.Outcome == execproto.OutcomeUnavailable && res.Reason == execproto.ReasonOverloaded:
+			overloaded++
+		default:
+			t.Errorf("merchant-b call %d: %s/%s, want timeout or unavailable/overloaded", i, res.Outcome, res.Reason)
+		}
+	}
+	if overloaded == 0 {
+		t.Error("no merchant-b call was refused as overloaded")
+	}
+	if s := sl.Stats(); s != (slots.Stats{}) {
+		t.Fatalf("slots left after the test: %+v", s)
+	}
+}
+
+// TestExecutorSlotWaitEndedByDeadline: a call whose deadline expires while
+// it waits for a slot never starts.
+func TestExecutorSlotWaitEndedByDeadline(t *testing.T) {
+	sl := slots.New(slots.Options{Capacity: 1})
+	e := newEnvWithSlots(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { e.run(t, "b", nil); close(done) }()
+	for sl.Stats().Running == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
+	<-done
+}
+
+// TestExecutorSlotWaitKeepsScriptBudget: a call waits for a slot only while
+// its deadline still leaves the hook's full 100ms limit; otherwise it is
+// unavailable and never runs short (review 1, I1; decision D28).
+func TestExecutorSlotWaitKeepsScriptBudget(t *testing.T) {
+	sl := slots.New(slots.Options{Capacity: 1, Queue: 4})
+	e := newEnvWithSlots(t, map[string]binding{
+		"a": {fixture: "discount", config: map[string]string{"threshold": "100", "percent": "10"}},
+		"b": {fixture: "infinite-loop"},
+	}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() { e.run(t, "b", nil); close(done) }() // holds the slot for 100ms
+	for sl.Stats().Running == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond) // 50ms to wait
+	defer cancel()
+	start := time.Now()
+	res, _ := e.exec.Execute(ctx, e.req("a", discountIn))
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonDeadline)
+	if d := time.Since(start); d > 90*time.Millisecond {
+		t.Fatalf("gave up after %v, want about 50ms", d)
+	}
+	if res.ExecNanos != 0 {
+		t.Fatalf("script ran for %v", time.Duration(res.ExecNanos))
+	}
+	<-done
+}
+
+// TestExecutorDefaultSlotsAtTwoProcs: with 2 Ps the default sizes still keep
+// a hung tenant's neighbour running; with one slot every other call of the
+// neighbour was refused (review 2, I2).
+func TestExecutorDefaultSlotsAtTwoProcs(t *testing.T) {
+	prev := runtime.GOMAXPROCS(2)
+	defer runtime.GOMAXPROCS(prev)
+	sl := slots.New(slots.Options{})
+	e := newEnvWithSlots(t, map[string]binding{
+		"a": {fixture: "discount", config: map[string]string{"threshold": "100", "percent": "10"}},
+		"b": {fixture: "infinite-loop"},
+	}, anyOut, pool.Options{}, sl)
+	if err := e.exec.Preload(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, stop := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	for range 8 {
+		wg.Go(func() {
+			for ctx.Err() == nil {
+				cctx, cancel := context.WithTimeout(ctx, 200*time.Millisecond)
+				e.exec.Execute(cctx, e.req("b", nil))
+				cancel()
+			}
+		})
+	}
+	for sl.Stats().Running == 0 {
+		time.Sleep(time.Millisecond)
+	}
+	for i := range 20 {
+		cctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+		res, _ := e.exec.Execute(cctx, e.req("a", discountIn))
+		cancel()
+		if res.Outcome != execproto.OutcomeOK {
+			t.Errorf("merchant-a call %d: %s/%s", i, res.Outcome, res.Reason)
+		}
+	}
+	stop()
+	wg.Wait()
 }
