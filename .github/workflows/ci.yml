@@ -37,6 +37,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      - name: contract types
+        run: npm run api:types && git diff --exit-code -- src/shared/api/contract.gen.ts
       - name: typecheck
         run: npm run typecheck
       - name: lint

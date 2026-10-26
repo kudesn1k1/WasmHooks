@@ -91,6 +91,17 @@ curl -s -X POST localhost:8000/api/v1/tenants/merchant-a/console-sessions -H "Au
 
 Лог вызовов `GET /api/v1/tenant/invocations?outcome=&hook=&limit=` (`{ items: Invocation[] }`, новые сверху) в контракт не входит до MVP и есть только в моках.
 
+### Типы из контракта
+
+`npm run api:types` генерирует `src/shared/api/contract.gen.ts` из `api/control-plane.openapi.yaml`. Сгенерированный файл лежит в репозитории, руками его не правят. После изменения контракта команду нужно запустить заново и закоммитить результат: CI генерирует файл сам и падает, если он отличается от закоммиченного.
+
+Zod-схемы сверяются с контрактом в файлах `src/entities/*/model/contract.check.ts` и `src/shared/api/contract.check.ts`. Это только типы, их проверяет `npm run typecheck`:
+
+- `AcceptsContract<typeof schema, ContractSchema<"Имя">>` — всё, что разрешает контракт, проходит схему ответа (`z.input`);
+- `FitsContract<Тип, ContractSchema<"Имя">>` — тело запроса, которое отправляет фронтенд, подходит под контракт.
+
+Если бэкенд, например, сделал поле `nullable`, а схема ждёт только строку, `tsc` падает на строке этой схемы.
+
 ## Стек
 
 Next.js 15 (App Router), TypeScript (strict), Tailwind CSS 4 и shadcn/ui (Radix), TanStack Query, Zod (проверка ответов API), MSW, Vitest и React Testing Library. React Hook Form, Zustand, Recharts и Playwright подключаются вместе с первыми экранами, которым они нужны.
