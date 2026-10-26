@@ -11,3 +11,9 @@ dataplane/bin/
 *.prof
 *.out
 dataplane/modules-tmp/
+control-plane/.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.env
