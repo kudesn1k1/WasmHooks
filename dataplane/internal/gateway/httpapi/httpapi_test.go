@@ -187,6 +187,9 @@ func TestOutcomeMapping(t *testing.T) {
 			if got := resp.Header.Get(OutcomeHeader); got != string(tc.res.Outcome) {
 				t.Fatalf("%s = %q", OutcomeHeader, got)
 			}
+			if got, want := resp.Header.Get("Retry-After"), map[bool]string{true: "1"}[tc.status == 429]; got != want {
+				t.Fatalf("Retry-After = %q, want %q", got, want)
+			}
 			if body["outcome"] != string(tc.res.Outcome) {
 				t.Fatalf("body outcome = %v", body["outcome"])
 			}

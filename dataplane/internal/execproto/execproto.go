@@ -39,6 +39,14 @@ const (
 	ReasonCallerDeadline = "caller_deadline"
 	// ReasonCallerCanceled: the caller went away while the script ran.
 	ReasonCallerCanceled = "caller_canceled"
+	// ReasonRateLimit refines quota_exceeded: the tenant's call rate.
+	ReasonRateLimit = "rate_limit"
+	// ReasonConcurrencyLimit refines quota_exceeded: the tenant's
+	// concurrent calls.
+	ReasonConcurrencyLimit = "concurrency_limit"
+	// ReasonOverloaded refines unavailable: the executor's queue for
+	// running slots is full, or the tenant's share of it.
+	ReasonOverloaded = "overloaded"
 )
 
 // ExecuteRequest asks the executor to run the tenant's script bound to a

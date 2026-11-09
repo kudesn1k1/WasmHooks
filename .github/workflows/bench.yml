@@ -5,7 +5,7 @@ name: bench
 on:
   workflow_dispatch:
   push:
-    branches: [milestone-0]
+    branches: [milestone-0, m2-admission]
     paths:
       - dataplane/internal/**
       - dataplane/cmd/dataplane/**
@@ -34,6 +34,8 @@ jobs:
         run: |
           go test -count=1 -run Spike -v ./internal/sandbox/extismrt/ -args -spike | tee out/measure-linux.txt
           go test -count=1 -run Spike -v ./cmd/dataplane/ -args -spike | tee -a out/measure-linux.txt
+          go test -count=1 -run Spike -v ./internal/executor/ -args -spike | tee -a out/measure-linux.txt
+          GOMAXPROCS=2 go test -count=1 -run Spike -v ./internal/executor/ -args -spike | tee -a out/measure-linux.txt
       - uses: actions/upload-artifact@v7
         with:
           name: spike-linux

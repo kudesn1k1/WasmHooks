@@ -1,0 +1,83 @@
+=== RUN   TestSpikeInstanceMemory
+    spike_test.go:69: S5 instances=   1  heap/instance idle=2.07 MiB  after first call=2.41 MiB
+    spike_test.go:69: S5 instances=  10  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+    spike_test.go:69: S5 instances= 100  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+    spike_test.go:69: S5 instances= 500  heap/instance idle=2.08 MiB  after first call=2.36 MiB
+--- PASS: TestSpikeInstanceMemory (1.00s)
+=== RUN   TestSpikeModuleScaling
+    spike_test.go:131: S6 modules=  1  compile avg=63.959ms  heap/module=0.67 MiB  warm call p50=123µs p99=515µs
+    spike_test.go:131: S6 modules= 10  compile avg=66.937ms  heap/module=0.33 MiB  warm call p50=113µs p99=530µs
+    spike_test.go:131: S6 modules= 50  compile avg=60.466ms  heap/module=0.28 MiB  warm call p50=112µs p99=473µs
+    spike_test.go:131: S6 modules=100  compile avg=59.106ms  heap/module=0.28 MiB  warm call p50=119µs p99=484µs
+--- PASS: TestSpikeModuleScaling (10.97s)
+=== RUN   TestSpikeTimeoutPrecision
+    spike_test.go:168: S7 timeout=10ms  overshoot p50=403µs p99=914µs max=995µs  dead after timeout=30/30
+    spike_test.go:168: S7 timeout=50ms  overshoot p50=430µs p99=995µs max=1.076ms  dead after timeout=30/30
+    spike_test.go:168: S7 timeout=100ms  overshoot p50=304µs p99=1.008ms max=1.087ms  dead after timeout=30/30
+--- PASS: TestSpikeTimeoutPrecision (4.93s)
+=== RUN   TestSpikeTimeoutUnderSaturation
+    spike_test.go:229: S7b spinning=  4 (GOMAXPROCS=4)  overshoot p50=12.646ms max=12.697ms  neighbour warm call p50=268µs max=1.099ms
+    spike_test.go:229: S7b spinning=  8 (GOMAXPROCS=4)  overshoot p50=6.775ms max=12.006ms  neighbour warm call p50=268µs max=377µs
+    spike_test.go:229: S7b spinning= 16 (GOMAXPROCS=4)  overshoot p50=27.194ms max=87.472ms  neighbour warm call p50=144µs max=316µs
+--- PASS: TestSpikeTimeoutUnderSaturation (0.41s)
+=== RUN   TestSpikeMemoryBomb
+    spike_test.go:255: S8 limit=  64 pages (   4 MiB)  time to trap p50=2.013ms max=3.348ms  err=sandbox: wasm trap: wasm error: unreachable
+        wasm stack trace:
+        	.$144(i32,i32)
+        	.$162(i32,i32)
+        	.$28(i32,i32)
+        	.$24(i32,i32)
+        	.$9(i32,i32)
+        	.$11(i32,i32,i32)
+        	.$10() i32
+    spike_test.go:255: S8 limit= 256 pages (  16 MiB)  time to trap p50=12.252ms max=54.907ms  err=sandbox: wasm trap: wasm error: unreachable
+        wasm stack trace:
+        	.$144(i32,i32)
+        	.$162(i32,i32)
+        	.$28(i32,i32)
+        	.$24(i32,i32)
+        	.$9(i32,i32)
+        	.$11(i32,i32,i32)
+        	.$10() i32
+    spike_test.go:255: S8 limit=1024 pages (  64 MiB)  time to trap p50=52.799ms max=236.526ms  err=sandbox: wasm trap: wasm error: unreachable
+        wasm stack trace:
+        	.$144(i32,i32)
+        	.$162(i32,i32)
+        	.$28(i32,i32)
+        	.$24(i32,i32)
+        	.$9(i32,i32)
+        	.$11(i32,i32,i32)
+        	.$10() i32
+--- PASS: TestSpikeMemoryBomb (1.17s)
+=== RUN   TestSpikeImports
+    spike_test.go:273: S11 discount       imports=[config_get length load_u64 load_u8 input_length input_load_u64 input_load_u8 error_set get_log_level log_info output_set alloc store_u64 store_u8]
+    spike_test.go:273: S11 counter        imports=[input_length input_load_u64 input_load_u8 error_set output_set alloc store_u64 store_u8]
+    spike_test.go:273: S11 echo-config    imports=[input_length input_load_u64 input_load_u8 error_set config_get length load_u64 load_u8 output_set alloc store_u64 store_u8]
+    spike_test.go:273: S11 guest-error    imports=[input_length input_load_u64 input_load_u8 error_set alloc store_u64 store_u8]
+    spike_test.go:273: S11 infinite-loop  imports=[input_length input_load_u64 input_load_u8]
+    spike_test.go:273: S11 memory-bomb    imports=[input_length input_load_u64 input_load_u8 alloc store_u64 store_u8 error_set]
+    spike_test.go:273: S11 bad-output     imports=[input_length input_load_u64 input_load_u8 output_set error_set alloc store_u64 store_u8]
+    spike_test.go:273: S11 http-call      imports=[input_length input_load_u64 input_load_u8 error_set http_request http_status_code length_unsafe http_headers length load_u64 load_u8 free output_set alloc store_u64 store_u8]
+--- PASS: TestSpikeImports (0.04s)
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt	18.548s
+=== RUN   TestSpikeInvokeLatency
+    spike_test.go:121: S12 sequential n=3000  p50=324µs p90=714µs p99=969µs max=4.913ms
+    spike_test.go:126: S12 concurrent workers=4 n=3000  p50=1.218ms p90=1.756ms p99=2.262ms  throughput=3163 req/s
+--- PASS: TestSpikeInvokeLatency (2.37s)
+=== RUN   TestSpikeTenantShareCost
+    spike_test.go:147: S12 share cost default share     workers=4 n=3000  p50=1.316ms p90=2.014ms p99=3.112ms  throughput=2867 req/s
+    spike_test.go:147: S12 share cost share = all slots workers=4 n=3000  p50=439µs p90=949µs p99=1.673ms  throughput=6846 req/s
+--- PASS: TestSpikeTenantShareCost (1.83s)
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/cmd/dataplane	4.220s
+=== RUN   TestSpikeAdmissionUnderSaturation
+    spike_test.go:44: S7b+M2 GOMAXPROCS=4  slots=3 tenant_share=1 queue=12  hook limit=50ms deadline=150ms
+    spike_test.go:48: S7b+M2 baseline           merchant-a p50=133µs p99=622µs max=661µs [ok=300]
+    spike_test.go:60: S7b+M2 spinning=  4 slots on  merchant-a p50=138µs p99=612µs max=638µs [ok=300] | merchant-b overshoot p50=436µs max=1.141ms [timeout=3 timeout/caller_deadline=1 unavailable/deadline_before_start=1]
+    spike_test.go:60: S7b+M2 spinning=  4 slots off merchant-a p50=161µs p99=1.008ms max=13.715ms [ok=300] | merchant-b overshoot p50=4.078ms max=10.444ms [timeout=12]
+    spike_test.go:60: S7b+M2 spinning= 16 slots on  merchant-a p50=147µs p99=545µs max=614µs [ok=300] | merchant-b overshoot p50=543µs max=689µs [timeout=3 timeout/caller_deadline=1 unavailable/deadline_before_start=4 unavailable/overloaded=625]
+    spike_test.go:60: S7b+M2 spinning= 16 slots off merchant-a p50=180µs p99=17.714ms max=116.783ms [ok=298 timeout=2] | merchant-b overshoot p50=23.898ms max=142.013ms [timeout=66 timeout/caller_deadline=1]
+--- PASS: TestSpikeAdmissionUnderSaturation (1.51s)
+PASS
+ok  	github.com/kudesn1k1/WasmHooks/dataplane/internal/executor	1.531s
