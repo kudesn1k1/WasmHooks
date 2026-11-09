@@ -100,7 +100,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer) error {
 	if err := d.restart(off); err != nil {
 		return err
 	}
-	d.pause("Сцена 1. Обычный день. Защиты M2 нет, как было до неё. Магазин А принимает 100 заказов в секунду.")
+	d.pause("Сцена 1. Обычный день. Защита выключена полностью. Магазин А принимает 100 заказов в секунду.")
 	d.scene("1. Обычный день", false, func(ctx context.Context, wg *sync.WaitGroup) {
 		d.shopATraffic(ctx, wg)
 	}, nil)
