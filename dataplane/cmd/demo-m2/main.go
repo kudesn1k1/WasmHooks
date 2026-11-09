@@ -200,9 +200,9 @@ func (d *demo) scene(name string, flood bool, traffic func(context.Context, *syn
 	d.st.flush()
 	traffic(ctx, &wg)
 	if flood {
-		d.say("  сек │ магазин А (сосед)                         │ магазин Б (распродажа)")
+		d.say("  сек │ магазин А (сосед)                     │ магазин Б: принято, отказ 429 «квота»")
 	} else {
-		d.say("  сек │ магазин А (сосед)                         │ магазин Б")
+		d.say("  сек │ магазин А (сосед)                     │ магазин Б: стоп по лимиту, опоздание сторожа, 503")
 	}
 	var total window
 	tick := time.NewTicker(time.Second)
@@ -225,13 +225,13 @@ func (d *demo) scene(name string, flood bool, traffic func(context.Context, *syn
 }
 
 func shopALine(w window) string {
-	return fmt.Sprintf("%4d заказов, сломалось %3d, p99 %8s", w.aN, w.aFail, ms(w.p99()))
+	return fmt.Sprintf("%3d заказов, сломалось %2d, p99 %7s", w.aN, w.aFail, ms(w.p99()))
 }
 
 func shopBLine(w window, flood bool) string {
 	switch {
 	case flood:
-		return fmt.Sprintf("принято %4d, отказ по квоте (429) %5d", w.bOK, w.bQuota)
+		return fmt.Sprintf("принято %4d, 429: %5d", w.bOK, w.bQuota)
 	case w.bTimeout+w.bBusy+w.bQuota+w.bFail == 0:
 		return "молчит"
 	default:
@@ -239,8 +239,7 @@ func shopBLine(w window, flood bool) string {
 		if w.bLateN > 0 {
 			late = ms(w.bLate)
 		}
-		return fmt.Sprintf("остановлено по лимиту %3d, сторож опоздал до %8s, отказ «узел занят» (503) %4d",
-			w.bTimeout, late, w.bBusy)
+		return fmt.Sprintf("стоп %3d, опоздание до %7s, 503: %3d", w.bTimeout, late, w.bBusy)
 	}
 }
 
@@ -258,7 +257,7 @@ func (d *demo) summary() {
 	d.say(`
 Итоги
 ─────`)
-	d.say("  сцена                              │ магазин А: p99 │ сломалось  │ сторож опоздал │ магазин Б: принято / отказ")
+	d.say("  сцена                          │ А: p99  │ А: сломалось │ сторож опоздал │ Б: отказы")
 	for _, r := range d.results {
 		late, b := "—", "—"
 		if r.w.bLateN > 0 {
@@ -266,11 +265,11 @@ func (d *demo) summary() {
 		}
 		switch {
 		case r.flood:
-			b = fmt.Sprintf("%d / %d", r.w.bOK, r.w.bQuota)
+			b = fmt.Sprintf("429: %d из %d", r.w.bQuota, r.w.bOK+r.w.bQuota)
 		case r.w.bBusy > 0:
-			b = fmt.Sprintf("отказов «узел занят» %d", r.w.bBusy)
+			b = fmt.Sprintf("503: %d", r.w.bBusy)
 		}
-		d.say(fmt.Sprintf("  %-34s │ %14s │ %4d / %4d │ %14s │ %s", r.scene, ms(r.w.p99()), r.w.aFail, r.w.aN, late, b))
+		d.say(fmt.Sprintf("  %-30s │ %7s │ %4d из %4d │ %14s │ %s", r.scene, ms(r.w.p99()), r.w.aFail, r.w.aN, late, b))
 	}
 }
 
