@@ -85,3 +85,19 @@ services:
       test: ["CMD", "/dataplane", "probe", "http://localhost:8080/healthz"]
       interval: 2s
       retries: 30
+  demo-shop:
+    # Needs an installation key, which exists only after the platform is up:
+    # create one with `controlplane apikey create` and pass it as SHOP_API_KEY.
+    profiles: ["shop"]
+    build: ./demo-shop
+    environment:
+      DS_API_KEY: ${SHOP_API_KEY:-}
+      DS_DATAPLANE_URL: http://dataplane:8080
+      DS_CONTROL_PLANE_URL: http://control-plane:8000
+    ports: ["127.0.0.1:8001:8000"]
+    # Deliberately no depends_on: the shop must keep selling, without
+    # discounts, while the platform is down.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=2)"]
+      interval: 2s
+      retries: 30

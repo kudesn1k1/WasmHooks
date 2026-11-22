@@ -84,6 +84,28 @@ jobs:
           uv run controlplane openapi > /tmp/control-plane.openapi.yaml
           diff -u ../api/control-plane.openapi.yaml /tmp/control-plane.openapi.yaml
 
+  demo-shop:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: demo-shop
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: demo-shop/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy
+      - run: uv run pytest -q
+      - name: openapi drift
+        run: |
+          uv run demoshop openapi > /tmp/demo-shop.openapi.yaml
+          diff -u ../api/demo-shop.openapi.yaml /tmp/demo-shop.openapi.yaml
+
   e2e:
     runs-on: ubuntu-latest
     steps:
