@@ -13,7 +13,7 @@
 | Валидация модуля | `dataplane-internal.openapi.yaml` | тимлид (Go, data plane) | data plane | control plane |
 | ABI скрипта | основной спек (`docs/superpowers/specs/2026-09-04-wasm-extension-platform-design.md`), не файл в `api/` | тимлид (Go, data plane) | data plane | авторы скриптов |
 | API консолей | `control-plane.openapi.yaml` (M0: ещё не создан) | backend, Python | control plane | фронтенд |
-| API магазина | `demo-shop.openapi.yaml` (M0: ещё не создан) | backend, Python | демо-магазин | витрина |
+| API магазина | `demo-shop.openapi.yaml` (генерируется из кода, `demoshop openapi`) | backend, Python | демо-магазин | витрина |
 
 Источник таблицы — `docs/TEAM.md`; при расхождении прав он.
 

@@ -1,0 +1,481 @@
+openapi: 3.1.0
+info:
+  title: WasmHooks Demo Shop API
+  description: 'API демо-маркетплейса для витрины. Маркетплейс — оператор платформы,
+    его магазины — её тенанты: чекаут магазина вызывает хук checkout.discount со скриптом
+    своего мерчанта. Суммы — в копейках. Владелец контракта: backend, Python (docs/TEAM.md);
+    файл api/demo-shop.openapi.yaml генерируется из кода командой `demoshop openapi`.'
+  version: 0.1.0
+paths:
+  /api/v1/shops:
+    get:
+      tags:
+      - catalog
+      summary: Магазины
+      description: Магазины мерчантов. Каждый — отдельный тенант платформы со своими
+        скриптами на хуке checkout.discount.
+      operationId: list_shops_api_v1_shops_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopList'
+  /api/v1/shops/{shop_id}/products:
+    get:
+      tags:
+      - catalog
+      summary: Каталог магазина
+      operationId: list_products_api_v1_shops__shop_id__products_get
+      parameters:
+      - name: shop_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Shop Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductList'
+        '404':
+          description: Магазин не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/customers:
+    get:
+      tags:
+      - catalog
+      summary: Демо-покупатели
+      description: 'Учётных записей нет: витрина даёт выбрать, кто покупает. От суммы
+        прошлых покупок зависит скидка скрипта мерчанта.'
+      operationId: list_customers_api_v1_customers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerList'
+  /api/v1/shops/{shop_id}/checkout:
+    post:
+      tags:
+      - checkout
+      summary: Рассчитать заказ со скидкой
+      description: 'Считает корзину по ценам каталога магазина и спрашивает скидку
+        у скрипта его мерчанта (хук checkout.discount). Любой исход хука, кроме `ok`,
+        даёт скидку 0 и `fallback: true`: чекаут от скрипта не ломается. Заказ не
+        сохраняется, оплаты нет.'
+      operationId: checkout_api_v1_shops__shop_id__checkout_post
+      parameters:
+      - name: shop_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Shop Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Checkout'
+        '404':
+          description: Магазин, покупатель или товар не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Некорректное тело запроса
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /api/v1/shops/{shop_id}/console-sessions:
+    post:
+      tags:
+      - merchant console
+      summary: Открыть консоль скриптов мерчанта
+      description: Кнопка «Мои скрипты». Магазин с ключом установки регистрирует своего
+        мерчанта тенантом платформы, если его там ещё нет, и выписывает токен консоли
+        тенанта; витрина открывает `/tenant#token=<token>`. Учётных записей в демо
+        нет, поэтому токен получает любой посетитель витрины.
+      operationId: create_console_session_api_v1_shops__shop_id__console_sessions_post
+      parameters:
+      - name: shop_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Shop Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConsoleSession'
+        '404':
+          description: Магазин не найден
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '503':
+          description: Control plane не выдал токен
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    CartItem:
+      properties:
+        product_id:
+          type: string
+          title: Product Id
+        quantity:
+          type: integer
+          maximum: 99.0
+          minimum: 1.0
+          title: Quantity
+      additionalProperties: false
+      type: object
+      required:
+      - product_id
+      - quantity
+      title: CartItem
+    Checkout:
+      properties:
+        shop_id:
+          type: string
+          title: Shop Id
+        customer_id:
+          type: string
+          title: Customer Id
+        lines:
+          items:
+            $ref: '#/components/schemas/CheckoutLine'
+          type: array
+          title: Lines
+        subtotal:
+          type: integer
+          minimum: 0.0
+          title: Subtotal
+          description: Сумма без скидки в копейках.
+        discount:
+          $ref: '#/components/schemas/Discount'
+        total:
+          type: integer
+          minimum: 0.0
+          title: Total
+          description: Итог к оплате в копейках.
+      type: object
+      required:
+      - shop_id
+      - customer_id
+      - lines
+      - subtotal
+      - discount
+      - total
+      title: Checkout
+    CheckoutLine:
+      properties:
+        product_id:
+          type: string
+          title: Product Id
+        name:
+          type: string
+          title: Name
+        unit_price:
+          type: integer
+          minimum: 0.0
+          title: Unit Price
+          description: Цена за штуку в копейках.
+        quantity:
+          type: integer
+          minimum: 1.0
+          title: Quantity
+        line_total:
+          type: integer
+          minimum: 0.0
+          title: Line Total
+          description: Стоимость строки в копейках.
+      type: object
+      required:
+      - product_id
+      - name
+      - unit_price
+      - quantity
+      - line_total
+      title: CheckoutLine
+    CheckoutRequest:
+      properties:
+        customer_id:
+          type: string
+          title: Customer Id
+        items:
+          items:
+            $ref: '#/components/schemas/CartItem'
+          type: array
+          maxItems: 50
+          minItems: 1
+          title: Items
+      additionalProperties: false
+      type: object
+      required:
+      - customer_id
+      - items
+      title: CheckoutRequest
+      description: The cart lives in the storefront; the shop prices it from its own
+        catalog.
+    ConsoleSession:
+      properties:
+        token:
+          type: string
+          title: Token
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+      type: object
+      required:
+      - token
+      - expires_at
+      title: ConsoleSession
+    Customer:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: Идентификатор покупателя, уходит в хук как customer.id.
+        name:
+          type: string
+          title: Name
+        lifetime_spend:
+          type: integer
+          minimum: 0.0
+          title: Lifetime Spend
+          description: Сумма прошлых покупок в копейках, уходит в хук в рублях.
+      type: object
+      required:
+      - id
+      - name
+      - lifetime_spend
+      title: Customer
+      description: 'A demo buyer: the marketplace has no accounts, the storefront
+        picks who buys.'
+    CustomerList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Customer'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: CustomerList
+    Discount:
+      properties:
+        percent:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Percent
+          description: Скидка в процентах.
+        amount:
+          type: integer
+          minimum: 0.0
+          title: Amount
+          description: Скидка в копейках.
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+          description: Причина от скрипта мерчанта; null, если скидка по умолчанию.
+        outcome:
+          $ref: '#/components/schemas/DiscountOutcome'
+          description: 'Исход вызова хука checkout.discount (api/invoke.openapi.yaml).
+            `error` — исхода нет: сеть, истёк дедлайн или data plane отклонил запрос.'
+        fallback:
+          type: boolean
+          title: Fallback
+          description: 'true — применена скидка по умолчанию (0): исход не `ok` или
+            скрипт вернул результат не по схеме. Это нормальный путь, а не ошибка.'
+      type: object
+      required:
+      - percent
+      - amount
+      - reason
+      - outcome
+      - fallback
+      title: Discount
+    DiscountOutcome:
+      type: string
+      enum:
+      - ok
+      - no_handler
+      - timeout
+      - handler_error
+      - quota_exceeded
+      - unavailable
+      - error
+      title: DiscountOutcome
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    Product:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: Идентификатор товара, его передают в чекаут.
+        shop_id:
+          type: string
+          title: Shop Id
+          description: Магазин, который продаёт товар.
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+        price:
+          type: integer
+          minimum: 0.0
+          title: Price
+          description: Цена за штуку в копейках.
+      type: object
+      required:
+      - id
+      - shop_id
+      - name
+      - description
+      - price
+      title: Product
+    ProductList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Product'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ProductList
+    Shop:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: 'Идентификатор магазина. Он же external_id мерчанта в платформе:
+            под ним вызывается хук и открывается консоль скриптов.'
+        name:
+          type: string
+          title: Name
+        description:
+          type: string
+          title: Description
+      type: object
+      required:
+      - id
+      - name
+      - description
+      title: Shop
+      description: 'A merchant''s shop on the marketplace: one tenant of the platform.'
+    ShopList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Shop'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ShopList
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    Problem:
+      description: 'RFC 9457 problem details: the body of every error of this API.'
+      properties:
+        type:
+          default: about:blank
+          title: Type
+          type: string
+        title:
+          title: Title
+          type: string
+        status:
+          title: Status
+          type: integer
+        detail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: null
+          title: Detail
+      required:
+      - title
+      - status
+      title: Problem
+      type: object
