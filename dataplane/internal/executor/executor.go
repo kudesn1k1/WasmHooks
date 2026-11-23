@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -259,17 +258,20 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	}
 
 	callStart := time.Now()
-	w := watchCaller(ctx, callStart.Add(hook.Timeout()))
-	out, err := lease.Instance().Call(ctx, sandbox.Export, req.Payload)
-	w.stop()
+	// The first cancellation cause stays on the context even if the other
+	// deadline expires while the runtime unwinds the guest.
+	callCtx, cancel := context.WithTimeoutCause(ctx, hook.Timeout(), errHookTimeout)
+	defer cancel()
+	out, err := lease.Instance().Call(callCtx, sandbox.Export, req.Payload)
 	// Zero denotes a pre-start refusal in ExecuteReply, including on clocks
 	// too coarse to distinguish entry and return from a short guest call.
 	res.ExecNanos = max(1, time.Since(callStart).Nanoseconds())
 	res.Logs = formatLogs(out.Logs)
 	if err != nil {
+		f := callFailure(err, callCtx)
 		lease.Release(false)
 		releaseSlot()
-		return callFailure(err, w)
+		return f
 	}
 	// From here on the instance is healthy whatever the output says.
 	lease.Release(true)
@@ -325,47 +327,24 @@ func notStarted(ctx context.Context) *failure {
 	return fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("deadline expired before the script started"))
 }
 
-// callerWatch records when the caller's context ended during a call, so a
-// timeout can be attributed to whatever stopped the script first, not to
-// the context's state when the call finally returns.
-type callerWatch struct {
-	hookDeadline time.Time
-	endedAt      atomic.Int64 // UnixNano; 0 while the caller's context is live
-	ctx          context.Context
-	stopFn       func() bool
-}
-
-func watchCaller(ctx context.Context, hookDeadline time.Time) *callerWatch {
-	w := &callerWatch{hookDeadline: hookDeadline, ctx: ctx}
-	w.stopFn = context.AfterFunc(ctx, func() { w.endedAt.Store(time.Now().UnixNano()) })
-	return w
-}
-
-func (w *callerWatch) stop() { w.stopFn() }
-
-// callerFirst reports how the caller's context ended if it ended before the
-// hook's own limit: context.Canceled, context.DeadlineExceeded, or nil.
-func (w *callerWatch) callerFirst() error {
-	if dl, ok := w.ctx.Deadline(); ok && dl.Before(w.hookDeadline) && w.ctx.Err() != nil {
-		return context.DeadlineExceeded
-	}
-	if ended := w.endedAt.Load(); ended != 0 && ended < w.hookDeadline.UnixNano() && errors.Is(w.ctx.Err(), context.Canceled) {
-		return context.Canceled
-	}
-	return nil
-}
+var errHookTimeout = errors.New("hook execution deadline exceeded")
 
 // callFailure maps a script failure. A timeout is attributed to whatever
 // stopped the script first: the hook's limit (empty reason), the caller's
 // shorter deadline, or the caller going away, which is not the tenant's fault.
-func callFailure(err error, w *callerWatch) *failure {
-	switch {
-	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(w.callerFirst(), context.Canceled):
-		return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away while the script ran"))
-	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(w.callerFirst(), context.DeadlineExceeded):
-		return fail(execproto.OutcomeTimeout, execproto.ReasonCallerDeadline, nil)
-	case errors.Is(err, sandbox.ErrTimeout):
+func callFailure(err error, callCtx context.Context) *failure {
+	if errors.Is(err, sandbox.ErrTimeout) {
+		switch callCtx.Err() {
+		case context.Canceled:
+			return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away while the script ran"))
+		case context.DeadlineExceeded:
+			if context.Cause(callCtx) != errHookTimeout {
+				return fail(execproto.OutcomeTimeout, execproto.ReasonCallerDeadline, nil)
+			}
+		}
 		return fail(execproto.OutcomeTimeout, "", nil)
+	}
+	switch {
 	case errors.Is(err, sandbox.ErrTrap):
 		return fail(execproto.OutcomeHandlerError, execproto.ReasonTrap, err)
 	case errors.Is(err, sandbox.ErrGuest):
