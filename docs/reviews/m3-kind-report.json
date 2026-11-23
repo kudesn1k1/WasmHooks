@@ -1,0 +1,5193 @@
+{
+  "result": "PASS",
+  "provisioning_started_at": "2026-11-23T07:19:50.701528+00:00",
+  "cluster": "kind-wasmhooks-m3",
+  "application_images": {
+    "control-plane": "sha256:b2a178e1f530fd01f2cf7175d27cd8bc16f05d8118ecafb5824ccb1eb67d32c2",
+    "demo-shop": "sha256:f79ec3ccb42d3376666882d0b1acb1780d467082409574112eea30ccce6ef9e1",
+    "dataplane": "sha256:3b32d628b7bd9fd33bfd8390d2d73f6e3a3d783ecf3b74e7e4d4ad32f428cca9"
+  },
+  "started_at": "2026-11-23T07:22:31.499406+00:00",
+  "phases": {
+    "baseline": {
+      "started_at": "2026-11-23T07:22:36.634876+00:00",
+      "counter_start": {
+        "attempts": 14,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 5,
+          "10.244.0.11:9090": 5,
+          "10.244.0.12:9090": 4
+        }
+      },
+      "samples": [
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:36.635548+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 26.64,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:36.710942+00:00",
+          "fallback": false,
+          "key": "m3-ef834a4099d4452285f0ec5bbcd85a2e",
+          "outcome": "ok",
+          "ms": 17.6,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:36.771492+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.834,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:36.849464+00:00",
+          "fallback": false,
+          "key": "m3-07cf061c9cea4721a7fb33d39da8b7e8",
+          "outcome": "ok",
+          "ms": 10.242,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:36.911441+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.351,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:36.973341+00:00",
+          "fallback": false,
+          "key": "m3-a9a35c6bfc614b72b5fead5e82e7e0ae",
+          "outcome": "ok",
+          "ms": 5.987,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.036261+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 12.107,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.114038+00:00",
+          "fallback": false,
+          "key": "m3-da74127384724bada2fba20262a5b041",
+          "outcome": "ok",
+          "ms": 9.599,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.175080+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.728,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.238224+00:00",
+          "fallback": false,
+          "key": "m3-a274ae0d012347e8ad471216e0b5f717",
+          "outcome": "ok",
+          "ms": 6.311,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.315339+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 22.041,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.377978+00:00",
+          "fallback": false,
+          "key": "m3-c98533615ee44e11b395db519288b21e",
+          "outcome": "ok",
+          "ms": 7.14,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.440533+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.805,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.518320+00:00",
+          "fallback": false,
+          "key": "m3-b5f9e073245349d0b6b6a153bb0e3219",
+          "outcome": "ok",
+          "ms": 9.584,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.580493+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 27.475,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.643653+00:00",
+          "fallback": false,
+          "key": "m3-3c7c114cfdbf4ea8806e1c38c51a6665",
+          "outcome": "ok",
+          "ms": 17.86,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.704595+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.158,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.781770+00:00",
+          "fallback": false,
+          "key": "m3-8eb33be369714d21b089cd218c0c9e6e",
+          "outcome": "ok",
+          "ms": 6.959,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.844404+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.446,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:37.906091+00:00",
+          "fallback": false,
+          "key": "m3-abac91af55834f72b83744fcc28fdc38",
+          "outcome": "ok",
+          "ms": 18.886,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:37.983513+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 23.484,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.046761+00:00",
+          "fallback": false,
+          "key": "m3-3cb8183eeaef41fca21283f2de9e7ff9",
+          "outcome": "ok",
+          "ms": 18.77,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.109645+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 19.983,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.171942+00:00",
+          "fallback": false,
+          "key": "m3-be229d022c8d426ab0baa0477e328147",
+          "outcome": "ok",
+          "ms": 11.109,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.249052+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.767,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.310699+00:00",
+          "fallback": false,
+          "key": "m3-5e9bd5b20514498fa95bb304113be6de",
+          "outcome": "ok",
+          "ms": 5.784,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.373581+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.81,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.438079+00:00",
+          "fallback": false,
+          "key": "m3-1b47e59b91234299bbbf0ef443f55e2a",
+          "outcome": "ok",
+          "ms": 9.795,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.514523+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 12.106,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.576146+00:00",
+          "fallback": false,
+          "key": "m3-9ac57261eee84f5ea6cb26c90887b1c2",
+          "outcome": "ok",
+          "ms": 17.131,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.638062+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 14.68,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.714819+00:00",
+          "fallback": false,
+          "key": "m3-74586468f6704efe8cc2e7d19a64328b",
+          "outcome": "ok",
+          "ms": 5.284,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.776881+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 24.023,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.839428+00:00",
+          "fallback": false,
+          "key": "m3-ac3f2ca7844743719a8726729d22533a",
+          "outcome": "ok",
+          "ms": 19.377,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:38.915858+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.13,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:38.978477+00:00",
+          "fallback": false,
+          "key": "m3-490499f57a104b388220d1e94f8153cb",
+          "outcome": "ok",
+          "ms": 18.795,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.040527+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.079,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.117371+00:00",
+          "fallback": false,
+          "key": "m3-b3c6655c6d434be898a914b819793958",
+          "outcome": "ok",
+          "ms": 7.211,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.179323+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.201,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.241343+00:00",
+          "fallback": false,
+          "key": "m3-9cfd1210ab1e449f8e62d8decd1906db",
+          "outcome": "ok",
+          "ms": 7.349,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.304160+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.764,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.382129+00:00",
+          "fallback": false,
+          "key": "m3-befb5f8049714fc2bc575e245ec5309d",
+          "outcome": "ok",
+          "ms": 18.432,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.451916+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 30.133,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.506791+00:00",
+          "fallback": false,
+          "key": "m3-7fe7c638e1ae4541a79d134408f6f89c",
+          "outcome": "ok",
+          "ms": 7.847,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.584060+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.373,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.645910+00:00",
+          "fallback": false,
+          "key": "m3-891cae76b61948bf9c522ea75fc4c741",
+          "outcome": "ok",
+          "ms": 9.534,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.708477+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.297,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.770003+00:00",
+          "fallback": false,
+          "key": "m3-f27110c522ce4ce1903dccc58c4707a3",
+          "outcome": "ok",
+          "ms": 8.312,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.847337+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.549,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:39.909379+00:00",
+          "fallback": false,
+          "key": "m3-76307d1eeaa04510b09b38e3eb3affe7",
+          "outcome": "ok",
+          "ms": 11.091,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:39.970331+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.125,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.047081+00:00",
+          "fallback": false,
+          "key": "m3-55b0dc1ad2944db59efea72eeb35bff1",
+          "outcome": "ok",
+          "ms": 5.553,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.108545+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 12.795,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.184937+00:00",
+          "fallback": false,
+          "key": "m3-e83f95f944d04d42b7cb68a673925fd9",
+          "outcome": "ok",
+          "ms": 6.634,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.248651+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.874,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.311815+00:00",
+          "fallback": false,
+          "key": "m3-371e21a8d6f44633a223899fdb44e72f",
+          "outcome": "ok",
+          "ms": 7.714,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.372958+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.29,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.450972+00:00",
+          "fallback": false,
+          "key": "m3-3971f571e96641d8a8d1208d62e8706c",
+          "outcome": "ok",
+          "ms": 17.851,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.511844+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 23.412,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.573849+00:00",
+          "fallback": false,
+          "key": "m3-9400953da9544c5bb0b20565ca9a0cca",
+          "outcome": "ok",
+          "ms": 9.664,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.637136+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 58.866,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.713809+00:00",
+          "fallback": false,
+          "key": "m3-4581bef2eaa14445828bbf8087824f32",
+          "outcome": "ok",
+          "ms": 18.348,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.775499+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.568,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.837104+00:00",
+          "fallback": false,
+          "key": "m3-79c36829508e4414b129ac46d17391a9",
+          "outcome": "ok",
+          "ms": 6.366,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:40.915631+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.764,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:40.977892+00:00",
+          "fallback": false,
+          "key": "m3-0d5b20cbddff42be8062f422566705e5",
+          "outcome": "ok",
+          "ms": 17.391,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.039979+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.144,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.116615+00:00",
+          "fallback": false,
+          "key": "m3-3d7b2391fa694d1aae1774b7ac8cabd8",
+          "outcome": "ok",
+          "ms": 18.296,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.183489+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 15.528,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.241560+00:00",
+          "fallback": false,
+          "key": "m3-423a2ca374864abfa03f2e5148fffcad",
+          "outcome": "ok",
+          "ms": 18.927,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.304075+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.606,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.381638+00:00",
+          "fallback": false,
+          "key": "m3-c96ac1e7cc394b16b56a7f13e00a7b60",
+          "outcome": "ok",
+          "ms": 5.259,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.443304+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.777,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.505538+00:00",
+          "fallback": false,
+          "key": "m3-e6f7c173657543d986f5e8211112acad",
+          "outcome": "ok",
+          "ms": 6.538,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.583331+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.848,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.643816+00:00",
+          "fallback": false,
+          "key": "m3-2f0dfb72f6144986939da2e15bc43305",
+          "outcome": "ok",
+          "ms": 20.677,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.635881+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 28.704,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.664598+00:00",
+          "fallback": false,
+          "key": "m3-8a2b684b6baa42ff836143f94b493c77",
+          "outcome": "ok",
+          "ms": 16.729,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.681352+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.379,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.690749+00:00",
+          "fallback": false,
+          "key": "m3-96d80dcb4b4b4efe9d1d126002ff4ff2",
+          "outcome": "ok",
+          "ms": 6.872,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.704699+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 10.977,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.697641+00:00",
+          "fallback": false,
+          "key": "m3-433fff93c54244b08309dc1a013c8945",
+          "outcome": "ok",
+          "ms": 25.067,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.722726+00:00",
+          "fallback": false,
+          "key": "m3-1698a60f9346467197779d379896afbb",
+          "outcome": "ok",
+          "ms": 5.565,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.728311+00:00",
+          "fallback": false,
+          "key": "m3-a585eed90847415983ebe43243897275",
+          "outcome": "ok",
+          "ms": 24.88,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.753211+00:00",
+          "fallback": false,
+          "key": "m3-056354456f5e4a6da89477865ef18103",
+          "outcome": "ok",
+          "ms": 14.83,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.768061+00:00",
+          "fallback": false,
+          "key": "m3-0add64256d8644eabb2056a176cea2bf",
+          "outcome": "ok",
+          "ms": 6.748,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.774828+00:00",
+          "fallback": false,
+          "key": "m3-253f0f64cce1416abfae7fd6dd2c7f3d",
+          "outcome": "ok",
+          "ms": 24.924,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.780615+00:00",
+          "fallback": false,
+          "key": "m3-947acb6bfe20468881cbf75eecf175df",
+          "outcome": "ok",
+          "ms": 19.345,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.799772+00:00",
+          "fallback": false,
+          "key": "m3-a3bcaedcccb1475fb34e123c0b6f32bc",
+          "outcome": "ok",
+          "ms": 5.914,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.805705+00:00",
+          "fallback": false,
+          "key": "m3-56e0cda892ff4e9495a2c5dc13d29905",
+          "outcome": "ok",
+          "ms": 25.711,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.831435+00:00",
+          "fallback": false,
+          "key": "m3-b838c76f702949b8b334da0f6367f7cc",
+          "outcome": "ok",
+          "ms": 5.724,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.837180+00:00",
+          "fallback": false,
+          "key": "m3-6e7128477d1e4832a350c0845807eaeb",
+          "outcome": "ok",
+          "ms": 5.037,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.842236+00:00",
+          "fallback": false,
+          "key": "m3-a5216f91c572440abae39e5101886d34",
+          "outcome": "ok",
+          "ms": 5.802,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.842750+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.275,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.848060+00:00",
+          "fallback": false,
+          "key": "m3-8ca03f2129e94cfe84443358a018ee77",
+          "outcome": "ok",
+          "ms": 27.548,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.875629+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.932,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.883578+00:00",
+          "fallback": false,
+          "key": "m3-d70c8a6dbaf048ba8de64ab952489e57",
+          "outcome": "ok",
+          "ms": 4.95,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.888555+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.356,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.903721+00:00",
+          "fallback": false,
+          "key": "m3-7b17e27e6f0144fb80260a1446270a36",
+          "outcome": "ok",
+          "ms": 7.801,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.898926+00:00",
+          "fallback": false,
+          "key": "m3-912193e186c945a5a5305121edff3ef0",
+          "outcome": "ok",
+          "ms": 22.001,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.920945+00:00",
+          "fallback": false,
+          "key": "m3-131a28eb1f75490aa0787f4326843ca2",
+          "outcome": "ok",
+          "ms": 18.448,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.939412+00:00",
+          "fallback": false,
+          "key": "m3-b6d3e2e87c914bf9b97d3a1730216e1f",
+          "outcome": "ok",
+          "ms": 5.027,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.944458+00:00",
+          "fallback": false,
+          "key": "m3-7681305801b3404887ace9731ab1f5cc",
+          "outcome": "ok",
+          "ms": 5.128,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.949603+00:00",
+          "fallback": false,
+          "key": "m3-5e826632855648e5bcb21b17ffada4d8",
+          "outcome": "ok",
+          "ms": 18.764,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.968385+00:00",
+          "fallback": false,
+          "key": "m3-16aa7edfcbcd4b31aba34cce957949b6",
+          "outcome": "ok",
+          "ms": 15.127,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.983533+00:00",
+          "fallback": false,
+          "key": "m3-5706411aca754063a4ef8bc496b8199b",
+          "outcome": "ok",
+          "ms": 6.517,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.990071+00:00",
+          "fallback": false,
+          "key": "m3-8208913b387e4d888255b2da6a0847ff",
+          "outcome": "ok",
+          "ms": 5.568,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:41.995659+00:00",
+          "fallback": false,
+          "key": "m3-a9783db00fe4468b8dbb6d1d21998316",
+          "outcome": "ok",
+          "ms": 8.119,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:41.980803+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 23.233,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.003799+00:00",
+          "fallback": false,
+          "key": "m3-d49d6c0faeb94b5eb17556ab2a750356",
+          "outcome": "ok",
+          "ms": 5.377,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.009195+00:00",
+          "fallback": false,
+          "key": "m3-538a59e9ec304d718eddd5aa97945f67",
+          "outcome": "ok",
+          "ms": 5.989,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.015203+00:00",
+          "fallback": false,
+          "key": "m3-6ea3299f8bcc4316a9667e6c49667f5e",
+          "outcome": "ok",
+          "ms": 5.205,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.020426+00:00",
+          "fallback": false,
+          "key": "m3-a87f15361415485b82c20f5b7c7b157d",
+          "outcome": "ok",
+          "ms": 4.599,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.025044+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.14,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.033201+00:00",
+          "fallback": false,
+          "key": "m3-312ba00f9f674995a98bc5d335ab80a0",
+          "outcome": "ok",
+          "ms": 5.843,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.042620+00:00",
+          "fallback": false,
+          "key": "m3-163192c14b014637bfc44d5a15acce30",
+          "outcome": "ok",
+          "ms": 18.699,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.039068+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 24.429,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.063512+00:00",
+          "fallback": false,
+          "key": "m3-4e0a918989264447a8d9f5661ba77bbe",
+          "outcome": "ok",
+          "ms": 5.646,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.069179+00:00",
+          "fallback": false,
+          "key": "m3-8116688fad324c6e9e5ecc380a555947",
+          "outcome": "ok",
+          "ms": 5.92,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.075118+00:00",
+          "fallback": false,
+          "key": "m3-6fd488bbf8744aa7966169c2fb051742",
+          "outcome": "ok",
+          "ms": 5.075,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.080212+00:00",
+          "fallback": false,
+          "key": "m3-dba644f712a3498f97a4a9164df10d06",
+          "outcome": "ok",
+          "ms": 4.947,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.085178+00:00",
+          "fallback": false,
+          "key": "m3-0e0830ac6e5e473399af986746710ab3",
+          "outcome": "ok",
+          "ms": 23.101,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.104304+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.559,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.108303+00:00",
+          "fallback": false,
+          "key": "m3-e25cf29590e14e3aa523bfae8c2c7cfe",
+          "outcome": "ok",
+          "ms": 14.286,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.122607+00:00",
+          "fallback": false,
+          "key": "m3-0b8b2cf1e5a34d86a0fcde853ec3154a",
+          "outcome": "ok",
+          "ms": 9.574,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.132200+00:00",
+          "fallback": false,
+          "key": "m3-5672faa2e39a4d4ab562be189c95cb64",
+          "outcome": "ok",
+          "ms": 21.718,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.153937+00:00",
+          "fallback": false,
+          "key": "m3-387dd058ea0349aaa224ca69f5e6dbf7",
+          "outcome": "ok",
+          "ms": 5.446,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.159404+00:00",
+          "fallback": false,
+          "key": "m3-469b621e972b457ca14c3dafcc7a08cb",
+          "outcome": "ok",
+          "ms": 25.914,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.181508+00:00",
+          "fallback": false,
+          "key": "m3-e0675dc4d04a419ca8e73872d01e047d",
+          "outcome": "ok",
+          "ms": 11.092,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.185334+00:00",
+          "fallback": false,
+          "key": "m3-2a1efc533c4343548e153cee9625ee6f",
+          "outcome": "ok",
+          "ms": 30.454,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.215808+00:00",
+          "fallback": false,
+          "key": "m3-c8c6ad628f354b14b7deaf91b3055503",
+          "outcome": "ok",
+          "ms": 5.281,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.221107+00:00",
+          "fallback": false,
+          "key": "m3-6cd93afebcf34ec79a3d73d7d47391f9",
+          "outcome": "ok",
+          "ms": 25.14,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.243044+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.457,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.304598+00:00",
+          "fallback": false,
+          "key": "m3-cd05de6a22aa4a24958bb6dff547bc7c",
+          "outcome": "ok",
+          "ms": 7.925,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.381252+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.771,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.442760+00:00",
+          "fallback": false,
+          "key": "m3-9124e77ad4d04ff6b1c1ef2287e583a9",
+          "outcome": "ok",
+          "ms": 6.281,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.504412+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.795,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.580777+00:00",
+          "fallback": false,
+          "key": "m3-082c1f107be34e6f88b2d5c26d428eeb",
+          "outcome": "ok",
+          "ms": 5.745,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.643377+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.022,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.704679+00:00",
+          "fallback": false,
+          "key": "m3-6a264cccb0604b0b82ac1bcced0ae101",
+          "outcome": "ok",
+          "ms": 13.225,
+          "source": "load"
+        }
+      ],
+      "verification": {
+        "rounds": 3,
+        "verified_invocations": 42,
+        "executions_by_pod": {
+          "executor-68db48d544-v2j8j": 15,
+          "executor-68db48d544-tf4pn": 15,
+          "executor-68db48d544-bj4wd": 12
+        }
+      },
+      "ended_at": "2026-11-23T07:22:42.745952+00:00",
+      "gateway": {
+        "attempts": 140,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 55,
+          "10.244.0.11:9090": 57,
+          "10.244.0.12:9090": 28
+        }
+      },
+      "summary": {
+        "requests": 140,
+        "ok": 140,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 140
+        },
+        "checkouts": 52,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 30.454
+      },
+      "load": {
+        "requests": 92,
+        "ok": 92,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 92
+        },
+        "checkouts": 46,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 58.866
+      }
+    },
+    "loss_transition": {
+      "started_at": "2026-11-23T07:22:42.745993+00:00",
+      "counter_start": {
+        "attempts": 154,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 60,
+          "10.244.0.11:9090": 62,
+          "10.244.0.12:9090": 32
+        }
+      },
+      "samples": [
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.780189+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.859,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.841691+00:00",
+          "fallback": false,
+          "key": "m3-a3218666556a4f148e3ee2fd88a113fe",
+          "outcome": "ok",
+          "ms": 26.789,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.855113+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 18.447,
+          "source": "affected_shop_after_delete"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:42.917674+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.291,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:42.978972+00:00",
+          "fallback": false,
+          "key": "m3-f054c06d73034c62b71abd0b5945d369",
+          "outcome": "ok",
+          "ms": 18.424,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.040270+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.309,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.117403+00:00",
+          "fallback": false,
+          "key": "m3-371d58e4587a48d0af5c281f1fcbe2bc",
+          "outcome": "ok",
+          "ms": 8.574,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.179179+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.809,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.240562+00:00",
+          "fallback": false,
+          "key": "m3-815bfd2229e546d5a282ae31e3b36294",
+          "outcome": "ok",
+          "ms": 5.462,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.317572+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.872,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.379856+00:00",
+          "fallback": false,
+          "key": "m3-eba5cd23b04447a9a464c819b59a9144",
+          "outcome": "ok",
+          "ms": 5.509,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.443155+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 19.585,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.504389+00:00",
+          "fallback": false,
+          "key": "m3-dd1f9ae8bbaf43e5b15da0309a72dc4e",
+          "outcome": "ok",
+          "ms": 10.396,
+          "source": "load"
+        }
+      ],
+      "ended_at": "2026-11-23T07:22:43.551692+00:00",
+      "gateway": {
+        "attempts": 17,
+        "retries": 4,
+        "retry_successes": 4,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 5,
+          "10.244.0.11:9090": 7,
+          "10.244.0.12:9090": 5
+        }
+      },
+      "summary": {
+        "requests": 13,
+        "ok": 13,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 13
+        },
+        "checkouts": 7,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 26.789
+      },
+      "load": {
+        "requests": 12,
+        "ok": 12,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 12
+        },
+        "checkouts": 6,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 26.789
+      }
+    },
+    "two_nodes": {
+      "started_at": "2026-11-23T07:22:43.551712+00:00",
+      "counter_start": {
+        "attempts": 171,
+        "retries": 4,
+        "retry_successes": 4,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 65,
+          "10.244.0.11:9090": 69,
+          "10.244.0.12:9090": 37
+        }
+      },
+      "samples": [
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.580247+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.905,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.641520+00:00",
+          "fallback": false,
+          "key": "m3-acf8db971995475aa204399a38cc1a4c",
+          "outcome": "ok",
+          "ms": 7.338,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.703297+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 25.927,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.780047+00:00",
+          "fallback": false,
+          "key": "m3-9f40f4657f64477b8f4807e5440f0ab1",
+          "outcome": "ok",
+          "ms": 6.988,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.841658+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 23.908,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:43.904062+00:00",
+          "fallback": false,
+          "key": "m3-22648a97ca2b45f7baecd8fd10a6daf8",
+          "outcome": "ok",
+          "ms": 19.017,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:43.982456+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.408,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.016540+00:00",
+          "fallback": false,
+          "key": "m3-75ed7a715a904829af2d527c71ef5e26",
+          "outcome": "ok",
+          "ms": 14.944,
+          "source": "first_after_move"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.042972+00:00",
+          "fallback": false,
+          "key": "m3-f00674d487be47c2bd3ab06f0f728adf",
+          "outcome": "ok",
+          "ms": 19.562,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.105395+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 13.346,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.131227+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 26.402,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.157645+00:00",
+          "fallback": false,
+          "key": "m3-7df333048551435da9c70589deae51cf",
+          "outcome": "ok",
+          "ms": 5.446,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.163110+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 7.843,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.170970+00:00",
+          "fallback": false,
+          "key": "m3-22600a12f1f54ab1ad66eeb8b83a172d",
+          "outcome": "ok",
+          "ms": 15.985,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.186977+00:00",
+          "fallback": false,
+          "key": "m3-994c2492a02b44a9b60b8e907ad4d413",
+          "outcome": "ok",
+          "ms": 6.377,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.193373+00:00",
+          "fallback": false,
+          "key": "m3-4545c35743934103a812ecd1d8266122",
+          "outcome": "ok",
+          "ms": 5.373,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.182498+00:00",
+          "fallback": false,
+          "key": "m3-cfeb6906364149a7b44926c0b7d1ff9e",
+          "outcome": "ok",
+          "ms": 19.269,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.198766+00:00",
+          "fallback": false,
+          "key": "m3-fe9ed002fca140799d28eaffaf0d17de",
+          "outcome": "ok",
+          "ms": 17.412,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.216196+00:00",
+          "fallback": false,
+          "key": "m3-b85a2356a63b4ab4a8a853dd80cdc6d7",
+          "outcome": "ok",
+          "ms": 6.967,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.223182+00:00",
+          "fallback": false,
+          "key": "m3-ec9efb770df64b33937afc6074abe40f",
+          "outcome": "ok",
+          "ms": 6.183,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.229385+00:00",
+          "fallback": false,
+          "key": "m3-0df653ab65564b3e9f4f0dee8faf3c81",
+          "outcome": "ok",
+          "ms": 5.236,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.234640+00:00",
+          "fallback": false,
+          "key": "m3-bb34853753e34c659f652ce64b679b83",
+          "outcome": "ok",
+          "ms": 4.891,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.239547+00:00",
+          "fallback": false,
+          "key": "m3-14b2e23432ca49b188bdbc14c7433e44",
+          "outcome": "ok",
+          "ms": 5.106,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.244672+00:00",
+          "fallback": false,
+          "key": "m3-ab4c64494007453396c459d1c8067bef",
+          "outcome": "ok",
+          "ms": 17.319,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.243811+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.345,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.262010+00:00",
+          "fallback": false,
+          "key": "m3-0e13e8243618459ba4d3bdfe4cd049b7",
+          "outcome": "ok",
+          "ms": 15.052,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.277093+00:00",
+          "fallback": false,
+          "key": "m3-633de8d20037414e958679b8f238df86",
+          "outcome": "ok",
+          "ms": 5.08,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.282193+00:00",
+          "fallback": false,
+          "key": "m3-76db0ecf5b594442924dc0e37b029bf2",
+          "outcome": "ok",
+          "ms": 5.806,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.288020+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 23.787,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.305602+00:00",
+          "fallback": false,
+          "key": "m3-14814a6911224f71a2f78d60232fd235",
+          "outcome": "ok",
+          "ms": 6.617,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.311825+00:00",
+          "fallback": false,
+          "key": "m3-cd7bec46adbb4ce09039ed464e69ef73",
+          "outcome": "ok",
+          "ms": 6.475,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.318320+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 23.828,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.342166+00:00",
+          "fallback": false,
+          "key": "m3-9e9651ea7ac8430989fb4329f5326305",
+          "outcome": "ok",
+          "ms": 5.399,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.347585+00:00",
+          "fallback": false,
+          "key": "m3-96e619f6fa2c4b728dc48658ef29b0b2",
+          "outcome": "ok",
+          "ms": 22.352,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.369956+00:00",
+          "fallback": false,
+          "key": "m3-4cb8e5066369400897c6d625105d9255",
+          "outcome": "ok",
+          "ms": 15.246,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.382417+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.584,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.385221+00:00",
+          "fallback": false,
+          "key": "m3-d71c586ac0de4b1e893d5fba421b0558",
+          "outcome": "ok",
+          "ms": 7.236,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.392474+00:00",
+          "fallback": false,
+          "key": "m3-ec12c385ac3248e4badad446e7b48c07",
+          "outcome": "ok",
+          "ms": 6.303,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.398796+00:00",
+          "fallback": false,
+          "key": "m3-56db099dbab64a0180a7f2ef7b5dfa42",
+          "outcome": "ok",
+          "ms": 16.873,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.415689+00:00",
+          "fallback": false,
+          "key": "m3-c60c76cfe89f46bfb84c8e76b8816529",
+          "outcome": "ok",
+          "ms": 4.97,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.420679+00:00",
+          "fallback": false,
+          "key": "m3-13d052e5825d44d38494305f31414327",
+          "outcome": "ok",
+          "ms": 26.815,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.443596+00:00",
+          "fallback": false,
+          "key": "m3-41d27bac51354a609a2d0b3db8661cf6",
+          "outcome": "ok",
+          "ms": 7.212,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.447517+00:00",
+          "fallback": false,
+          "key": "m3-a1960fd835aa466c86fb7409e54e46fe",
+          "outcome": "ok",
+          "ms": 6.078,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.453614+00:00",
+          "fallback": false,
+          "key": "m3-67f34a249a6d4f9c9c11fe3df70e3ebb",
+          "outcome": "ok",
+          "ms": 24.427,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.478061+00:00",
+          "fallback": false,
+          "key": "m3-74340e3d2d644072804191cb06561033",
+          "outcome": "ok",
+          "ms": 15.3,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.493381+00:00",
+          "fallback": false,
+          "key": "m3-fec74182d77747ffb96866c2d04c4821",
+          "outcome": "ok",
+          "ms": 4.988,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.506316+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.507,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.498388+00:00",
+          "fallback": false,
+          "key": "m3-434a58b42fdc4656ac88201110729efb",
+          "outcome": "ok",
+          "ms": 25.56,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.523969+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 7.615,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.531600+00:00",
+          "fallback": false,
+          "key": "m3-c1e8c3e4e24c41f8b513a021e482e863",
+          "outcome": "ok",
+          "ms": 4.933,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.536552+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.75,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.557321+00:00",
+          "fallback": false,
+          "key": "m3-f21c6f22d5d34df7b46b35b22d3915b5",
+          "outcome": "ok",
+          "ms": 5.13,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.562467+00:00",
+          "fallback": false,
+          "key": "m3-1e3cb199240a47e5a68bde74b8cd2dd4",
+          "outcome": "ok",
+          "ms": 5.338,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.567827+00:00",
+          "fallback": false,
+          "key": "m3-ad9d24466be147d3a55283afb61cd536",
+          "outcome": "ok",
+          "ms": 19.039,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.583981+00:00",
+          "fallback": false,
+          "key": "m3-1fe2c94e78414ce28baf4cbd791c04a5",
+          "outcome": "ok",
+          "ms": 7.336,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.586897+00:00",
+          "fallback": false,
+          "key": "m3-a639fcae49834a2e87ee718348739b0e",
+          "outcome": "ok",
+          "ms": 14.378,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.601292+00:00",
+          "fallback": false,
+          "key": "m3-322a2abba10a4f848b471a646ff04611",
+          "outcome": "ok",
+          "ms": 16.808,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.618121+00:00",
+          "fallback": false,
+          "key": "m3-acb4e6c30eb34c5fbbc49f8ed14593f7",
+          "outcome": "ok",
+          "ms": 15.57,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.633710+00:00",
+          "fallback": false,
+          "key": "m3-2203247d9ac04720a012f55fe9b5e53b",
+          "outcome": "ok",
+          "ms": 5.101,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.638830+00:00",
+          "fallback": false,
+          "key": "m3-6938329f85524b53a19f4c95a88dedd0",
+          "outcome": "ok",
+          "ms": 4.902,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.643752+00:00",
+          "fallback": false,
+          "key": "m3-6344794189764013b7142e7aceea1cb3",
+          "outcome": "ok",
+          "ms": 6.689,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.646275+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 10.587,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.650460+00:00",
+          "fallback": false,
+          "key": "m3-7844ff945c83426088741d7991d13f53",
+          "outcome": "ok",
+          "ms": 13.926,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.664406+00:00",
+          "fallback": false,
+          "key": "m3-116d7f2050034c11a3d8cec213277a42",
+          "outcome": "ok",
+          "ms": 5.34,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.669765+00:00",
+          "fallback": false,
+          "key": "m3-45dcc4614e5145428305cdd47e6a243b",
+          "outcome": "ok",
+          "ms": 5.006,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.674792+00:00",
+          "fallback": false,
+          "key": "m3-e5f7d66f66874cc08b78691903328eb0",
+          "outcome": "ok",
+          "ms": 6.307,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.707354+00:00",
+          "fallback": false,
+          "key": "m3-67ecf1a2f72a48ed9e00177965a14bd3",
+          "outcome": "ok",
+          "ms": 20.919,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.784228+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.583,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.846689+00:00",
+          "fallback": false,
+          "key": "m3-8605d0700baa45c4b1fb34ccd6b049cd",
+          "outcome": "ok",
+          "ms": 10.093,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:44.907200+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.369,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:44.983855+00:00",
+          "fallback": false,
+          "key": "m3-fe8e21e7dfe0464286e53c8cfdfe1dbe",
+          "outcome": "ok",
+          "ms": 5.428,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.046428+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.011,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.107590+00:00",
+          "fallback": false,
+          "key": "m3-5f1acb257bb048f28b42cbd32f300d54",
+          "outcome": "ok",
+          "ms": 9.006,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.184685+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 24.449,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.246311+00:00",
+          "fallback": false,
+          "key": "m3-bd47af2cd6c94523bdd03154c1fb3188",
+          "outcome": "ok",
+          "ms": 8.343,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.308064+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.741,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.369112+00:00",
+          "fallback": false,
+          "key": "m3-32488346bd234abd8463726c4aa45081",
+          "outcome": "ok",
+          "ms": 5.471,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.447308+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.877,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.508884+00:00",
+          "fallback": false,
+          "key": "m3-444b4e7a233141aeb11635b4153290c0",
+          "outcome": "ok",
+          "ms": 17.373,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.569862+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.525,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.648722+00:00",
+          "fallback": false,
+          "key": "m3-3b872439531a40bf9e18c7b2a749cf7c",
+          "outcome": "ok",
+          "ms": 7.246,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.715197+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 15.038,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.774222+00:00",
+          "fallback": false,
+          "key": "m3-a6f511fe46f34be1bdd5ba5c1450340e",
+          "outcome": "ok",
+          "ms": 17.951,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.851065+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.005,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:45.914091+00:00",
+          "fallback": false,
+          "key": "m3-360938fb461d4bfeae94014fdd8d03de",
+          "outcome": "ok",
+          "ms": 5.969,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:45.975776+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.854,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.038187+00:00",
+          "fallback": false,
+          "key": "m3-ca3922ef7a864bacb1e8bb1830509db8",
+          "outcome": "ok",
+          "ms": 16.591,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.114970+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.182,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.176727+00:00",
+          "fallback": false,
+          "key": "m3-0343499a6ec54975bec9a0087f12740f",
+          "outcome": "ok",
+          "ms": 17.994,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.238818+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.411,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.315784+00:00",
+          "fallback": false,
+          "key": "m3-0af548e1506b4e7484809e4a35674979",
+          "outcome": "ok",
+          "ms": 7.377,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.377579+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.55,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.440846+00:00",
+          "fallback": false,
+          "key": "m3-c173c99e5cb94854b553b7b98734d0ee",
+          "outcome": "ok",
+          "ms": 13.726,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.503260+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 19.999,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.580064+00:00",
+          "fallback": false,
+          "key": "m3-f2bda0e13d604e2a80ffcdd0ec284dd0",
+          "outcome": "ok",
+          "ms": 11.204,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.641561+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.593,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.703113+00:00",
+          "fallback": false,
+          "key": "m3-bca4cdf2489b447dad75869a16465d99",
+          "outcome": "ok",
+          "ms": 19.602,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.780605+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.778,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.843316+00:00",
+          "fallback": false,
+          "key": "m3-558054e491af48d4b6be13446fe0e1ba",
+          "outcome": "ok",
+          "ms": 7.818,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:46.905193+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.412,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:46.983445+00:00",
+          "fallback": false,
+          "key": "m3-85aad30727d3492b8506327a2ed63320",
+          "outcome": "ok",
+          "ms": 8.96,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.043375+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.806,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.105171+00:00",
+          "fallback": false,
+          "key": "m3-bcc7a73534b34236b05708ae0a7fe0ca",
+          "outcome": "ok",
+          "ms": 17.648,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.182879+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 14.919,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.246131+00:00",
+          "fallback": false,
+          "key": "m3-72102c9dc3034acca8adf3dee6c4d423",
+          "outcome": "ok",
+          "ms": 18.676,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.309222+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.958,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.370085+00:00",
+          "fallback": false,
+          "key": "m3-161b3680834649f2b271fcb35d423eb5",
+          "outcome": "ok",
+          "ms": 6.073,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.446830+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 12.322,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.507668+00:00",
+          "fallback": false,
+          "key": "m3-1379435fd888416c8d0085fa2ac35925",
+          "outcome": "ok",
+          "ms": 17.905,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.569010+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.645,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.647930+00:00",
+          "fallback": false,
+          "key": "m3-9f7d238ddfb847428bad167ede4e01fe",
+          "outcome": "ok",
+          "ms": 8.456,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.708984+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.041,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.772287+00:00",
+          "fallback": false,
+          "key": "m3-c6d4fc9bf8004b348adaa78e91ae7f0c",
+          "outcome": "ok",
+          "ms": 20.106,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.849102+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.103,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:47.911553+00:00",
+          "fallback": false,
+          "key": "m3-b0771747bd2145c5b64e6f601b206aa0",
+          "outcome": "ok",
+          "ms": 18.823,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:47.972796+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.882,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.050366+00:00",
+          "fallback": false,
+          "key": "m3-054387a8f18648ee8c651ad0d6412c4b",
+          "outcome": "ok",
+          "ms": 18.459,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.112876+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.01,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.174484+00:00",
+          "fallback": false,
+          "key": "m3-312d2b830a524659bc51ce2a11ae5ab5",
+          "outcome": "ok",
+          "ms": 6.823,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.235906+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.894,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.315040+00:00",
+          "fallback": false,
+          "key": "m3-ec052c97a042402992e95a2faa8c47d1",
+          "outcome": "ok",
+          "ms": 17.129,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.377177+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.125,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.438890+00:00",
+          "fallback": false,
+          "key": "m3-6505daefef2b4bebb93554442a7f5b3c",
+          "outcome": "ok",
+          "ms": 6.293,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.517308+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 7.72,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.579124+00:00",
+          "fallback": false,
+          "key": "m3-a05dbe5d23334249b5193bb1f6e7219e",
+          "outcome": "ok",
+          "ms": 18.286,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.640629+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 12.743,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.718043+00:00",
+          "fallback": false,
+          "key": "m3-b4c335dc51724c9abd296b6d99d2cd2c",
+          "outcome": "ok",
+          "ms": 9.477,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.780305+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.876,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.842833+00:00",
+          "fallback": false,
+          "key": "m3-cc7d109f995e43e892c8a42940cd5887",
+          "outcome": "ok",
+          "ms": 17.876,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:48.904499+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.704,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:48.983388+00:00",
+          "fallback": false,
+          "key": "m3-1222d72871bf4a9a8a16213fff7af2bb",
+          "outcome": "ok",
+          "ms": 20.997,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.045722+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.424,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.107611+00:00",
+          "fallback": false,
+          "key": "m3-64705efd91484740b06ff9369e0033fe",
+          "outcome": "ok",
+          "ms": 6.682,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.185028+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.489,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.247847+00:00",
+          "fallback": false,
+          "key": "m3-4d9e7d09da05438a974f6f7a3e0a7b1a",
+          "outcome": "ok",
+          "ms": 8.858,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.309645+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.189,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.371798+00:00",
+          "fallback": false,
+          "key": "m3-d26ee92bd4cf4f018dec1ba24a8fb2e8",
+          "outcome": "ok",
+          "ms": 10.324,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.449579+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.789,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.511192+00:00",
+          "fallback": false,
+          "key": "m3-980606c68abf48aba2207002d271d415",
+          "outcome": "ok",
+          "ms": 7.754,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.572825+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 16.528,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.649094+00:00",
+          "fallback": false,
+          "key": "m3-b8e581eaf35d48c48064456294c27ce5",
+          "outcome": "ok",
+          "ms": 6.467,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.711578+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.741,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.772714+00:00",
+          "fallback": false,
+          "key": "m3-63529ce63aee4ad0a061b7d584e7781d",
+          "outcome": "ok",
+          "ms": 5.832,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.850157+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.316,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:49.911527+00:00",
+          "fallback": false,
+          "key": "m3-0867bb6adc0449d5b1b19d335a5e8ad5",
+          "outcome": "ok",
+          "ms": 18.959,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:49.973140+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.827,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.049985+00:00",
+          "fallback": false,
+          "key": "m3-ba7da3c2ef894a66b1d736d532402b1f",
+          "outcome": "ok",
+          "ms": 7.356,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.111879+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 13.123,
+          "source": "load"
+        }
+      ],
+      "verification": {
+        "rounds": 3,
+        "verified_invocations": 42,
+        "executions_by_pod": {
+          "executor-68db48d544-bj4wd": 24,
+          "executor-68db48d544-tf4pn": 18
+        }
+      },
+      "ended_at": "2026-11-23T07:22:50.142330+00:00",
+      "gateway": {
+        "attempts": 148,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 0,
+          "10.244.0.11:9090": 63,
+          "10.244.0.12:9090": 85
+        }
+      },
+      "summary": {
+        "requests": 148,
+        "ok": 148,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 148
+        },
+        "checkouts": 56,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 26.402
+      },
+      "load": {
+        "requests": 99,
+        "ok": 99,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 99
+        },
+        "checkouts": 50,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 25.927
+      }
+    },
+    "rejoin_transition": {
+      "started_at": "2026-11-23T07:22:50.142353+00:00",
+      "counter_start": {
+        "attempts": 319,
+        "retries": 4,
+        "retry_successes": 4,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 65,
+          "10.244.0.11:9090": 132,
+          "10.244.0.12:9090": 122
+        }
+      },
+      "samples": [
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.170986+00:00",
+          "fallback": false,
+          "key": "m3-3fb30911502b49dcb874370cbad542a2",
+          "outcome": "ok",
+          "ms": 19.578,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.247675+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.082,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.309061+00:00",
+          "fallback": false,
+          "key": "m3-70801890b7f042608eba717e19911da2",
+          "outcome": "ok",
+          "ms": 18.788,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.370894+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.501,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.446802+00:00",
+          "fallback": false,
+          "key": "m3-94132b1fcf164e5d8ee0cdff726924ef",
+          "outcome": "ok",
+          "ms": 5.485,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.508243+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 12.06,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.570077+00:00",
+          "fallback": false,
+          "key": "m3-4fcbb929edff4d03a92c09dee07da922",
+          "outcome": "ok",
+          "ms": 9.675,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.646286+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.028,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.707651+00:00",
+          "fallback": false,
+          "key": "m3-945a95af196d458eb35480266c51bf3a",
+          "outcome": "ok",
+          "ms": 18.598,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.784065+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 10.77,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.845755+00:00",
+          "fallback": false,
+          "key": "m3-1ac6f1b9df4848ca92fd6be9df91fdae",
+          "outcome": "ok",
+          "ms": 10.867,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:50.907879+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.826,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:50.969594+00:00",
+          "fallback": false,
+          "key": "m3-d88e521d850b481ebe4a907d6a28e8e7",
+          "outcome": "ok",
+          "ms": 18.756,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.047834+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.658,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.109542+00:00",
+          "fallback": false,
+          "key": "m3-2fb7ed3fcac5410ca4d0f8ae48803ab6",
+          "outcome": "ok",
+          "ms": 7.348,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.170645+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 12.949,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.248913+00:00",
+          "fallback": false,
+          "key": "m3-3fb806c21c724529bf6334fa93f2dc81",
+          "outcome": "ok",
+          "ms": 17.529,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.309448+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.394,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.370208+00:00",
+          "fallback": false,
+          "key": "m3-b51d2a1775b3424685bde9494422a1ec",
+          "outcome": "ok",
+          "ms": 19.375,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.451188+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.391,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.510025+00:00",
+          "fallback": false,
+          "key": "m3-bec0c8210a9b48ed9cd65241384a62ee",
+          "outcome": "ok",
+          "ms": 101.261,
+          "source": "load"
+        }
+      ],
+      "ended_at": "2026-11-23T07:22:51.552478+00:00",
+      "gateway": {
+        "attempts": 21,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 0,
+          "10.244.0.11:9090": 9,
+          "10.244.0.12:9090": 11,
+          "10.244.0.15:9090": 1
+        }
+      },
+      "summary": {
+        "requests": 21,
+        "ok": 21,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 21
+        },
+        "checkouts": 10,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 101.261
+      },
+      "load": {
+        "requests": 21,
+        "ok": 21,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 21
+        },
+        "checkouts": 10,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 101.261
+      }
+    },
+    "recovered": {
+      "started_at": "2026-11-23T07:22:51.552501+00:00",
+      "counter_start": {
+        "attempts": 340,
+        "retries": 4,
+        "retry_successes": 4,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 65,
+          "10.244.0.11:9090": 141,
+          "10.244.0.12:9090": 133,
+          "10.244.0.15:9090": 1
+        }
+      },
+      "samples": [
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.571299+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 41.311,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.648005+00:00",
+          "fallback": false,
+          "key": "m3-3465c6a3ae214a9383c68d0339ab7b1e",
+          "outcome": "ok",
+          "ms": 7.494,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.709837+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.832,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.770118+00:00",
+          "fallback": false,
+          "key": "m3-ba40b7c58fd143808c7d8b4d45468909",
+          "outcome": "ok",
+          "ms": 7.827,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.826124+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.695,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.835835+00:00",
+          "fallback": false,
+          "key": "m3-6f64e11c29994df18d3e51221b7e88d9",
+          "outcome": "ok",
+          "ms": 6.283,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.842137+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.34,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.852501+00:00",
+          "fallback": false,
+          "key": "m3-4adf23f382f44e309650a812ae450ecf",
+          "outcome": "ok",
+          "ms": 9.062,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.847262+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 15.815,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.861582+00:00",
+          "fallback": false,
+          "key": "m3-a8a99373dcef449e8e588636fd49b813",
+          "outcome": "ok",
+          "ms": 6.946,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.868549+00:00",
+          "fallback": false,
+          "key": "m3-3ab2b9d7fc9f403881cf0303174289dd",
+          "outcome": "ok",
+          "ms": 5.607,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.874175+00:00",
+          "fallback": false,
+          "key": "m3-db25ea047c764f0d80e5517a99b75a31",
+          "outcome": "ok",
+          "ms": 6.366,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.880562+00:00",
+          "fallback": false,
+          "key": "m3-48a37bb380874ce0b4eecda8fe2b5555",
+          "outcome": "ok",
+          "ms": 15.561,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.896142+00:00",
+          "fallback": false,
+          "key": "m3-056ff72df6a8444f866db2ef0a03d51e",
+          "outcome": "ok",
+          "ms": 5.321,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.901481+00:00",
+          "fallback": false,
+          "key": "m3-dea69536040041d98fa631391c0f905f",
+          "outcome": "ok",
+          "ms": 5.669,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.907674+00:00",
+          "fallback": false,
+          "key": "m3-3aaa6ae2abb04348abe7a43085596439",
+          "outcome": "ok",
+          "ms": 5.949,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.907171+00:00",
+          "fallback": false,
+          "key": "m3-3d42e43da7774307975c624f119f4a96",
+          "outcome": "ok",
+          "ms": 6.529,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.913715+00:00",
+          "fallback": false,
+          "key": "m3-6dbcdf31efe24b7f9997248c2cea1df3",
+          "outcome": "ok",
+          "ms": 28.574,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.942309+00:00",
+          "fallback": false,
+          "key": "m3-eea439cfa4584efb93f0ec3b913697e8",
+          "outcome": "ok",
+          "ms": 15.491,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.957846+00:00",
+          "fallback": false,
+          "key": "m3-93c266039cc84012aed408ab53b0a934",
+          "outcome": "ok",
+          "ms": 8.454,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.966316+00:00",
+          "fallback": false,
+          "key": "m3-f24f191367d24f2183124b59acac2d06",
+          "outcome": "ok",
+          "ms": 8.386,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:51.974721+00:00",
+          "fallback": false,
+          "key": "m3-64c8b1ac1afa46529bef4e4e23c45012",
+          "outcome": "ok",
+          "ms": 5.76,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.970596+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.435,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:51.980504+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 26.163,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.006684+00:00",
+          "fallback": false,
+          "key": "m3-27c93e2cd6a149eebeacac1406b4c00e",
+          "outcome": "ok",
+          "ms": 29.819,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.036592+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 7.758,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.044316+00:00",
+          "fallback": false,
+          "key": "m3-1dc58fbcd8b74184812c51201e7d8883",
+          "outcome": "ok",
+          "ms": 5.945,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.050279+00:00",
+          "fallback": false,
+          "key": "m3-d49c52a7e91c4f77bbed84117eac529b",
+          "outcome": "ok",
+          "ms": 5.752,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.056050+00:00",
+          "fallback": false,
+          "key": "m3-ccecc5b105fc487f80cf6d90c320b268",
+          "outcome": "ok",
+          "ms": 5.574,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.047748+00:00",
+          "fallback": false,
+          "key": "m3-a7b435ed4f0b4421b5f0462b54f95288",
+          "outcome": "ok",
+          "ms": 17.41,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.061667+00:00",
+          "fallback": false,
+          "key": "m3-52a4642553a746a1ae1584bea4ff805b",
+          "outcome": "ok",
+          "ms": 6.914,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.068609+00:00",
+          "fallback": false,
+          "key": "m3-975dbe1c079042359c1493376e87c7ec",
+          "outcome": "ok",
+          "ms": 6.755,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.075380+00:00",
+          "fallback": false,
+          "key": "m3-8f345251302d494e98dc6d6f00f3724f",
+          "outcome": "ok",
+          "ms": 6.051,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.081451+00:00",
+          "fallback": false,
+          "key": "m3-0fea6c5d46ce4b0190fabfc21f3f0941",
+          "outcome": "ok",
+          "ms": 5.029,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.086500+00:00",
+          "fallback": false,
+          "key": "m3-1938e9ba9aba4e569947f7dc3192c7fc",
+          "outcome": "ok",
+          "ms": 5.139,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.091658+00:00",
+          "fallback": false,
+          "key": "m3-40cbdd1f0d37427e8cd61e30edfca8ab",
+          "outcome": "ok",
+          "ms": 21.858,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.110115+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.026,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.113537+00:00",
+          "fallback": false,
+          "key": "m3-f190e8192d40457ca7c51eee82c6c2ac",
+          "outcome": "ok",
+          "ms": 7.679,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.121232+00:00",
+          "fallback": false,
+          "key": "m3-a50732cdf1b34299a8b0a818bbf1efb9",
+          "outcome": "ok",
+          "ms": 6.131,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.127386+00:00",
+          "fallback": false,
+          "key": "m3-5ed8de2a71154c9e83d4c003fe192e29",
+          "outcome": "ok",
+          "ms": 18.292,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.145725+00:00",
+          "fallback": false,
+          "key": "m3-fe1e80a0a9554ec28ab6286349385181",
+          "outcome": "ok",
+          "ms": 31.572,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.177319+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 8.673,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.172076+00:00",
+          "fallback": false,
+          "key": "m3-9a24009264664e198994ec3870b9ff26",
+          "outcome": "ok",
+          "ms": 18.371,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.186009+00:00",
+          "fallback": false,
+          "key": "m3-38b280e59ab648608ed414a6f4ffb835",
+          "outcome": "ok",
+          "ms": 6.555,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.192583+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 31.251,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.223852+00:00",
+          "fallback": false,
+          "key": "m3-da98602f0b3b4dfba911f0b0b3b72fb3",
+          "outcome": "ok",
+          "ms": 7.641,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.231513+00:00",
+          "fallback": false,
+          "key": "m3-1c43a13033054b6c9d023655e608812f",
+          "outcome": "ok",
+          "ms": 21.01,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.248237+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.286,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.252544+00:00",
+          "fallback": false,
+          "key": "m3-ef1595a7083f4ead9ff22a78b815ca4a",
+          "outcome": "ok",
+          "ms": 28.21,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.280774+00:00",
+          "fallback": false,
+          "key": "m3-a90046e57e0944c2bef1783484bb913b",
+          "outcome": "ok",
+          "ms": 7.152,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.287947+00:00",
+          "fallback": false,
+          "key": "m3-63d9cb6c1a7d41e9bbce05295068439d",
+          "outcome": "ok",
+          "ms": 4.996,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.292962+00:00",
+          "fallback": false,
+          "key": "m3-67d5b6cdbfb04abb9b97ce1fc67d15bb",
+          "outcome": "ok",
+          "ms": 5.858,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.298840+00:00",
+          "fallback": false,
+          "key": "m3-4754a8c1418343fc85d92e36c0cb6d74",
+          "outcome": "ok",
+          "ms": 4.883,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.309049+00:00",
+          "fallback": false,
+          "key": "m3-b7d3169f5093492388303d30215f3c2a",
+          "outcome": "ok",
+          "ms": 5.408,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.303741+00:00",
+          "fallback": false,
+          "key": "m3-94585387b0e14d52abedb6e7d7dfbe5c",
+          "outcome": "ok",
+          "ms": 23.733,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.327493+00:00",
+          "fallback": false,
+          "key": "m3-63d9755cfcd34efea2f3f4bf9660eb00",
+          "outcome": "ok",
+          "ms": 5.045,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.332557+00:00",
+          "fallback": false,
+          "key": "m3-f87f4b45e57542cf8092ad3031746651",
+          "outcome": "ok",
+          "ms": 26.053,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.358630+00:00",
+          "fallback": false,
+          "key": "m3-bd022fa0a6f3428680f53261c666f61d",
+          "outcome": "ok",
+          "ms": 14.322,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.372972+00:00",
+          "fallback": false,
+          "key": "m3-38874f7207794ce4981b4c2dd4c6d679",
+          "outcome": "ok",
+          "ms": 17.14,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.370017+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.982,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.390143+00:00",
+          "fallback": false,
+          "key": "m3-4a5b0e9183b04d64ab72cf2b75abb3c5",
+          "outcome": "ok",
+          "ms": 27.979,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.445461+00:00",
+          "fallback": false,
+          "key": "m3-409e9570fb324272868723e58a5ac520",
+          "outcome": "ok",
+          "ms": 19.016,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.507255+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.69,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.584523+00:00",
+          "fallback": false,
+          "key": "m3-046120d67abf4726876c67455e926cab",
+          "outcome": "ok",
+          "ms": 19.95,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.646715+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.552,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.708655+00:00",
+          "fallback": false,
+          "key": "m3-0f4b5cee77c447fd98284aa9a62cf521",
+          "outcome": "ok",
+          "ms": 19.754,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.769565+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 10.323,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.847947+00:00",
+          "fallback": false,
+          "key": "m3-c6fb73b362a846e78eee408ee65f90be",
+          "outcome": "ok",
+          "ms": 9.962,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:52.910360+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.291,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:52.973387+00:00",
+          "fallback": false,
+          "key": "m3-212c6ec92d444f4bb939f9e260d3db78",
+          "outcome": "ok",
+          "ms": 6.06,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.049915+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.836,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.112357+00:00",
+          "fallback": false,
+          "key": "m3-768cb382853545b4836db63b5500012b",
+          "outcome": "ok",
+          "ms": 18.84,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.175221+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.368,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.236556+00:00",
+          "fallback": false,
+          "key": "m3-9b8796977c7a45889db4fce4d6a83fd3",
+          "outcome": "ok",
+          "ms": 10.101,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.313556+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 22.345,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.374634+00:00",
+          "fallback": false,
+          "key": "m3-5561cee4eee843afaee47be75da62f9e",
+          "outcome": "ok",
+          "ms": 19.645,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.436684+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.423,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.513420+00:00",
+          "fallback": false,
+          "key": "m3-8bbfbd5737a34ccabf305ca861aa7117",
+          "outcome": "ok",
+          "ms": 6.453,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.575917+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.045,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.638122+00:00",
+          "fallback": false,
+          "key": "m3-375663374d2541b3b67a429aaf5472f4",
+          "outcome": "ok",
+          "ms": 19.857,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.715587+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 10.084,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.777071+00:00",
+          "fallback": false,
+          "key": "m3-6684557beff3400cadca40f42cc0b701",
+          "outcome": "ok",
+          "ms": 18.797,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.839916+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.071,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:53.918771+00:00",
+          "fallback": false,
+          "key": "m3-53a767dd8504438db18d1ab69429cc7a",
+          "outcome": "ok",
+          "ms": 6.886,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:53.980967+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 22.221,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.046072+00:00",
+          "fallback": false,
+          "key": "m3-a98edcf522f84d7da21ac63dfc922a7b",
+          "outcome": "ok",
+          "ms": 10.21,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.117765+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.649,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.180542+00:00",
+          "fallback": false,
+          "key": "m3-6be5b2b2f41142d6a8228b22a4d48a28",
+          "outcome": "ok",
+          "ms": 18.753,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.243544+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.258,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.306184+00:00",
+          "fallback": false,
+          "key": "m3-6f2df1f200c84b8e9cf743a4bff73217",
+          "outcome": "ok",
+          "ms": 21.848,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.381938+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.385,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.443058+00:00",
+          "fallback": false,
+          "key": "m3-4fa785fb87df4ce4bfbf03c5ace353b2",
+          "outcome": "ok",
+          "ms": 7.646,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.505233+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.973,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.582704+00:00",
+          "fallback": false,
+          "key": "m3-9406f20182ec4596a035dc649a774b03",
+          "outcome": "ok",
+          "ms": 6.079,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.644576+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.898,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.707461+00:00",
+          "fallback": false,
+          "key": "m3-6b285e5789b144a4b9b467d4b472fd31",
+          "outcome": "ok",
+          "ms": 17.221,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.784322+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.276,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.847136+00:00",
+          "fallback": false,
+          "key": "m3-1c6be24a420246b3bbfef4e44b15798e",
+          "outcome": "ok",
+          "ms": 17.925,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:54.909025+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.498,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:54.969707+00:00",
+          "fallback": false,
+          "key": "m3-d809506eb3c145319076fdaf51c9c75b",
+          "outcome": "ok",
+          "ms": 8.667,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.047701+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.863,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.110121+00:00",
+          "fallback": false,
+          "key": "m3-dfdce9907deb40f4abf048ca44d58450",
+          "outcome": "ok",
+          "ms": 7.617,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.171380+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 16.18,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.248203+00:00",
+          "fallback": false,
+          "key": "m3-b00125ae03714cb7b8256f477eb1ca22",
+          "outcome": "ok",
+          "ms": 8.23,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.309339+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 11.909,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.371177+00:00",
+          "fallback": false,
+          "key": "m3-1fa413cdd69a4d45b888484df0d9919b",
+          "outcome": "ok",
+          "ms": 6.185,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.448966+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.133,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.511916+00:00",
+          "fallback": false,
+          "key": "m3-fd76b523af3a4aa883f56671ce28dc27",
+          "outcome": "ok",
+          "ms": 17.181,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.573298+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.97,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.649503+00:00",
+          "fallback": false,
+          "key": "m3-9517712327fc4558a8c894e975a6395a",
+          "outcome": "ok",
+          "ms": 7.785,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.710816+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 9.047,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.774900+00:00",
+          "fallback": false,
+          "key": "m3-0584250026e343b6bb644e62825a8e1e",
+          "outcome": "ok",
+          "ms": 20.945,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.850291+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.942,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:55.913850+00:00",
+          "fallback": false,
+          "key": "m3-ce3bb50a633f4ec0b84100e5098b35fa",
+          "outcome": "ok",
+          "ms": 18.84,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:55.975170+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.361,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.037107+00:00",
+          "fallback": false,
+          "key": "m3-4d25ce2cd0dd4ebc8c5b4ff1ef60d50d",
+          "outcome": "ok",
+          "ms": 18.393,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.115346+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.146,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.176548+00:00",
+          "fallback": false,
+          "key": "m3-6890407280864adf965867c118e2c768",
+          "outcome": "ok",
+          "ms": 17.655,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.236644+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.474,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.315067+00:00",
+          "fallback": false,
+          "key": "m3-8d4683bb997145c8927afa6e276e405c",
+          "outcome": "ok",
+          "ms": 9.34,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.376498+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.318,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-12",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.437498+00:00",
+          "fallback": false,
+          "key": "m3-eab1d832252a47ad899d858f9c82068d",
+          "outcome": "ok",
+          "ms": 6.785,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.513992+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 21.58,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-13",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.575807+00:00",
+          "fallback": false,
+          "key": "m3-abf0c50660774b8584560549568a88b1",
+          "outcome": "ok",
+          "ms": 17.926,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.637613+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 10.534,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.714515+00:00",
+          "fallback": false,
+          "key": "m3-54a54f0fe90d441fb4a12286182ec9a6",
+          "outcome": "ok",
+          "ms": 7.523,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.777498+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 11.327,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.838387+00:00",
+          "fallback": false,
+          "key": "m3-127851be7f084b1e85ee35d098a2f57e",
+          "outcome": "ok",
+          "ms": 6.821,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:56.915606+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 9.656,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:56.978665+00:00",
+          "fallback": false,
+          "key": "m3-85c85b90024e454eaf49149e41e782d6",
+          "outcome": "ok",
+          "ms": 6.166,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.040454+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 20.244,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-11",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.117420+00:00",
+          "fallback": false,
+          "key": "m3-9c0662a02c394db5a88f9ed7a926a7ba",
+          "outcome": "ok",
+          "ms": 18.665,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.178001+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.697,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-4",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.239396+00:00",
+          "fallback": false,
+          "key": "m3-c26cb0af9df94f80aa9c7e1ef3ef4f3c",
+          "outcome": "ok",
+          "ms": 17.719,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.318071+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 14.457,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-5",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.378014+00:00",
+          "fallback": false,
+          "key": "m3-4877eb3985d741c4984d516987b4bd36",
+          "outcome": "ok",
+          "ms": 19.842,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.439042+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 20.951,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.516510+00:00",
+          "fallback": false,
+          "key": "m3-8ef03d4614c44d4eaeee05dca27c3108",
+          "outcome": "ok",
+          "ms": 5.998,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.579157+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.152,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-2",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.641142+00:00",
+          "fallback": false,
+          "key": "m3-19f477ae68884987a9a1eeb937f4eeb0",
+          "outcome": "ok",
+          "ms": 8.77,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.703411+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 21.261,
+          "source": "load"
+        },
+        {
+          "tenant": "m3-772f0e7a01-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T07:22:57.781339+00:00",
+          "fallback": false,
+          "key": "m3-fcad0cce447e42489623a8403ee6ded2",
+          "outcome": "ok",
+          "ms": 18.277,
+          "source": "load"
+        },
+        {
+          "tenant": "merchant-b",
+          "kind": "checkout",
+          "started_at": "2026-11-23T07:22:57.841507+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 66750,
+          "ms": 8.907,
+          "source": "load"
+        }
+      ],
+      "verification": {
+        "rounds": 3,
+        "verified_invocations": 42,
+        "executions_by_pod": {
+          "executor-68db48d544-sv2gb": 21,
+          "executor-68db48d544-tf4pn": 15,
+          "executor-68db48d544-bj4wd": 6
+        }
+      },
+      "ended_at": "2026-11-23T07:22:57.873060+00:00",
+      "gateway": {
+        "attempts": 143,
+        "retries": 0,
+        "retry_successes": 0,
+        "attempts_by_executor": {
+          "10.244.0.10:9090": 0,
+          "10.244.0.11:9090": 55,
+          "10.244.0.12:9090": 14,
+          "10.244.0.15:9090": 74
+        }
+      },
+      "summary": {
+        "requests": 143,
+        "ok": 143,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 143
+        },
+        "checkouts": 54,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 31.572
+      },
+      "load": {
+        "requests": 95,
+        "ok": 95,
+        "unavailable": 0,
+        "outcomes": {
+          "ok": 95
+        },
+        "checkouts": 48,
+        "checkout_fallbacks": 0,
+        "checkout_fallback_fraction": 0.0,
+        "p99_ms": 41.311
+      }
+    }
+  },
+  "parameters": {
+    "cp_url": "http://127.0.0.1:64491",
+    "gateway_url": "http://127.0.0.1:64494",
+    "internal_url": "http://127.0.0.1:64497",
+    "shop_url": "http://127.0.0.1:64500",
+    "rps": 15,
+    "extra_pairs": 12,
+    "phase_seconds": 5,
+    "convergence_seconds": 30,
+    "series_rounds": 3
+  },
+  "revision": "281816111eb14ef2a9937cd549e2e26a0e9576b4",
+  "working_tree": {
+    "paths": [
+      "control-plane",
+      "dataplane",
+      "demo-shop",
+      "deploy/kind"
+    ],
+    "dirty": false,
+    "sha256": "886a9b93c07587cdacf0872f8de8956df7d17237a7e4e55945f19df33c9a444d"
+  },
+  "initial_node_scheduling": {
+    "wasmhooks-m3-control-plane": true
+  },
+  "gateway_config": {
+    "discovery_interval_ms": 1000,
+    "health_timeout_ms": 300,
+    "retry_min_budget_ms": 15,
+    "breaker_threshold": 5,
+    "breaker_cooldown_ms": 5000
+  },
+  "bindings": {
+    "merchant-a": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 10
+    },
+    "merchant-b": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 25
+    },
+    "m3-772f0e7a01-1": {
+      "module_hash": "sha256:db84edaee9d865403033bdb1e098542fb2bfe6cacd544fd58fd0d1697fbe8112",
+      "percent": 13
+    },
+    "m3-772f0e7a01-4": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 14
+    },
+    "m3-772f0e7a01-5": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 15
+    },
+    "m3-772f0e7a01-8": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 16
+    },
+    "m3-772f0e7a01-2": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 17
+    },
+    "m3-772f0e7a01-6": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 18
+    },
+    "m3-772f0e7a01-12": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 19
+    },
+    "m3-772f0e7a01-13": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 20
+    },
+    "m3-772f0e7a01-0": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 21
+    },
+    "m3-772f0e7a01-3": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 22
+    },
+    "m3-772f0e7a01-7": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 23
+    },
+    "m3-772f0e7a01-11": {
+      "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+      "percent": 24
+    }
+  },
+  "baseline": {
+    "pods": {
+      "10.244.0.12:9090": {
+        "name": "executor-68db48d544-bj4wd",
+        "uid": "954d911b-25e5-4427-a7ce-44efb8f498da",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.11:9090": {
+        "name": "executor-68db48d544-tf4pn",
+        "uid": "a6616347-7422-4ee0-8fc1-cf12d2a047a8",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.10:9090": {
+        "name": "executor-68db48d544-v2j8j",
+        "uid": "34f862c7-311a-4ea1-a1ad-b34588493509",
+        "node": "wasmhooks-m3-control-plane"
+      }
+    },
+    "owners": {
+      "merchant-a": "10.244.0.10:9090",
+      "merchant-b": "10.244.0.11:9090",
+      "m3-772f0e7a01-1": "10.244.0.10:9090",
+      "m3-772f0e7a01-4": "10.244.0.10:9090",
+      "m3-772f0e7a01-5": "10.244.0.10:9090",
+      "m3-772f0e7a01-8": "10.244.0.10:9090",
+      "m3-772f0e7a01-2": "10.244.0.11:9090",
+      "m3-772f0e7a01-6": "10.244.0.11:9090",
+      "m3-772f0e7a01-12": "10.244.0.11:9090",
+      "m3-772f0e7a01-13": "10.244.0.11:9090",
+      "m3-772f0e7a01-0": "10.244.0.12:9090",
+      "m3-772f0e7a01-3": "10.244.0.12:9090",
+      "m3-772f0e7a01-7": "10.244.0.12:9090",
+      "m3-772f0e7a01-11": "10.244.0.12:9090"
+    }
+  },
+  "removed": {
+    "address": "10.244.0.10:9090",
+    "name": "executor-68db48d544-v2j8j",
+    "uid": "34f862c7-311a-4ea1-a1ad-b34588493509",
+    "node": "wasmhooks-m3-control-plane"
+  },
+  "preload_probe": {
+    "tenant": "m3-772f0e7a01-1",
+    "module_hash": "sha256:db84edaee9d865403033bdb1e098542fb2bfe6cacd544fd58fd0d1697fbe8112",
+    "original_pod": "executor-68db48d544-v2j8j",
+    "new_pod": "executor-68db48d544-tf4pn",
+    "compile_event": {
+      "time": "2026-11-23T07:22:43.406522734Z",
+      "level": "INFO",
+      "msg": "module compiled",
+      "module_hash": "sha256:db84edaee9d865403033bdb1e098542fb2bfe6cacd544fd58fd0d1697fbe8112",
+      "executor_id": "executor-68db48d544-tf4pn"
+    },
+    "preload_event": {
+      "time": "2026-11-23T07:22:43.406582487Z",
+      "level": "INFO",
+      "msg": "module preloaded",
+      "tenant_id": "m3-772f0e7a01-1",
+      "hook": "checkout.discount",
+      "module_hash": "sha256:db84edaee9d865403033bdb1e098542fb2bfe6cacd544fd58fd0d1697fbe8112",
+      "executor_id": "executor-68db48d544-tf4pn"
+    },
+    "observed_before_first_call_at": "2026-11-23T07:22:44.016523+00:00",
+    "first_call": {
+      "tenant": "m3-772f0e7a01-1",
+      "kind": "invoke",
+      "started_at": "2026-11-23T07:22:44.016540+00:00",
+      "fallback": false,
+      "key": "m3-75ed7a715a904829af2d527c71ef5e26",
+      "outcome": "ok",
+      "ms": 14.944,
+      "source": "first_after_move"
+    }
+  },
+  "deletion_requested_at": "2026-11-23T07:22:42.746049+00:00",
+  "loss_convergence_ms": 791.019,
+  "two_nodes": {
+    "pods": {
+      "10.244.0.12:9090": {
+        "name": "executor-68db48d544-bj4wd",
+        "uid": "954d911b-25e5-4427-a7ce-44efb8f498da",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.11:9090": {
+        "name": "executor-68db48d544-tf4pn",
+        "uid": "a6616347-7422-4ee0-8fc1-cf12d2a047a8",
+        "node": "wasmhooks-m3-control-plane"
+      }
+    },
+    "owners": {
+      "merchant-a": "10.244.0.12:9090",
+      "merchant-b": "10.244.0.11:9090",
+      "m3-772f0e7a01-1": "10.244.0.11:9090",
+      "m3-772f0e7a01-4": "10.244.0.12:9090",
+      "m3-772f0e7a01-5": "10.244.0.12:9090",
+      "m3-772f0e7a01-8": "10.244.0.12:9090",
+      "m3-772f0e7a01-2": "10.244.0.11:9090",
+      "m3-772f0e7a01-6": "10.244.0.11:9090",
+      "m3-772f0e7a01-12": "10.244.0.11:9090",
+      "m3-772f0e7a01-13": "10.244.0.11:9090",
+      "m3-772f0e7a01-0": "10.244.0.12:9090",
+      "m3-772f0e7a01-3": "10.244.0.12:9090",
+      "m3-772f0e7a01-7": "10.244.0.12:9090",
+      "m3-772f0e7a01-11": "10.244.0.12:9090"
+    },
+    "moved_pairs": [
+      "m3-772f0e7a01-1",
+      "m3-772f0e7a01-4",
+      "m3-772f0e7a01-5",
+      "m3-772f0e7a01-8",
+      "merchant-a"
+    ]
+  },
+  "scheduling_restored": true,
+  "rejoin_convergence_ms": 1404.811,
+  "recovered": {
+    "pods": {
+      "10.244.0.12:9090": {
+        "name": "executor-68db48d544-bj4wd",
+        "uid": "954d911b-25e5-4427-a7ce-44efb8f498da",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.15:9090": {
+        "name": "executor-68db48d544-sv2gb",
+        "uid": "0a842297-8f9a-46ad-b8fa-20a47a731207",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.11:9090": {
+        "name": "executor-68db48d544-tf4pn",
+        "uid": "a6616347-7422-4ee0-8fc1-cf12d2a047a8",
+        "node": "wasmhooks-m3-control-plane"
+      }
+    },
+    "owners": {
+      "merchant-a": "10.244.0.15:9090",
+      "merchant-b": "10.244.0.11:9090",
+      "m3-772f0e7a01-1": "10.244.0.11:9090",
+      "m3-772f0e7a01-4": "10.244.0.12:9090",
+      "m3-772f0e7a01-5": "10.244.0.15:9090",
+      "m3-772f0e7a01-8": "10.244.0.15:9090",
+      "m3-772f0e7a01-2": "10.244.0.15:9090",
+      "m3-772f0e7a01-6": "10.244.0.11:9090",
+      "m3-772f0e7a01-12": "10.244.0.11:9090",
+      "m3-772f0e7a01-13": "10.244.0.11:9090",
+      "m3-772f0e7a01-0": "10.244.0.15:9090",
+      "m3-772f0e7a01-3": "10.244.0.15:9090",
+      "m3-772f0e7a01-7": "10.244.0.15:9090",
+      "m3-772f0e7a01-11": "10.244.0.12:9090"
+    },
+    "moved_pairs": [
+      "m3-772f0e7a01-0",
+      "m3-772f0e7a01-2",
+      "m3-772f0e7a01-3",
+      "m3-772f0e7a01-5",
+      "m3-772f0e7a01-7",
+      "m3-772f0e7a01-8",
+      "merchant-a"
+    ],
+    "replacement": "10.244.0.15:9090"
+  },
+  "ended_at": "2026-11-23T07:22:57.873589+00:00"
+}
