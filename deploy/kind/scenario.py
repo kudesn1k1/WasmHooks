@@ -27,6 +27,8 @@ NAMESPACE = "wasmhooks"
 HOOK = "checkout.discount"
 SHOPS = {"merchant-a": ("tea-sencha", 45000, 10), "merchant-b": ("coffee-ethiopia", 89000, 25)}
 TRANSITIONS = {"loss_transition", "rejoin_transition"}
+INVOKE_STATUS = {"ok": 200, "no_handler": 200, "handler_error": 200, "timeout": 200,
+                 "quota_exceeded": 429, "unavailable": 503}
 
 
 def require(condition, message):
@@ -222,41 +224,73 @@ class Platform:
         for index, tenant in enumerate([*SHOPS, *(t for bucket in per_owner.values() for t in bucket)]):
             percent = SHOPS[tenant][2] if tenant in SHOPS else 11 + index % 30
             binary = probe_module(wasm, self.run_id) if tenant == probe else wasm
-            digest = "sha256:" + hashlib.sha256(binary).hexdigest()
-            request("POST", base + "/tenants", self.key, {"external_id": tenant, "name": tenant,
-                    "rate_limit_rps": 100}, statuses=(201, 409))
-            token = request("POST", f"{base}/tenants/{tenant}/console-sessions", self.key,
-                            statuses=(201,))[1]["token"]
-            hook = f"{base}/tenant/hooks/{HOOK}"
-            boundary = "M3" + uuid4().hex
-            part = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-                    'filename="discount.wasm"\r\nContent-Type: application/wasm\r\n\r\n').encode()
-            body = part + binary + f"\r\n--{boundary}--\r\n".encode()
-            status, module = request("POST", hook + "/modules", token, body,
-                                     f"multipart/form-data; boundary={boundary}", (201, 409))
-            if status == 409:
-                versions = request("GET", hook + "/modules", token)[1]["items"]
-                module = next((m for m in versions if m["content_hash"] == digest), None)
-                require(module, f"{tenant}: upload conflict without module {digest}")
-            require(module["content_hash"] == digest, f"{tenant}: uploaded hash mismatch")
-
-            def validated():
-                versions = request("GET", hook + "/modules", token)[1]["items"]
-                version = next((m for m in versions if m["id"] == module["id"]), None)
-                if version and version["status"] in {"rejected", "archived"}:
-                    raise ValueError(f"{tenant} validation failed: {version['validation_report']}")
-                return version and version["status"] == "validated"
-
-            wait_for(f"{tenant} validation", 60, validated)
-            request("PUT", hook + "/binding", token, {"active_module_id": module["id"],
-                    "config": {"percent": str(percent), "threshold": "1000"}})
-            self.bindings[tenant] = {"module_hash": digest, "percent": percent}
+            self.bindings[tenant] = self.register_binding(tenant, binary, percent)
         return victim, probe
 
-    def sample(self, tenant, kind):
+    def register_binding(self, tenant, binary, percent):
+        base = self.args.cp_url + "/api/v1"
+        digest = "sha256:" + hashlib.sha256(binary).hexdigest()
+        request("POST", base + "/tenants", self.key, {"external_id": tenant, "name": tenant,
+                "rate_limit_rps": 100}, statuses=(201, 409))
+        token = request("POST", f"{base}/tenants/{tenant}/console-sessions", self.key,
+                        statuses=(201,))[1]["token"]
+        hook = f"{base}/tenant/hooks/{HOOK}"
+        boundary = "M3" + uuid4().hex
+        part = (f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
+                'filename="discount.wasm"\r\nContent-Type: application/wasm\r\n\r\n').encode()
+        body = part + binary + f"\r\n--{boundary}--\r\n".encode()
+        status, module = request("POST", hook + "/modules", token, body,
+                                 f"multipart/form-data; boundary={boundary}", (201, 409))
+        if status == 409:
+            versions = request("GET", hook + "/modules", token)[1]["items"]
+            module = next((m for m in versions if m["content_hash"] == digest), None)
+            require(module, f"{tenant}: upload conflict without module {digest}")
+        require(module["content_hash"] == digest, f"{tenant}: uploaded hash mismatch")
+
+        def validated():
+            versions = request("GET", hook + "/modules", token)[1]["items"]
+            version = next((m for m in versions if m["id"] == module["id"]), None)
+            if version and version["status"] in {"rejected", "archived"}:
+                raise ValueError(f"{tenant} validation failed: {version['validation_report']}")
+            return version and version["status"] == "validated"
+
+        wait_for(f"{tenant} validation", 60, validated)
+        request("PUT", hook + "/binding", token, {"active_module_id": module["id"],
+                "config": {"percent": str(percent), "threshold": "1000"}})
+        return {"module_hash": digest, "percent": percent}
+
+    def verify_replacement_probe(self, pods, replacement):
+        for index in range(1024):
+            tenant = f"m3-{self.run_id}-rejoin-{index}"
+            if self.owner_map([tenant], pods)[tenant] == replacement:
+                break
+        else:
+            raise ValueError(f"could not find a pair owned by replacement {replacement}")
+
+        wasm = (ROOT / "dataplane/testdata/wasm/discount.wasm").read_bytes()
+        binding = self.register_binding(tenant, wasm, 11)
+        pending = []
+
+        def active_call():
+            sample = self.sample(tenant, "invoke", binding)
+            # The gateway and executors pick up the new binding independently.
+            if sample["outcome"] in {"no_handler", "unavailable"}:
+                pending.append(sample)
+                return None
+            require(sample["outcome"] == "ok", f"invalid replacement probe response: {sample}")
+            return sample
+
+        call = wait_for(f"{tenant} binding active", self.args.convergence_seconds, active_call)
+        pod = pods[replacement]["name"]
+        logs = {p["name"]: pod_logs(p["name"]) for p in pods.values()}
+        verify_execution_records({call["key"]: (tenant, pod, binding["module_hash"])}, logs)
+        return {"tenant": tenant, "pod": pod, "binding": binding, "binding_wait_samples": pending, "call": call}
+
+    def sample(self, tenant, kind, binding=None):
         started = time.monotonic()
         sample = {"tenant": tenant, "kind": kind, "started_at": utc(), "fallback": False}
-        binding = self.bindings[tenant]
+        if binding is None:
+            binding = self.bindings[tenant]
         try:
             if kind == "checkout":
                 body = {"customer_id": "c-loyal", "items": [{"product_id": SHOPS[tenant][0], "quantity": 1}]}
@@ -269,17 +303,17 @@ class Platform:
                         "payload": {"cart_total": 450, "customer": {"id": "c-loyal", "lifetime_spend": 2400}}}
                 status, resp = request("POST", f"{self.args.gateway_url}/v1/hooks/{HOOK}/invoke", self.key,
                                        body, statuses=(200, 429, 502, 503))
+                sample["http_status"] = status
                 if status == 502:
-                    require(resp.get("status") == 502, f"malformed 502 response: {resp}")
+                    require(resp.get("status") == 502 and "outcome" not in resp, f"malformed 502 response: {resp}")
                     sample["outcome"] = "unknown_result"
                 else:
                     sample["outcome"] = resp["outcome"]
+                    require(INVOKE_STATUS.get(sample["outcome"]) == status, f"incorrect HTTP {status}: {resp}")
                     if sample["outcome"] == "ok":
-                        require(status == 200 and resp["module_hash"] == binding["module_hash"]
+                        require(resp["module_hash"] == binding["module_hash"]
                                 and resp["result"]["discount_percent"] == binding["percent"]
                                 and resp["result"]["reason"] == "loyal_customer", f"incorrect Invoke: {resp}")
-                    elif status == 503:
-                        require(sample["outcome"] == "unavailable", f"incorrect 503 response: {resp}")
         except Exception as exc:
             sample.update(error=str(exc), outcome="error")
         sample["ms"] = round((time.monotonic() - started) * 1000, 3)
@@ -370,6 +404,17 @@ class Load:
         series["verified_invocations"] = len(expected)
         series["executions_by_pod"] = dict(Counter(pod for _, pod, _ in expected.values()))
         return logs
+
+    def verify_recovered(self, previous, pods, replacement):
+        owners = self.platform.owner_map(previous, pods)
+        changed = sorted(t for t in previous if owners[t] != previous[t])
+        require(all(owners[t] == replacement for t in changed), f"unexpected movement on rejoin: {changed}")
+        recovered = {"pods": pods, "owners": owners, "moved_pairs": changed, "replacement": replacement}
+        self.report["recovered"] = recovered
+        self.verify_series(owners, pods)
+        if replacement not in owners.values():
+            recovered["replacement_probe"] = self.platform.verify_replacement_probe(pods, replacement)
+        return recovered
 
     def finish(self):
         self.stop.set()
@@ -508,15 +553,9 @@ def scenario(args, report):
         require(set(final) == set(state["members"]), "recovered gateway membership differs from ready pods")
         replacement, = set(final) - set(surviving)
         require(final[replacement]["uid"] != initial[victim]["uid"], "replacement has original pod UID")
-        owners = platform.owner_map(platform.bindings, final)
-        require(replacement in owners.values(), "replacement received no test pair")
-        changed = sorted(t for t in owners if owners[t] != after[t])
-        require(all(owners[t] == replacement for t in changed), f"unexpected movement on rejoin: {changed}")
-        report["recovered"] = {"pods": final, "owners": owners, "moved_pairs": changed,
-                               "replacement": replacement}
-        load.verify_series(owners, final)
+        recovered = load.verify_recovered(after, final, replacement)
         time.sleep(args.phase_seconds)
-        require(platform.owner_map(platform.bindings, final) == owners, "recovered ownership changed")
+        require(platform.owner_map(after, final) == recovered["owners"], "recovered ownership changed")
     finally:
         try:
             restore()
