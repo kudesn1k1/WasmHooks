@@ -31,6 +31,12 @@ type Stats struct {
 	SuccessfulRetries uint64            `json:"successful_retries"`
 }
 
+type Snapshot struct {
+	Members []string
+	Owners  []string
+	Stats   Stats
+}
+
 type peer struct {
 	conn    *grpc.ClientConn
 	client  wire.ExecutorClient
@@ -99,9 +105,22 @@ func (c *Cluster) Owners(tenant, hook string) []string {
 func (c *Cluster) Stats() Stats {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	s := c.stats
+	return c.stats.clone()
+}
+
+func (s Stats) clone() Stats {
 	s.Attempts = maps.Clone(s.Attempts)
 	return s
+}
+
+func (c *Cluster) Snapshot(tenant, hook string) Snapshot {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return Snapshot{
+		Members: slices.Clone(c.ring.ids),
+		Owners:  c.ring.owners(tenant, hook),
+		Stats:   c.stats.clone(),
+	}
 }
 
 func (c *Cluster) authenticated(ctx context.Context) context.Context {

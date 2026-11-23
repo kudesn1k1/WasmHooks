@@ -16,16 +16,17 @@ func diagnostics(f flags, peers *cluster.Cluster, gw *gateway.Gateway) http.Hand
 			http.Error(w, "unauthorized", 401)
 			return
 		}
-		stats := peers.Stats()
+		q := r.URL.Query()
+		snapshot := peers.Snapshot(q.Get("tenant"), q.Get("hook"))
+		stats := snapshot.Stats
 		total := stats.RetiredAttempts
 		for _, count := range stats.Attempts {
 			total += count
 		}
-		q := r.URL.Query()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"members":               peers.Members(),
-			"owners":                peers.Owners(q.Get("tenant"), q.Get("hook")),
+			"members":               snapshot.Members,
+			"owners":                snapshot.Owners,
 			"attempts":              total,
 			"attempts_by_executor":  stats.Attempts,
 			"retries":               stats.Retries,

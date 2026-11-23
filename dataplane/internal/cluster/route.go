@@ -34,7 +34,14 @@ func unavailable(reason string) execproto.ExecuteResult {
 }
 
 func retryable(res execproto.ExecuteResult) bool {
-	return res.Outcome == execproto.OutcomeUnavailable && (res.Reason == execproto.ReasonOverloaded || res.Reason == execproto.ReasonPoolSaturated)
+	if res.Outcome != execproto.OutcomeUnavailable {
+		return false
+	}
+	switch res.Reason {
+	case execproto.ReasonOverloaded, execproto.ReasonPoolSaturated, execproto.ReasonDeadline:
+		return true
+	}
+	return false
 }
 
 func guestResult(res execproto.ExecuteResult) bool {

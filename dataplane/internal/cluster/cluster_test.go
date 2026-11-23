@@ -156,11 +156,37 @@ func TestLostResponseRetriesPinnedCallOnAnotherNode(t *testing.T) {
 	}
 }
 
+func TestSnapshotConsistentAcrossDiscoveryChange(t *testing.T) {
+	a, b := startNode(t, "a"), startNode(t, "b")
+	c := testCluster(t, "internal", a, b)
+	req := execproto.ExecuteRequest{TenantID: "shop", Hook: "checkout"}
+	before := c.Snapshot(req.TenantID, req.Hook)
+
+	b.ready.Store(false)
+	c.refresh(t.Context())
+	a.run = func(context.Context, execproto.ExecuteRequest) (execproto.ExecuteResult, error) {
+		return execproto.ExecuteResult{Outcome: execproto.OutcomeOK}, nil
+	}
+	if res, err := c.Execute(t.Context(), req); err != nil || res.Outcome != execproto.OutcomeOK {
+		t.Fatalf("execute on remaining member: %+v, %v", res, err)
+	}
+	after := c.Snapshot(req.TenantID, req.Hook)
+
+	slices.Sort(before.Owners)
+	if !slices.Equal(before.Members, []string{"a", "b"}) || !slices.Equal(before.Owners, before.Members) || len(before.Stats.Attempts) != 0 {
+		t.Fatalf("before discovery change: %+v", before)
+	}
+	if !slices.Equal(after.Members, []string{"a"}) || !slices.Equal(after.Owners, after.Members) || after.Stats.Attempts["a"] != 1 {
+		t.Fatalf("after discovery change: %+v", after)
+	}
+}
+
 func TestRetryBoundaries(t *testing.T) {
 	refusal := func(reason string) execproto.ExecuteResult {
 		return execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable, Reason: reason}
 	}
 	ok := execproto.ExecuteResult{Outcome: execproto.OutcomeOK}
+	queueDeadline := refusal(execproto.ReasonDeadline)
 	for _, tc := range []struct {
 		name          string
 		first, second execproto.ExecuteResult // zero simulates a lost answer
@@ -171,6 +197,9 @@ func TestRetryBoundaries(t *testing.T) {
 	}{
 		{"overload retries", refusal(execproto.ReasonOverloaded), ok, false, 2, ok, false},
 		{"pool busy retries", refusal(execproto.ReasonPoolSaturated), ok, false, 2, ok, false},
+		{"queue deadline retries", queueDeadline, ok, false, 2, ok, false},
+		{"short budget after queue deadline", queueDeadline, ok, true, 1, queueDeadline, false},
+		{"two queue deadlines", queueDeadline, queueDeadline, false, 2, queueDeadline, false},
 		{"two refusals", refusal(execproto.ReasonOverloaded), refusal(execproto.ReasonOverloaded), false, 2, refusal(execproto.ReasonOverloaded), false},
 		{"short budget after refusal", refusal(execproto.ReasonOverloaded), ok, true, 1, refusal(execproto.ReasonOverloaded), false},
 		{"short budget after lost answer", execproto.ExecuteResult{}, ok, true, 1, execproto.ExecuteResult{}, true},
