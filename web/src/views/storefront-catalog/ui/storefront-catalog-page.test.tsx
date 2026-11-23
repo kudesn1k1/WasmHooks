@@ -10,26 +10,33 @@ import { shopUrl } from '@/mocks/shop';
 import { getToken } from '@/shared/api';
 import { renderWithQuery } from '@/shared/lib/test-utils';
 import { StorefrontCartPage } from '@/views/storefront-cart';
+import { StorefrontShopPage } from '@/views/storefront-shop';
 
 import { StorefrontCatalogPage } from './storefront-catalog-page';
 
-function renderStorefront() {
+function renderStorefront(shopId = 'merchant-a') {
 	return renderWithQuery(
-		<ShopCartProvider>
-			<StorefrontCatalogPage />
-			<StorefrontCartPage />
-		</ShopCartProvider>,
+		<ShopCartProvider><StorefrontShopPage shopId={shopId} /></ShopCartProvider>,
 	);
 }
 
 describe('storefront', () => {
 	afterEach(() => vi.restoreAllMocks());
 
+	it('lists the shops with links to their storefronts and retries a failed load', async () => {
+		const user = userEvent.setup();
+		server.use(http.get(shopUrl('/shops'), () => problem(503, 'Магазины недоступны'), { once: true }));
+		renderWithQuery(<StorefrontCatalogPage />);
+
+		expect(await screen.findByRole('alert')).toHaveTextContent('Магазины недоступны');
+		await user.click(screen.getByRole('button', { name: 'Повторить загрузку' }));
+		expect(await screen.findByRole('link', { name: 'Открыть магазин «Чайная лавка»' })).toHaveAttribute('href', '/shops/merchant-a');
+		expect(screen.getByRole('link', { name: 'Открыть магазин «Кофейня на углу»' })).toHaveAttribute('href', '/shops/merchant-b');
+	});
+
 	it('restores the shop and quantities after a page reload and persists clearing the cart', async () => {
 		const user = userEvent.setup();
-		const storefront = renderStorefront();
-		await screen.findByRole('option', { name: 'Кофейня на углу' });
-		await user.selectOptions(screen.getByLabelText('Магазин'), 'merchant-b');
+		const storefront = renderStorefront('merchant-b');
 		const coffee = await screen.findByRole('button', { name: 'В корзину: Кофе Эфиопия' });
 		await user.click(coffee);
 		await user.click(coffee);
@@ -41,7 +48,7 @@ describe('storefront', () => {
 		);
 		const cart = renderCart();
 		expect(screen.getByRole('heading', { name: 'Кофейня на углу' })).toBeInTheDocument();
-		expect(screen.getByText(/^3\s580,00\s₽$/)).toBeInTheDocument();
+		expect(screen.getByText(/^3\s580\s₽$/)).toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: 'Очистить корзину' }));
 		expect(screen.getByText('Корзина пуста.')).toBeInTheDocument();
 		cart.unmount();
@@ -53,7 +60,7 @@ describe('storefront', () => {
 	it('adds products, changes quantities and calculates a discount for the selected buyer', async () => {
 		const user = userEvent.setup();
 		renderStorefront();
-		expect(screen.getByText('Корзина пуста.')).toBeInTheDocument();
+		expect(await screen.findByText('Добавьте первый товар')).toBeInTheDocument();
 
 		await user.click(
 			await screen.findByRole('button', { name: 'В корзину: Чай сенча' }),
@@ -65,25 +72,30 @@ describe('storefront', () => {
 		);
 		await screen.findByRole('option', { name: 'Постоянный покупатель' });
 		await user.selectOptions(
-			screen.getByLabelText('Покупатель'),
+			screen.getByLabelText('Демо-покупатель'),
 			'c-loyal',
 		);
 		await user.click(
-			screen.getByRole('button', { name: 'Рассчитать заказ' }),
+			screen.getByRole('button', { name: 'Рассчитать итог' }),
 		);
 
 		const result = within(await screen.findByRole('status'));
-		expect(result.getByText('Скидка (10%)')).toBeInTheDocument();
-		expect(result.getByText(/^900,00\s₽$/)).toBeInTheDocument();
-		expect(result.getByText(/^90,00\s₽$/)).toBeInTheDocument();
-		expect(result.getByText(/^810,00\s₽$/)).toBeInTheDocument();
+		expect(result.getByText('Скидка 10%')).toBeInTheDocument();
+		expect(result.getByText(/^900\s₽$/)).toBeInTheDocument();
+		expect(result.getByText(/^-90\s₽$/)).toBeInTheDocument();
+		expect(result.getByText(/^810\s₽$/)).toBeInTheDocument();
+
+		await user.click(screen.getByRole('button', { name: 'В корзину: Чай сенча' }));
+		expect(screen.queryByText('Итого')).not.toBeInTheDocument();
+		expect(screen.getByLabelText('Демо-покупатель')).toHaveValue('c-loyal');
 
 		await user.click(
 			screen.getByRole('button', {
 				name: 'Уменьшить количество: Чай сенча',
 			}),
 		);
-		expect(screen.queryByText('Скидка (10%)')).not.toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Уменьшить количество: Чай сенча' }));
+		expect(screen.queryByText('Скидка 10%')).not.toBeInTheDocument();
 		expect(
 			screen.getByRole('button', {
 				name: 'Уменьшить количество: Чай сенча',
@@ -91,16 +103,14 @@ describe('storefront', () => {
 		).toBeDisabled();
 	});
 
-	it('keeps the basket tied to one shop until its last line is removed', async () => {
+	it('keeps the basket tied to one shop until it is cleared', async () => {
 		const user = userEvent.setup();
-		renderStorefront();
+		const storefront = renderStorefront();
 		await user.click(
 			await screen.findByRole('button', { name: 'В корзину: Чай сенча' }),
 		);
-		await user.selectOptions(
-			screen.getByLabelText('Магазин'),
-			'merchant-b',
-		);
+		storefront.unmount();
+		renderStorefront('merchant-b');
 
 		const coffee = await screen.findByRole('button', {
 			name: 'В корзину: Кофе Эфиопия',
@@ -108,13 +118,16 @@ describe('storefront', () => {
 		expect(coffee).toBeDisabled();
 		expect(screen.getByRole('status')).toHaveTextContent('Чайная лавка');
 		await user.click(
-			screen.getByRole('button', { name: 'Удалить: Чай сенча' }),
+			screen.getByRole('button', { name: 'Очистить корзину' }),
 		);
 		expect(coffee).toBeEnabled();
 		await user.click(coffee);
 		expect(
 			screen.getByRole('heading', { name: 'Кофейня на углу' }),
 		).toBeInTheDocument();
+		await screen.findByRole('option', { name: 'Новый покупатель' });
+		await user.click(screen.getByRole('button', { name: 'Рассчитать итог' }));
+		expect(await screen.findByRole('status')).toHaveTextContent('Магазин пока не подключил скидки');
 	});
 
 	it('shows the total and a zero discount when the hook times out', async () => {
@@ -152,13 +165,13 @@ describe('storefront', () => {
 		);
 		await screen.findByRole('option', { name: 'Новый покупатель' });
 		await user.click(
-			screen.getByRole('button', { name: 'Рассчитать заказ' }),
+			screen.getByRole('button', { name: 'Рассчитать итог' }),
 		);
 
 		const result = within(await screen.findByRole('status'));
-		expect(result.getByText('Скидка (0%)')).toBeInTheDocument();
+		expect(result.getByText(/^0\s₽$/)).toBeInTheDocument();
 		expect(result.getByText('timeout')).toBeInTheDocument();
-		expect(result.getAllByText(/^450,00\s₽$/)).toHaveLength(2);
+		expect(result.getAllByText(/^450\s₽$/)).toHaveLength(2);
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 	});
 
@@ -187,14 +200,8 @@ describe('storefront', () => {
 				},
 			),
 		);
-		renderStorefront();
-
-		await screen.findByRole('option', { name: 'Кофейня на углу' });
-		await user.selectOptions(
-			screen.getByLabelText('Магазин'),
-			'merchant-b',
-		);
-		await user.click(screen.getByRole('button', { name: 'Мои скрипты' }));
+		renderStorefront('merchant-b');
+		await user.click(await screen.findByRole('button', { name: 'Мои скрипты' }));
 
 		await waitFor(() =>
 			expect(tab.location.href).toBe(
@@ -222,7 +229,7 @@ describe('storefront', () => {
 		);
 		await screen.findByRole('option', { name: 'Новый покупатель' });
 		await user.click(
-			screen.getByRole('button', { name: 'Рассчитать заказ' }),
+			screen.getByRole('button', { name: 'Рассчитать итог' }),
 		);
 
 		expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -231,10 +238,10 @@ describe('storefront', () => {
 		expect(getToken('operator')).toBe('whk_test');
 		expect(getToken('tenant')).toBe('tenant-test-token');
 		await user.click(
-			screen.getByRole('button', { name: 'Рассчитать заказ' }),
+			screen.getByRole('button', { name: 'Повторить расчёт' }),
 		);
 		expect(await screen.findByRole('status')).toHaveTextContent(
-			'Скидка (0%)',
+			'Для этого покупателя скидка не предусмотрена.',
 		);
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 	});

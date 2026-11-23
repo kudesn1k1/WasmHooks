@@ -1,4 +1,5 @@
 export { customersQuery, productsQuery, shopsQuery } from './api/queries';
+export { ShopArt, shopTone } from './ui/shop-art';
 export {
 	checkoutRequestSchema,
 	checkoutSchema,

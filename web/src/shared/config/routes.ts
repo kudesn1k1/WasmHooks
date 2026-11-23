@@ -1,6 +1,7 @@
 export const routes = {
   storefront: {
     catalog: "/",
+    shop: (id: string) => `/shops/${encodeURIComponent(id)}`,
     cart: "/cart",
   },
   tenant: {
