@@ -80,6 +80,8 @@ func startDataPlane(exe, modulesDir string, cp *controlPlane, procs int, extra [
 		"-control-plane-url", cp.url,
 		"-modules-dir", modulesDir,
 		"-log-level", "info",
+		// This experiment measures scheduling under sustained guest failures.
+		"-breaker-threshold=0",
 	}, extra...)
 	cmd := exec.Command(exe, args...)
 	cmd.Env = append(os.Environ(), "WASMHOOKS_INTERNAL_TOKEN="+cp.token, fmt.Sprintf("GOMAXPROCS=%d", procs))

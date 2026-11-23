@@ -173,11 +173,8 @@ func TestInvokeDeadlines(t *testing.T) {
 func TestInvokeTransportError(t *testing.T) {
 	exec := &fakeExecutor{err: errors.New("connection refused")}
 	resp, err := newGateway(t, exec, true).Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.Outcome != execproto.OutcomeUnavailable || resp.Reason != execproto.ReasonInternal || resp.ModuleHash != "" {
-		t.Fatalf("resp = %+v", resp)
+	if !errors.Is(err, ErrExecutionUnknown) || resp.Outcome != "" {
+		t.Fatalf("resp = %+v, err = %v", resp, err)
 	}
 }
 
@@ -348,8 +345,9 @@ func TestInvokeQuotaReleasedOnExecutorError(t *testing.T) {
 	exec := &fakeExecutor{err: errors.New("connection refused")}
 	g, _ := newQuotaGateway(t, exec, config.Tenant{ConcurrencyLimit: 1})
 	for range 3 {
-		if r := invokeA(g, context.Background()); r.Outcome != execproto.OutcomeUnavailable {
-			t.Fatalf("got %+v", r)
+		_, err := g.Invoke(context.Background(), Request{Hook: hookName, TenantID: "a", Payload: validPayload})
+		if !errors.Is(err, ErrExecutionUnknown) {
+			t.Fatalf("got %v", err)
 		}
 	}
 	if exec.calls() != 3 {

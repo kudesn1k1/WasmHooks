@@ -3,8 +3,8 @@
 //
 // Status codes follow spec M0 §6.1.3: 200 for every outcome where the
 // platform did its job (ok, no_handler, timeout, handler_error), 429 for
-// quota_exceeded, 503 for unavailable, RFC 9457 problem details for request
-// errors. X-Hook-Outcome repeats the outcome for proxies and metrics.
+// quota_exceeded, 503 for unavailable, and 502 when execution is unknown.
+// RFC 9457 problem details carry errors without an outcome.
 package httpapi
 
 import (
@@ -132,6 +132,9 @@ func (h *handler) invoke(w http.ResponseWriter, r *http.Request) {
 		IdempotencyKey: req.IdempotencyKey,
 	})
 	switch {
+	case errors.Is(err, gateway.ErrExecutionUnknown):
+		problem(w, http.StatusBadGateway, err.Error())
+		return
 	case errors.Is(err, gateway.ErrUnknownHook):
 		problem(w, http.StatusNotFound, err.Error())
 		return

@@ -1,10 +1,8 @@
 // Package execproto is the contract between the gateway and the executor.
 //
-// The types mirror a future protobuf definition one to one: only primitives,
-// slices and maps, no pointers to internal structures, no functions. Today
-// the gateway calls the executor in process; after the split an execproto
-// gRPC client and server implement the same Executor interface, and neither
-// side changes.
+// The types mirror api/executor.proto. Both the in-process executor and the
+// routed gRPC client implement Executor, so the gateway uses the same
+// admission and invocation path in either deployment.
 package execproto
 
 import "context"

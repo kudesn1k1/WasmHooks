@@ -27,6 +27,8 @@ var (
 	ErrUnknownHook = errors.New("gateway: unknown hook")
 	// ErrInvalidPayload: the payload does not match the hook's input schema.
 	ErrInvalidPayload = errors.New("gateway: payload does not match input schema")
+	// ErrExecutionUnknown means an Execute attempt may have started, but no result arrived.
+	ErrExecutionUnknown = errors.New("execution result unknown")
 )
 
 // Request is one invocation as the operator asked for it.
@@ -49,10 +51,14 @@ type Response struct {
 	Duration   time.Duration
 }
 
-// Options tune deadlines. Zero values take the defaults.
+// Options tune admission and deadlines. Zero values take the defaults.
 type Options struct {
 	DefaultDeadlineExtra time.Duration // default 100ms on top of the hook timeout
 	MaxDeadline          time.Duration // default 30s
+	BreakerThreshold     int           // consecutive guest failures, default 5
+	BreakerCooldown      time.Duration // delay before a single probe, default 5s
+	DisableBreaker       bool          // bypass the circuit in isolation/load experiments
+	MaxInFlight          int           // includes waiters in the quota queues, default 256
 }
 
 func (o *Options) setDefaults() {
@@ -62,21 +68,38 @@ func (o *Options) setDefaults() {
 	if o.MaxDeadline <= 0 {
 		o.MaxDeadline = 30 * time.Second
 	}
+	if o.BreakerThreshold <= 0 {
+		o.BreakerThreshold = 5
+	}
+	if o.BreakerCooldown <= 0 {
+		o.BreakerCooldown = 5 * time.Second
+	}
+	if o.MaxInFlight <= 0 {
+		o.MaxInFlight = 256
+	}
 }
 
 // Gateway is safe for concurrent use.
 type Gateway struct {
-	cfg     *config.Store
-	exec    execproto.Executor
-	schemas *schema.Cache
-	quotas  *quota.Manager
-	opts    Options
+	cfg      *config.Store
+	exec     execproto.Executor
+	schemas  *schema.Cache
+	quotas   *quota.Manager
+	opts     Options
+	breaker  breaker
+	inFlight chan struct{}
+	metrics  counters
 }
 
 // New creates a gateway.
 func New(cfg *config.Store, exec execproto.Executor, schemas *schema.Cache, opts Options) *Gateway {
 	opts.setDefaults()
-	return &Gateway{cfg: cfg, exec: exec, schemas: schemas, quotas: quota.New(nil), opts: opts}
+	return &Gateway{
+		cfg: cfg, exec: exec, schemas: schemas, quotas: quota.New(nil), opts: opts,
+		breaker:  breaker{pairs: make(map[breakerKey]*circuit)},
+		inFlight: make(chan struct{}, opts.MaxInFlight),
+		metrics:  counters{outcomes: make(map[string]map[string]uint64)},
+	}
 }
 
 // scriptRan reports whether the outcome means the script started: the
@@ -139,9 +162,8 @@ func (g *Gateway) Authenticate(token string) bool {
 	return v != nil && token != "" && v.AuthenticateToken(token)
 }
 
-// Invoke runs the hook for the tenant. Errors are request errors (not
-// ready, unknown hook, invalid payload); every execution result, including
-// failures of the platform, is a Response.
+// Invoke returns a Response for a known outcome. A transport failure after
+// dispatch returns ErrExecutionUnknown because the script may have run.
 func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 	start := time.Now()
 	view := g.cfg.Current()
@@ -160,10 +182,32 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 		return Response{}, fmt.Errorf("%w: %w", ErrInvalidPayload, err)
 	}
 
+	resp, err := g.invokeValidated(ctx, req, view, hook)
+	g.record(req.TenantID, resp, err)
+	resp.Duration = time.Since(start)
+	return resp, err
+}
+
+func (g *Gateway) invokeValidated(ctx context.Context, req Request, view *config.View, hook config.HookDef) (Response, error) {
 	binding, ok := view.Binding(req.TenantID, req.Hook)
 	if !ok {
-		return Response{Outcome: execproto.OutcomeNoHandler, Duration: time.Since(start)}, nil
+		return Response{Outcome: execproto.OutcomeNoHandler}, nil
 	}
+	select {
+	case g.inFlight <- struct{}{}:
+		defer func() { <-g.inFlight }()
+	default:
+		return Response{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonOverloaded,
+			Error: "gateway in-flight limit reached"}, nil
+	}
+	finish, allowed := g.enterCircuit(breakerKey{tenant: req.TenantID, hook: req.Hook, hash: binding.ModuleHash,
+		def: hook.DefVersion, config: binding.ConfigVersion})
+	if !allowed {
+		return Response{Outcome: execproto.OutcomeUnavailable, Reason: reasonBreakerOpen,
+			Error: "circuit breaker open for tenant hook"}, nil
+	}
+	var res execproto.ExecuteResult
+	defer func() { finish(res) }()
 
 	deadline := req.Deadline
 	if deadline <= 0 {
@@ -180,13 +224,11 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 	release, err := g.quotas.Admit(waitCtx, req.TenantID, tenantLimits(view, req.TenantID))
 	cancelWait()
 	if err != nil {
-		resp := rejected(err)
-		resp.Duration = time.Since(start)
-		return resp, nil
+		return rejected(err), nil
 	}
 	defer release()
 
-	res, err := g.exec.Execute(ctx, execproto.ExecuteRequest{
+	res, err = g.exec.Execute(ctx, execproto.ExecuteRequest{
 		TenantID:       req.TenantID,
 		Hook:           req.Hook,
 		HookDefVersion: hook.DefVersion,
@@ -195,20 +237,24 @@ func (g *Gateway) Invoke(ctx context.Context, req Request) (Response, error) {
 		Payload:        req.Payload,
 		IdempotencyKey: req.IdempotencyKey,
 	})
-	if err != nil {
-		res = execproto.ExecuteResult{
-			Outcome: execproto.OutcomeUnavailable,
-			Reason:  execproto.ReasonInternal,
-			Error:   "executor unreachable",
-		}
+	// Executor diagnostics distinguish a caller who canceled while the guest
+	// ran from a cancellation before start. Only the latter may return 503.
+	if err != nil || (res.Outcome == execproto.OutcomeUnavailable && res.ExecNanos > 0) {
+		res = execproto.ExecuteResult{}
+		return Response{}, ErrExecutionUnknown
 	}
 	resp := Response{
-		Outcome:  res.Outcome,
-		Reason:   res.Reason,
-		Result:   res.Result,
-		Effects:  res.Effects,
-		Error:    res.Error,
-		Duration: time.Since(start),
+		Outcome: res.Outcome,
+		Reason:  res.Reason,
+		Result:  res.Result,
+		Effects: res.Effects,
+		Error:   res.Error,
+	}
+	if resp.Outcome == execproto.OutcomeUnavailable && resp.Error == "" {
+		resp.Error = "executor unavailable"
+		if resp.Reason != "" {
+			resp.Error += ": " + resp.Reason
+		}
 	}
 	if scriptRan(res) {
 		resp.ModuleHash = binding.ModuleHash

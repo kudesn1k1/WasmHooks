@@ -52,6 +52,8 @@ type Options struct {
 	CompileTimeout time.Duration
 	// ValidateConcurrency caps module validations running at once. Default 1.
 	ValidateConcurrency int
+	// OnCompile observes an actual successful compilation on a cache miss.
+	OnCompile func(moduleHash string)
 }
 
 func (o *Options) setDefaults() {
@@ -194,6 +196,12 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		return fail(execproto.OutcomeUnavailable, execproto.ReasonStaleConfig,
 			fmt.Errorf("binding %s/%s with config version %d is unknown to this executor", req.TenantID, req.Hook, req.ConfigVersion))
 	}
+	// A broken definition is a platform refusal. Detect it while a 503
+	// can still guarantee the guest has not started.
+	outSchema, err := e.opts.Schemas.Get(hook.SchemaKey("output"), hook.OutputSchema)
+	if err != nil {
+		return fail(execproto.OutcomeUnavailable, execproto.ReasonInternal, fmt.Errorf("output schema: %w", err))
+	}
 	mod, f := e.module(ctx, req.ModuleHash, hook)
 	if f != nil {
 		return f
@@ -254,7 +262,9 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	w := watchCaller(ctx, callStart.Add(hook.Timeout()))
 	out, err := lease.Instance().Call(ctx, sandbox.Export, req.Payload)
 	w.stop()
-	res.ExecNanos = time.Since(callStart).Nanoseconds()
+	// Zero denotes a pre-start refusal in ExecuteReply, including on clocks
+	// too coarse to distinguish entry and return from a short guest call.
+	res.ExecNanos = max(1, time.Since(callStart).Nanoseconds())
 	res.Logs = formatLogs(out.Logs)
 	if err != nil {
 		lease.Release(false)
@@ -270,10 +280,6 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		var oe *outputError
 		errors.As(err, &oe)
 		return fail(execproto.OutcomeHandlerError, oe.reason, err)
-	}
-	outSchema, err := e.opts.Schemas.Get(hook.SchemaKey("output"), hook.OutputSchema)
-	if err != nil {
-		return fail(execproto.OutcomeUnavailable, execproto.ReasonInternal, fmt.Errorf("output schema: %w", err))
 	}
 	if err := outSchema.Validate(result); err != nil {
 		return fail(execproto.OutcomeHandlerError, execproto.ReasonInvalidOutput, fmt.Errorf("result does not match output schema: %w", err))
@@ -416,7 +422,11 @@ func (e *Executor) module(ctx context.Context, hash string, hook config.HookDef)
 		}
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), e.opts.CompileTimeout)
 		defer cancel()
-		return e.compile(cctx, key, spec)
+		mod, err := e.compile(cctx, key, spec)
+		if err == nil && e.opts.OnCompile != nil {
+			e.opts.OnCompile(hash)
+		}
+		return mod, err
 	})
 	select {
 	case r := <-ch:
@@ -470,6 +480,12 @@ func compileFailure(err error) *failure {
 // calls do not pay for compilation. Compiles run in parallel, one per CPU.
 // Failures of individual bindings are joined; the rest still load.
 func (e *Executor) Preload(ctx context.Context) error {
+	return e.PreloadOwned(ctx, nil, nil)
+}
+
+// PreloadOwned compiles bindings assigned to this executor. Every invocation
+// can still fetch and compile a cold module during failover.
+func (e *Executor) PreloadOwned(ctx context.Context, owns func(config.Binding) bool, onReady func(config.Binding)) error {
 	view := e.opts.Config.Current()
 	if view == nil {
 		return errors.New("preload: config not loaded")
@@ -481,6 +497,9 @@ func (e *Executor) Preload(ctx context.Context) error {
 	)
 	g.SetLimit(runtime.GOMAXPROCS(0))
 	for _, b := range view.Bindings() {
+		if owns != nil && !owns(b) {
+			continue
+		}
 		hook, ok := e.hookDef(view, b.Hook, currentDefVersion(view, b.Hook))
 		if !ok {
 			mu.Lock()
@@ -493,6 +512,8 @@ func (e *Executor) Preload(ctx context.Context) error {
 				mu.Lock()
 				errs = append(errs, fmt.Errorf("preload %s/%s (%s): %w", b.TenantID, b.Hook, b.ModuleHash, f.err))
 				mu.Unlock()
+			} else if onReady != nil {
+				onReady(b)
 			}
 			return nil
 		})

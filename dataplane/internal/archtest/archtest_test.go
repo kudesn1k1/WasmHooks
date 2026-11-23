@@ -27,6 +27,8 @@ type rule struct {
 }
 
 var rules = map[string]rule{
+	"cluster":          {only: []string{"execproto", "cluster/wire"}},
+	"cluster/wire":     {only: []string{}},
 	"gateway":          {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
 	"gateway/httpapi":  {deny: []string{"executor", "pool", "slots", "sandbox", "sandbox/extismrt", "sandbox/wasminfo", "modstore", "internalapi"}},
 	"gateway/quota":    {only: []string{}},

@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/config"
@@ -224,6 +225,26 @@ func TestExecutorOutputSchemaViolation(t *testing.T) {
 	if res.Result != nil {
 		t.Fatal("result must be empty on failure")
 	}
+}
+
+func TestExecutorBrokenOutputSchemaIsUnavailableBeforeGuestStarts(t *testing.T) {
+	e := newEnv(t, map[string]binding{"a": {fixture: "discount"}}, json.RawMessage(`{"type":5}`), pool.Options{})
+	res := e.run(t, "a", discountIn)
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonInternal)
+	if res.ExecNanos != 0 || len(res.Logs) != 0 {
+		t.Fatalf("reported unavailable after running the guest: duration %dns, logs %v", res.ExecNanos, res.Logs)
+	}
+}
+
+func TestExecutorMarksGuestStartEvenWithinOneClockTick(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		e := newEnv(t, map[string]binding{"a": {fixture: "discount"}}, discountOut, pool.Options{})
+		res := e.run(t, "a", discountIn)
+		wantOutcome(t, res, execproto.OutcomeOK, "")
+		if res.ExecNanos <= 0 {
+			t.Fatal("a completed guest call must be distinguishable from a pre-start refusal")
+		}
+	})
 }
 
 func TestExecutorInvalidModule(t *testing.T) {
