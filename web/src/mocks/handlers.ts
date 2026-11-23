@@ -14,6 +14,7 @@ import {
 import { authed, problem, url } from "./http";
 import { operatorHooks } from "./operator-hooks";
 import { apiKeys, consoleSessions, tenants } from "./operator-tenants";
+import { shopHandlers } from "./shop";
 
 function tenantHook(name: string): TenantHook | undefined {
   const hook = db.hooks.find((h) => h.name === name);
@@ -146,6 +147,7 @@ export const handlerGroups = {
   tenantModules,
   tenantBinding,
   invocations,
+  shop: shopHandlers,
 } satisfies Record<string, RequestHandler[]>;
 
 export type HandlerGroup = keyof typeof handlerGroups;

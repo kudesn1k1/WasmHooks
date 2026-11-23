@@ -125,10 +125,11 @@ describe("TenantHookPage", () => {
   });
 
   it("shows a server rejection in the dialog and lets you pick another file", async () => {
+    const hash = "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a";
     server.use(
       http.post("*/api/v1/tenant/hooks/:hook/modules", () =>
         HttpResponse.json(
-          { type: "about:blank", title: "Такая версия уже загружена", status: 409, detail: "sha256:abc" },
+          { type: "about:blank", title: "Такая версия уже загружена", status: 409, detail: hash },
           { status: 409 },
         ),
       ),
@@ -139,7 +140,9 @@ describe("TenantHookPage", () => {
     await uploadFile(user, wasm());
     await user.click(screen.getByRole("button", { name: "Загрузить и проверить" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Такая версия уже загружена: sha256:abc");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(`Такая версия уже загружена: ${hash}`);
+    expect(alert).toHaveClass("wrap-anywhere");
     expect(screen.getByRole("button", { name: "Выбрать другой файл" })).toBeInTheDocument();
   });
 

@@ -32,7 +32,7 @@ type Step = "pick" | "picked" | "unconfirmed";
 
 function ErrorText({ children }: { children: string }) {
   return (
-    <p role="alert" className="text-destructive text-sm">
+    <p role="alert" className="text-destructive text-sm wrap-anywhere">
       {children}
     </p>
   );
