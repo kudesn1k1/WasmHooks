@@ -12,6 +12,7 @@ dataplane/bin/
 *.out
 dataplane/modules-tmp/
 control-plane/.venv/
+demo-shop/.venv/
 __pycache__/
 .pytest_cache/
 .mypy_cache/
