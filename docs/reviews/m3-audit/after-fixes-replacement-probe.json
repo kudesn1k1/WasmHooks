@@ -1,0 +1,182 @@
+{
+  "revision": "634b93b77891b248c67ff3f1423e154acee66559",
+  "cluster": "kind-wasmhooks-m3",
+  "source": "after-fixes.json",
+  "description": "Targeted replay of the recovered phase on the same ready pods, using only unchanged original pairs. No background traffic.",
+  "started_at": "2026-11-23T08:45:14.507698+00:00",
+  "phases": {
+    "recovered": {
+      "samples": [
+        {
+          "tenant": "merchant-a",
+          "kind": "checkout",
+          "started_at": "2026-11-23T08:45:14.662796+00:00",
+          "fallback": false,
+          "outcome": "ok",
+          "total": 40500,
+          "ms": 14.771,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "merchant-a",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.677586+00:00",
+          "fallback": false,
+          "key": "m3-0b6f37c3ea4f466ab494ab63987c7800",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 6.625,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-1",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.684235+00:00",
+          "fallback": false,
+          "key": "m3-4b4ec5aea2af46e59afb8ad47a145097",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 6.36,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-6",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.690614+00:00",
+          "fallback": false,
+          "key": "m3-2bd11e9a3d2043b0bc9294f6a0dc7593",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 6.45,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-8",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.697153+00:00",
+          "fallback": false,
+          "key": "m3-7c1a4222b9b8466db71e835e0901998b",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 9.333,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-0",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.706501+00:00",
+          "fallback": false,
+          "key": "m3-65722d98fadc48dba683393e7bd945ce",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 25.241,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.731764+00:00",
+          "fallback": false,
+          "key": "m3-27e8b416427b4a30a8882f0592f14635",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 9.015,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-7",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.740799+00:00",
+          "fallback": false,
+          "key": "m3-ecb727730e594d7890c3e91167971120",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 5.819,
+          "source": "fixed_series"
+        },
+        {
+          "tenant": "m3-70ffb7dd69-14",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:14.746640+00:00",
+          "fallback": false,
+          "key": "m3-39bf7c13268d455d9f125aadf17641df",
+          "http_status": 200,
+          "outcome": "ok",
+          "ms": 6.808,
+          "source": "fixed_series"
+        }
+      ],
+      "verification": {
+        "rounds": 1,
+        "verified_invocations": 8,
+        "executions_by_pod": {
+          "executor-69d64b7b86-llj6h": 4,
+          "executor-69d64b7b86-xzb6t": 4
+        }
+      }
+    }
+  },
+  "recovered": {
+    "pods": {
+      "10.244.0.22:9090": {
+        "name": "executor-69d64b7b86-47mtw",
+        "uid": "6f55d4c8-5029-45b1-991d-1bd864265303",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.21:9090": {
+        "name": "executor-69d64b7b86-llj6h",
+        "uid": "bfcd4440-0df2-4120-845d-9c3c89cc4961",
+        "node": "wasmhooks-m3-control-plane"
+      },
+      "10.244.0.18:9090": {
+        "name": "executor-69d64b7b86-xzb6t",
+        "uid": "d627a886-9a73-417d-8b54-962a5996ad53",
+        "node": "wasmhooks-m3-control-plane"
+      }
+    },
+    "owners": {
+      "merchant-a": "10.244.0.21:9090",
+      "m3-70ffb7dd69-1": "10.244.0.18:9090",
+      "m3-70ffb7dd69-6": "10.244.0.18:9090",
+      "m3-70ffb7dd69-8": "10.244.0.18:9090",
+      "m3-70ffb7dd69-0": "10.244.0.21:9090",
+      "m3-70ffb7dd69-3": "10.244.0.18:9090",
+      "m3-70ffb7dd69-7": "10.244.0.21:9090",
+      "m3-70ffb7dd69-14": "10.244.0.21:9090"
+    },
+    "moved_pairs": [],
+    "replacement": "10.244.0.22:9090",
+    "replacement_probe": {
+      "tenant": "m3-ddcd479239-rejoin-3",
+      "pod": "executor-69d64b7b86-47mtw",
+      "binding": {
+        "module_hash": "sha256:98b492d56a82f1eac35ffdbe40aad805eeead43ecc3f149274c8b2c1b8d9cf7a",
+        "percent": 11
+      },
+      "binding_wait_samples": [
+        {
+          "tenant": "m3-ddcd479239-rejoin-3",
+          "kind": "invoke",
+          "started_at": "2026-11-23T08:45:15.442431+00:00",
+          "fallback": false,
+          "key": "m3-01aaacace58743cbb5627c334c7033dc",
+          "http_status": 200,
+          "outcome": "no_handler",
+          "ms": 5.209
+        }
+      ],
+      "call": {
+        "tenant": "m3-ddcd479239-rejoin-3",
+        "kind": "invoke",
+        "started_at": "2026-11-23T08:45:15.598203+00:00",
+        "fallback": false,
+        "key": "m3-223f2d5edecb428384db6e1454f2f6b6",
+        "http_status": 200,
+        "outcome": "ok",
+        "ms": 34.934
+      }
+    }
+  },
+  "ended_at": "2026-11-23T08:45:15.990048+00:00",
+  "result": "PASS"
+}
