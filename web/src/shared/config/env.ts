@@ -1,11 +1,12 @@
-export const API_BASE_URL = "/api/v1";
+export const API_BASE_URL = '/api/v1';
+export const SHOP_API_BASE_URL = '/shop/api';
 
-export type MockingMode = "all" | "partial" | "disabled";
+export type MockingMode = 'all' | 'partial' | 'disabled';
 
 function mockingMode(): MockingMode {
-  if (process.env.NODE_ENV !== "development") return "disabled";
-  const mode = process.env.NEXT_PUBLIC_API_MOCKING;
-  return mode === "all" || mode === "partial" ? mode : "disabled";
+	if (process.env.NODE_ENV !== 'development') return 'disabled';
+	const mode = process.env.NEXT_PUBLIC_API_MOCKING;
+	return mode === 'all' || mode === 'partial' ? mode : 'disabled';
 }
 
 export const API_MOCKING: MockingMode = mockingMode();

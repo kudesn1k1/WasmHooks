@@ -1,11 +1,15 @@
 import type { NextConfig } from "next";
 
 const controlPlaneUrl = process.env.CONTROL_PLANE_URL ?? "http://localhost:8000";
+const demoShopUrl = process.env.DEMO_SHOP_URL ?? "http://localhost:8001";
 
 const nextConfig: NextConfig = {
   devIndicators: { position: "bottom-right" },
   async rewrites() {
-    return [{ source: "/api/v1/:path*", destination: `${controlPlaneUrl}/api/v1/:path*` }];
+    return [
+      { source: "/api/v1/:path*", destination: `${controlPlaneUrl}/api/v1/:path*` },
+      { source: "/shop/api/:path*", destination: `${demoShopUrl}/api/v1/:path*` },
+    ];
   },
 };
 

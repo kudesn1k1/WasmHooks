@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
+import { API_MOCKING } from "@/shared/config/env";
+
 import { Providers } from "./_providers";
 import "./globals.css";
 
@@ -30,7 +32,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers mockingMode={API_MOCKING}>{children}</Providers>
       </body>
     </html>
   );

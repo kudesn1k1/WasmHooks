@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 
+import type { MockingMode } from "@/shared/config/env";
+
 import { MockProvider } from "./mock-provider";
 
 function makeQueryClient() {
@@ -17,12 +19,12 @@ function makeQueryClient() {
   });
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, mockingMode }: { children: ReactNode; mockingMode: MockingMode }) {
   const [queryClient] = useState(makeQueryClient);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MockProvider>{children}</MockProvider>
+      <MockProvider mode={mockingMode}>{children}</MockProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
