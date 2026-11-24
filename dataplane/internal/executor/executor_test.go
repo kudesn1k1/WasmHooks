@@ -12,10 +12,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/config"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/execproto"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/modstore"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/observe"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
@@ -224,6 +226,26 @@ func TestExecutorOutputSchemaViolation(t *testing.T) {
 	if res.Result != nil {
 		t.Fatal("result must be empty on failure")
 	}
+}
+
+func TestExecutorBrokenOutputSchemaIsUnavailableBeforeGuestStarts(t *testing.T) {
+	e := newEnv(t, map[string]binding{"a": {fixture: "discount"}}, json.RawMessage(`{"type":5}`), pool.Options{})
+	res := e.run(t, "a", discountIn)
+	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonInternal)
+	if res.ExecNanos != 0 || len(res.Logs) != 0 {
+		t.Fatalf("reported unavailable after running the guest: duration %dns, logs %v", res.ExecNanos, res.Logs)
+	}
+}
+
+func TestExecutorMarksGuestStartEvenWithinOneClockTick(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		e := newEnv(t, map[string]binding{"a": {fixture: "discount"}}, discountOut, pool.Options{})
+		res := e.run(t, "a", discountIn)
+		wantOutcome(t, res, execproto.OutcomeOK, "")
+		if res.ExecNanos <= 0 {
+			t.Fatal("a completed guest call must be distinguishable from a pre-start refusal")
+		}
+	})
 }
 
 func TestExecutorInvalidModule(t *testing.T) {
@@ -477,37 +499,105 @@ func TestExecutorHooksDoNotShareModules(t *testing.T) {
 }
 
 func TestExecutorCallerCanceled(t *testing.T) {
-	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
-	if err := e.exec.Preload(context.Background()); err != nil {
+	mod := &fakeModule{}
+	e := newFakeEnv(t, mod)
+	hook, _ := e.cfg.Current().Hook(hookName)
+	wasm, err := e.rt.Compile(t.Context(), sandboxtest.Fixture(t, "infinite-loop"), specOf(hook))
+	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(20*time.Millisecond, cancel)
-	res, _ := e.exec.Execute(ctx, e.req("b", nil))
+	defer wasm.Close(t.Context())
+	guest, err := wasm.Instantiate(t.Context(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer guest.Close(t.Context())
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	mod.call = func(callCtx context.Context) (sandbox.CallResult, error) {
+		// Start the timer at guest entry, after cold setup has finished.
+		timer := time.AfterFunc(20*time.Millisecond, cancel)
+		defer timer.Stop()
+		return guest.Call(callCtx, sandbox.Export, nil)
+	}
+	res, _ := e.exec.Execute(ctx, e.req("a", nil))
 	wantOutcome(t, res, execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled)
 }
 
 func TestExecutorCallerDeadline(t *testing.T) {
-	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
-	if err := e.exec.Preload(context.Background()); err != nil {
-		t.Fatal(err)
+	for _, tc := range []struct {
+		name     string
+		deadline time.Duration
+		reason   string
+	}{
+		{"shorter than hook", 20 * time.Millisecond, execproto.ReasonCallerDeadline},
+		{"longer than hook", 150 * time.Millisecond, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				e := newFakeEnv(t, &fakeModule{call: func(ctx context.Context) (sandbox.CallResult, error) {
+					<-ctx.Done()
+					return sandbox.CallResult{}, sandbox.ErrTimeout
+				}})
+				ctx, cancel := context.WithTimeout(t.Context(), tc.deadline)
+				defer cancel()
+				res, err := e.exec.Execute(ctx, e.req("a", nil))
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantOutcome(t, res, execproto.OutcomeTimeout, tc.reason)
+			})
+		})
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
-	defer cancel()
-	res, _ := e.exec.Execute(ctx, e.req("b", nil))
-	wantOutcome(t, res, execproto.OutcomeTimeout, execproto.ReasonCallerDeadline)
 }
 
-func TestExecutorCallerDeadlineLongerThanHook(t *testing.T) {
-	e := newEnv(t, map[string]binding{"b": {fixture: "infinite-loop"}}, anyOut, pool.Options{})
-	if err := e.exec.Preload(context.Background()); err != nil {
-		t.Fatal(err)
+func TestCombinedCallerCancellationDuringGuest(t *testing.T) {
+	// The hook has 100ms. An explicit cancel can precede either deadline.
+	for _, deadline := range []time.Duration{50 * time.Millisecond, time.Second} {
+		t.Run(deadline.String(), func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				ctx, cancel := context.WithCancel(t.Context())
+				defer cancel()
+				mod := &fakeModule{call: func(context.Context) (sandbox.CallResult, error) {
+					cancel()
+					return sandbox.CallResult{}, sandbox.ErrTimeout
+				}}
+				e := newFakeEnv(t, mod)
+				g := gateway.New(e.cfg, e.exec, e.exec.opts.Schemas, gateway.Options{BreakerThreshold: 1})
+				req := gateway.Request{TenantID: "a", Hook: hookName, Payload: discountIn, Deadline: deadline}
+				res, err := g.Invoke(ctx, req)
+				if !errors.Is(err, gateway.ErrExecutionUnknown) {
+					t.Errorf("canceled during guest call: response %+v, error %v", res, err)
+				}
+
+				mod.call = func(context.Context) (sandbox.CallResult, error) {
+					return sandbox.CallResult{Output: []byte(`{"result":{}}`)}, nil
+				}
+				if next, err := g.Invoke(t.Context(), req); err != nil || next.Outcome != execproto.OutcomeOK {
+					t.Fatalf("next call: response %+v, error %v", next, err)
+				}
+			})
+		})
 	}
-	// The hook's 100ms limit fires first: the tenant's timeout, not the caller's.
-	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
-	defer cancel()
-	res, _ := e.exec.Execute(ctx, e.req("b", nil))
-	wantOutcome(t, res, execproto.OutcomeTimeout, "")
+}
+
+func TestExecutorHookTimeoutBeforeCallerCancellation(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		e := newFakeEnv(t, &fakeModule{call: func(context.Context) (sandbox.CallResult, error) {
+			// The hook expires after 100ms. The caller goes away while the
+			// runtime is still returning the timed-out guest's result.
+			time.Sleep(200 * time.Millisecond)
+			cancel()
+			return sandbox.CallResult{}, sandbox.ErrTimeout
+		}})
+		res, err := e.exec.Execute(ctx, e.req("a", nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		wantOutcome(t, res, execproto.OutcomeTimeout, "")
+	})
 }
 
 func TestExecutorPoolWaitEndedByDeadline(t *testing.T) {
@@ -535,21 +625,21 @@ func (fakeRuntime) Close(context.Context) error { return nil }
 
 type fakeModule struct {
 	instErr error
-	callErr error
+	call    fakeInstance
 }
 
 func (m *fakeModule) Instantiate(context.Context, map[string]string) (sandbox.Instance, error) {
 	if m.instErr != nil {
 		return nil, m.instErr
 	}
-	return fakeInstance{err: m.callErr}, nil
+	return m.call, nil
 }
 func (*fakeModule) Close(context.Context) error { return nil }
 
-type fakeInstance struct{ err error }
+type fakeInstance func(context.Context) (sandbox.CallResult, error)
 
-func (i fakeInstance) Call(context.Context, string, []byte) (sandbox.CallResult, error) {
-	return sandbox.CallResult{}, i.err
+func (i fakeInstance) Call(ctx context.Context, _ string, _ []byte) (sandbox.CallResult, error) {
+	return i(ctx)
 }
 func (fakeInstance) Close(context.Context) error { return nil }
 
@@ -576,7 +666,9 @@ func TestExecutorInstantiateErrorIsUnavailable(t *testing.T) {
 }
 
 func TestExecutorClosedDuringCall(t *testing.T) {
-	e := newFakeEnv(t, &fakeModule{callErr: fmt.Errorf("%w: gone", sandbox.ErrClosed)})
+	e := newFakeEnv(t, &fakeModule{call: func(context.Context) (sandbox.CallResult, error) {
+		return sandbox.CallResult{}, fmt.Errorf("%w: gone", sandbox.ErrClosed)
+	}})
 	res := e.run(t, "a", nil)
 	wantOutcome(t, res, execproto.OutcomeHandlerError, execproto.ReasonInternal)
 	if s := e.pools.Stats(); s.Instances != 0 {

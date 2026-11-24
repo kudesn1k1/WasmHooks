@@ -1,0 +1,31 @@
+package cluster
+
+import (
+	"context"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/execproto"
+	"testing"
+	"time"
+)
+
+func TestReviewReservedGuestBudget(t *testing.T) {
+	a, b := startNode(t, "a"), startNode(t, "b")
+	c := testCluster(t, "internal", a, b)
+	req := execproto.ExecuteRequest{TenantID: "shop", Hook: "checkout"}
+	owner := c.Owners(req.TenantID, req.Hook)[0]
+	for _, node := range []*node{a, b} {
+		node.run = func(ctx context.Context, r execproto.ExecuteRequest) (execproto.ExecuteResult, error) {
+			if node.id == owner {
+				time.Sleep(45 * time.Millisecond)
+				return execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonDeadline}, nil
+			}
+			return execproto.ExecuteResult{Outcome: execproto.OutcomeOK}, nil
+		}
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 150*time.Millisecond)
+	defer cancel()
+	dl, _ := ctx.Deadline()
+	r, err := c.Execute(ctx, req)
+	if err != nil || r.Outcome != execproto.OutcomeOK {
+		t.Fatalf("got %s/%s, remaining %s, stats=%+v", r.Outcome, r.Reason, time.Until(dl), c.Stats())
+	}
+}

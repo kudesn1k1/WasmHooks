@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,6 +30,7 @@ const (
 type fakeExecutor struct {
 	mu       sync.Mutex
 	res      execproto.ExecuteResult
+	err      error
 	deadline time.Duration
 }
 
@@ -38,7 +40,7 @@ func (f *fakeExecutor) Execute(ctx context.Context, _ execproto.ExecuteRequest) 
 	if d, ok := ctx.Deadline(); ok {
 		f.deadline = time.Until(d)
 	}
-	return f.res, nil
+	return f.res, f.err
 }
 
 func newServer(t *testing.T, res execproto.ExecuteResult, ready func() bool) (*httptest.Server, *fakeExecutor) {
@@ -175,6 +177,8 @@ func TestOutcomeMapping(t *testing.T) {
 		{execproto.ExecuteResult{Outcome: execproto.OutcomeTimeout}, 200, true, false},
 		{execproto.ExecuteResult{Outcome: execproto.OutcomeHandlerError, Reason: execproto.ReasonTrap, Error: "wasm trap"}, 200, true, true},
 		{execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonPoolSaturated, Error: "busy"}, 503, false, true},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable, Reason: "no_healthy_executor"}, 503, false, true},
+		{execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable, Reason: execproto.ReasonCallerCanceled}, 503, false, true},
 		{execproto.ExecuteResult{Outcome: execproto.OutcomeQuotaExceeded}, 429, false, false},
 	}
 	for _, tc := range cases {
@@ -215,6 +219,28 @@ func TestOutcomeMapping(t *testing.T) {
 				}
 			} else if body["result"] != nil {
 				t.Fatalf("result must be null, got %v", body["result"])
+			}
+		})
+	}
+}
+
+func TestUnknownExecutionResultReturnsProblemWithoutAnOutcome(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		res  execproto.ExecuteResult
+		err  error
+	}{
+		{"lost response", execproto.ExecuteResult{}, errors.New("connection lost after sending Execute")},
+		{"caller canceled during guest", execproto.ExecuteResult{Outcome: execproto.OutcomeUnavailable,
+			Reason: execproto.ReasonCallerCanceled, ExecNanos: 10000}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv, exec := newServer(t, tc.res, nil)
+			exec.err = tc.err
+			resp, body := post(t, srv, path, bearer, okBody)
+			if resp.StatusCode != 502 || resp.Header.Get("Content-Type") != "application/problem+json" ||
+				resp.Header.Get(OutcomeHeader) != "" || body["outcome"] != nil || body["status"] != float64(502) {
+				t.Fatalf("unknown execution: status %d, headers %v, body %v", resp.StatusCode, resp.Header, body)
 			}
 		})
 	}

@@ -33,8 +33,7 @@ class InvokeResponse(BaseModel):
 
 
 class InvokeFailed(Exception):
-    """No outcome: a network failure, the deadline ran out, or the data plane
-    rejected the request itself (400, 401, 404, 413)."""
+    """No outcome. This includes 502 when Execute may have run but its answer was lost."""
 
 
 # Statuses whose body is an InvokeResponse; any other is a problem+json.

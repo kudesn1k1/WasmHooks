@@ -1,0 +1,53 @@
+package executor
+
+import (
+	"context"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/execproto"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
+	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox"
+	"runtime"
+	"testing"
+	"time"
+)
+
+type cancelOnGuestModule struct {
+	sandbox.Module
+	cancel context.CancelFunc
+}
+
+func (m cancelOnGuestModule) Instantiate(ctx context.Context, cfg map[string]string) (sandbox.Instance, error) {
+	i, err := m.Module.Instantiate(ctx, cfg)
+	return cancelOnGuestInstance{i, m.cancel}, err
+}
+
+type cancelOnGuestInstance struct {
+	sandbox.Instance
+	cancel context.CancelFunc
+}
+
+func (i cancelOnGuestInstance) Call(ctx context.Context, name string, input []byte) (sandbox.CallResult, error) {
+	i.cancel()
+	<-ctx.Done()
+	return sandbox.CallResult{}, sandbox.ErrTimeout
+}
+func TestReviewCallerBeforeBreaker(t *testing.T) {
+	old := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(old)
+	e := newEnv(t, map[string]binding{"a": {fixture: "discount"}}, anyOut, pool.Options{})
+	if err := e.exec.Preload(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	for k, m := range e.exec.modules {
+		e.exec.modules[k] = cancelOnGuestModule{m, cancel}
+	}
+	g := gateway.New(e.cfg, e.exec, e.exec.opts.Schemas, gateway.Options{BreakerThreshold: 1})
+	req := gateway.Request{TenantID: "a", Hook: hookName, Payload: discountIn, Deadline: time.Second}
+	first, err := g.Invoke(ctx, req)
+	next, _ := g.Invoke(t.Context(), req)
+	if first.Outcome == execproto.OutcomeTimeout || next.Reason == "breaker_open" {
+		t.Fatalf("first=%s/%s err=%v, next=%s/%s", first.Outcome, first.Reason, err, next.Outcome, next.Reason)
+	}
+}

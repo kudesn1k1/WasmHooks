@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -52,6 +51,8 @@ type Options struct {
 	CompileTimeout time.Duration
 	// ValidateConcurrency caps module validations running at once. Default 1.
 	ValidateConcurrency int
+	// OnCompile observes an actual successful compilation on a cache miss.
+	OnCompile func(moduleHash string)
 }
 
 func (o *Options) setDefaults() {
@@ -194,6 +195,12 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		return fail(execproto.OutcomeUnavailable, execproto.ReasonStaleConfig,
 			fmt.Errorf("binding %s/%s with config version %d is unknown to this executor", req.TenantID, req.Hook, req.ConfigVersion))
 	}
+	// A broken definition is a platform refusal. Detect it while a 503
+	// can still guarantee the guest has not started.
+	outSchema, err := e.opts.Schemas.Get(hook.SchemaKey("output"), hook.OutputSchema)
+	if err != nil {
+		return fail(execproto.OutcomeUnavailable, execproto.ReasonInternal, fmt.Errorf("output schema: %w", err))
+	}
 	mod, f := e.module(ctx, req.ModuleHash, hook)
 	if f != nil {
 		return f
@@ -251,15 +258,20 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 	}
 
 	callStart := time.Now()
-	w := watchCaller(ctx, callStart.Add(hook.Timeout()))
-	out, err := lease.Instance().Call(ctx, sandbox.Export, req.Payload)
-	w.stop()
-	res.ExecNanos = time.Since(callStart).Nanoseconds()
+	// The first cancellation cause stays on the context even if the other
+	// deadline expires while the runtime unwinds the guest.
+	callCtx, cancel := context.WithTimeoutCause(ctx, hook.Timeout(), errHookTimeout)
+	defer cancel()
+	out, err := lease.Instance().Call(callCtx, sandbox.Export, req.Payload)
+	// Zero denotes a pre-start refusal in ExecuteReply, including on clocks
+	// too coarse to distinguish entry and return from a short guest call.
+	res.ExecNanos = max(1, time.Since(callStart).Nanoseconds())
 	res.Logs = formatLogs(out.Logs)
 	if err != nil {
+		f := callFailure(err, callCtx)
 		lease.Release(false)
 		releaseSlot()
-		return callFailure(err, w)
+		return f
 	}
 	// From here on the instance is healthy whatever the output says.
 	lease.Release(true)
@@ -270,10 +282,6 @@ func (e *Executor) run(ctx context.Context, req execproto.ExecuteRequest, res *e
 		var oe *outputError
 		errors.As(err, &oe)
 		return fail(execproto.OutcomeHandlerError, oe.reason, err)
-	}
-	outSchema, err := e.opts.Schemas.Get(hook.SchemaKey("output"), hook.OutputSchema)
-	if err != nil {
-		return fail(execproto.OutcomeUnavailable, execproto.ReasonInternal, fmt.Errorf("output schema: %w", err))
 	}
 	if err := outSchema.Validate(result); err != nil {
 		return fail(execproto.OutcomeHandlerError, execproto.ReasonInvalidOutput, fmt.Errorf("result does not match output schema: %w", err))
@@ -319,47 +327,24 @@ func notStarted(ctx context.Context) *failure {
 	return fail(execproto.OutcomeUnavailable, execproto.ReasonDeadline, errors.New("deadline expired before the script started"))
 }
 
-// callerWatch records when the caller's context ended during a call, so a
-// timeout can be attributed to whatever stopped the script first, not to
-// the context's state when the call finally returns.
-type callerWatch struct {
-	hookDeadline time.Time
-	endedAt      atomic.Int64 // UnixNano; 0 while the caller's context is live
-	ctx          context.Context
-	stopFn       func() bool
-}
-
-func watchCaller(ctx context.Context, hookDeadline time.Time) *callerWatch {
-	w := &callerWatch{hookDeadline: hookDeadline, ctx: ctx}
-	w.stopFn = context.AfterFunc(ctx, func() { w.endedAt.Store(time.Now().UnixNano()) })
-	return w
-}
-
-func (w *callerWatch) stop() { w.stopFn() }
-
-// callerFirst reports how the caller's context ended if it ended before the
-// hook's own limit: context.Canceled, context.DeadlineExceeded, or nil.
-func (w *callerWatch) callerFirst() error {
-	if dl, ok := w.ctx.Deadline(); ok && dl.Before(w.hookDeadline) && w.ctx.Err() != nil {
-		return context.DeadlineExceeded
-	}
-	if ended := w.endedAt.Load(); ended != 0 && ended < w.hookDeadline.UnixNano() && errors.Is(w.ctx.Err(), context.Canceled) {
-		return context.Canceled
-	}
-	return nil
-}
+var errHookTimeout = errors.New("hook execution deadline exceeded")
 
 // callFailure maps a script failure. A timeout is attributed to whatever
 // stopped the script first: the hook's limit (empty reason), the caller's
 // shorter deadline, or the caller going away, which is not the tenant's fault.
-func callFailure(err error, w *callerWatch) *failure {
-	switch {
-	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(w.callerFirst(), context.Canceled):
-		return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away while the script ran"))
-	case errors.Is(err, sandbox.ErrTimeout) && errors.Is(w.callerFirst(), context.DeadlineExceeded):
-		return fail(execproto.OutcomeTimeout, execproto.ReasonCallerDeadline, nil)
-	case errors.Is(err, sandbox.ErrTimeout):
+func callFailure(err error, callCtx context.Context) *failure {
+	if errors.Is(err, sandbox.ErrTimeout) {
+		switch callCtx.Err() {
+		case context.Canceled:
+			return fail(execproto.OutcomeUnavailable, execproto.ReasonCallerCanceled, errors.New("caller went away while the script ran"))
+		case context.DeadlineExceeded:
+			if context.Cause(callCtx) != errHookTimeout {
+				return fail(execproto.OutcomeTimeout, execproto.ReasonCallerDeadline, nil)
+			}
+		}
 		return fail(execproto.OutcomeTimeout, "", nil)
+	}
+	switch {
 	case errors.Is(err, sandbox.ErrTrap):
 		return fail(execproto.OutcomeHandlerError, execproto.ReasonTrap, err)
 	case errors.Is(err, sandbox.ErrGuest):
@@ -416,7 +401,11 @@ func (e *Executor) module(ctx context.Context, hash string, hook config.HookDef)
 		}
 		cctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), e.opts.CompileTimeout)
 		defer cancel()
-		return e.compile(cctx, key, spec)
+		mod, err := e.compile(cctx, key, spec)
+		if err == nil && e.opts.OnCompile != nil {
+			e.opts.OnCompile(hash)
+		}
+		return mod, err
 	})
 	select {
 	case r := <-ch:
@@ -470,6 +459,12 @@ func compileFailure(err error) *failure {
 // calls do not pay for compilation. Compiles run in parallel, one per CPU.
 // Failures of individual bindings are joined; the rest still load.
 func (e *Executor) Preload(ctx context.Context) error {
+	return e.PreloadOwned(ctx, nil, nil)
+}
+
+// PreloadOwned compiles bindings assigned to this executor. Every invocation
+// can still fetch and compile a cold module during failover.
+func (e *Executor) PreloadOwned(ctx context.Context, owns func(config.Binding) bool, onReady func(config.Binding)) error {
 	view := e.opts.Config.Current()
 	if view == nil {
 		return errors.New("preload: config not loaded")
@@ -481,6 +476,9 @@ func (e *Executor) Preload(ctx context.Context) error {
 	)
 	g.SetLimit(runtime.GOMAXPROCS(0))
 	for _, b := range view.Bindings() {
+		if owns != nil && !owns(b) {
+			continue
+		}
 		hook, ok := e.hookDef(view, b.Hook, currentDefVersion(view, b.Hook))
 		if !ok {
 			mu.Lock()
@@ -493,6 +491,8 @@ func (e *Executor) Preload(ctx context.Context) error {
 				mu.Lock()
 				errs = append(errs, fmt.Errorf("preload %s/%s (%s): %w", b.TenantID, b.Hook, b.ModuleHash, f.err))
 				mu.Unlock()
+			} else if onReady != nil {
+				onReady(b)
 			}
 			return nil
 		})

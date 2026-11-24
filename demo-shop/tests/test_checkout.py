@@ -108,7 +108,26 @@ async def test_any_other_outcome_means_no_discount(
     assert_no_discount(resp.json(), outcome)
 
 
-@pytest.mark.parametrize("status", [400, 401, 404, 413, 500, 502])
+async def test_unknown_execution_result_applies_fallback_without_retry(
+    client: httpx.AsyncClient, platform: FakePlatform
+) -> None:
+    platform.dataplane = lambda _: httpx.Response(
+        502,
+        headers={"Content-Type": "application/problem+json"},
+        json={
+            "type": "about:blank",
+            "title": "Bad Gateway",
+            "status": 502,
+            "detail": "execution result unknown",
+        },
+    )
+    resp = await client.post(URL, json=CART)
+    assert resp.status_code == 200
+    assert_no_discount(resp.json(), "error")
+    assert len(platform.dataplane_requests) == 1
+
+
+@pytest.mark.parametrize("status", [400, 401, 404, 413, 500])
 async def test_data_plane_rejecting_the_request_means_no_discount(
     client: httpx.AsyncClient, platform: FakePlatform, status: int
 ) -> None:

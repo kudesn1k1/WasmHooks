@@ -1,0 +1,20 @@
+package cluster
+
+import (
+	"slices"
+	"testing"
+)
+
+func TestReviewObservingMembershipDuringChange(t *testing.T) {
+	a, b := startNode(t, "a"), startNode(t, "b")
+	c := testCluster(t, "internal", a, b)
+	_ = c.Stats() // read order in diagnostics()
+	members := c.Members()
+	b.ready.Store(false)
+	c.refresh(t.Context())
+	owners := c.Owners("shop", "checkout")
+	slices.Sort(owners)
+	if !slices.Equal(owners, members) {
+		t.Fatalf("members=%v, all owners=%v", members, owners)
+	}
+}

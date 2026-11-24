@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package wasmhooks.executor.v1;
+option go_package = "github.com/kudesn1k1/WasmHooks/dataplane/internal/cluster/wire";
+
+// Both RPCs require authorization: Bearer <internal token>. Execute uses the
+// caller's gRPC deadline. A missing reply leaves the execution outcome unknown.
+service Executor {
+  rpc Health(HealthRequest) returns (HealthReply);
+  rpc Execute(ExecuteRequest) returns (ExecuteReply);
+}
+
+message HealthRequest {}
+message HealthReply {
+  string executor_id = 1;
+  bool ready = 2;
+}
+
+message ExecuteRequest {
+  string tenant_id = 1;
+  string hook = 2;
+  int64 hook_def_version = 3;
+  string module_hash = 4;
+  int64 config_version = 5;
+  bytes payload = 6;
+  string idempotency_key = 7;
+}
+
+message Effect {
+  string type = 1;
+  string key = 2;
+  bytes payload = 3;
+}
+
+message ExecuteReply {
+  string outcome = 1;
+  string reason = 2;
+  bytes result = 3;
+  repeated Effect effects = 4;
+  string error = 5;
+  int64 exec_nanos = 6;
+  bool cold_start = 7;
+  repeated string logs = 8;
+}

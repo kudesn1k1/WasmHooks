@@ -1,5 +1,5 @@
 // Command dataplane runs the WasmHooks data plane: gateway and executor in
-// one process. It serves the public API from api/invoke.openapi.yaml.
+// one process by default or as independent roles. It serves the public API from api/invoke.openapi.yaml.
 //
 // Config comes from a snapshot file (-snapshot, the Milestone 0 mode) or is
 // long-polled from the control plane (-control-plane-url). Modules come from
@@ -18,27 +18,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
-	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/config"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/executor"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/gateway/httpapi"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/internalapi"
 	"github.com/kudesn1k1/WasmHooks/dataplane/internal/modstore"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/observe"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/pool"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/sandbox/extismrt"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/schema"
-	"github.com/kudesn1k1/WasmHooks/dataplane/internal/slots"
 )
 
 func main() {
@@ -69,6 +56,10 @@ func probe(url string) int {
 }
 
 type flags struct {
+	role, discovery, rpcListen, advertised                         string
+	discoveryInterval, healthTimeout, retryBudget, breakerCooldown time.Duration
+	maxInFlight, breakerThreshold                                  int
+
 	listen, snapshot, modulesDir, logLevel, executorID string
 
 	controlPlaneURL     string
@@ -93,6 +84,16 @@ func parseFlags(args []string, getenv func(string) string) (flags, error) {
 	host, _ := os.Hostname()
 	var f flags
 	fs := flag.NewFlagSet("dataplane", flag.ContinueOnError)
+	fs.StringVar(&f.role, "role", "combined", "combined, gateway or executor")
+	fs.StringVar(&f.discovery, "executors", "", "headless executor service host:port")
+	fs.StringVar(&f.rpcListen, "rpc-listen", ":9090", "executor gRPC listener")
+	fs.StringVar(&f.advertised, "executor-address", "", "executor identity on the ring (pod IP:port)")
+	fs.DurationVar(&f.discoveryInterval, "discovery-interval", time.Second, "interval between DNS and health checks")
+	fs.DurationVar(&f.healthTimeout, "health-timeout", 300*time.Millisecond, "timeout for an executor health check")
+	fs.DurationVar(&f.retryBudget, "retry-min-budget", 15*time.Millisecond, "minimum remaining deadline for a retry")
+	fs.DurationVar(&f.breakerCooldown, "breaker-cooldown", 5*time.Second, "time before a guest failure probe")
+	fs.IntVar(&f.breakerThreshold, "breaker-threshold", 5, "consecutive guest failures to open the breaker; 0 disables it")
+	fs.IntVar(&f.maxInFlight, "max-in-flight", 256, "gateway limit on unfinished invocations")
 	fs.StringVar(&f.listen, "listen", ":8080", "address to serve the public API on")
 	fs.StringVar(&f.snapshot, "snapshot", "", "path to a config snapshot JSON file (instead of -control-plane-url)")
 	fs.StringVar(&f.modulesDir, "modules-dir", "", "directory with <sha256-hex>.wasm modules (instead of -s3-endpoint)")
@@ -122,7 +123,15 @@ func parseFlags(args []string, getenv func(string) string) (flags, error) {
 	switch {
 	case (f.snapshot == "") == (f.controlPlaneURL == ""):
 		return f, errors.New("exactly one of -snapshot and -control-plane-url is required")
-	case (f.modulesDir == "") == (f.s3Endpoint == ""):
+	case f.role != "combined" && f.role != "gateway" && f.role != "executor":
+		return f, errors.New("unknown data plane role")
+	case f.role != "combined" && (f.discovery == "" || f.internalToken == ""):
+		return f, errors.New("split roles need -executors and WASMHOOKS_INTERNAL_TOKEN")
+	case f.role == "executor" && f.advertised == "":
+		return f, errors.New("executor needs -executor-address")
+	case f.discoveryInterval <= 0 || f.healthTimeout <= 0 || f.retryBudget <= 0 || f.breakerCooldown <= 0 || f.breakerThreshold < 0 || f.maxInFlight <= 0:
+		return f, errors.New("invalid discovery, retry or gateway limits")
+	case f.role != "gateway" && (f.modulesDir == "") == (f.s3Endpoint == ""):
 		return f, errors.New("exactly one of -modules-dir and -s3-endpoint is required")
 	case f.controlPlaneURL != "" && f.internalToken == "":
 		return f, errors.New("-control-plane-url needs WASMHOOKS_INTERNAL_TOKEN")
@@ -172,169 +181,5 @@ func run(ctx context.Context, args []string, stdout io.Writer) error {
 		}
 		log.Info("snapshot loaded", "version", snap.Version, "hooks", len(snap.Hooks), "bindings", len(snap.Bindings))
 	}
-	modules, err := moduleStore(f)
-	if err != nil {
-		return err
-	}
-
-	rt, err := extismrt.New(extismrt.Options{})
-	if err != nil {
-		return err
-	}
-	pools := pool.NewManager(pool.Options{
-		GlobalMax:      f.poolGlobalMax,
-		AcquireTimeout: f.poolAcquireTimeout,
-		MaxUses:        f.poolMaxUses,
-		IdleTTL:        f.poolIdleTTL,
-		ReapInterval:   10 * time.Second,
-	})
-	sl := slots.New(slots.Options{Capacity: f.execSlots, TenantShare: f.execTenantShare, Queue: f.execQueue})
-	log.Info("running slots", "slots", sl.Capacity(), "tenant_share", sl.TenantShare(), "queue", sl.Queue(), "gomaxprocs", runtime.GOMAXPROCS(0))
-	if sl.TenantShare() >= sl.Capacity() {
-		// One slot or a share of every slot: a tenant with hung scripts can
-		// hold them all (ADR 0005).
-		log.Warn("tenant isolation is off: one tenant may hold every running slot; it needs -exec-tenant-share below -exec-slots")
-	}
-	if sl.Capacity() >= runtime.GOMAXPROCS(0) {
-		log.Warn("no P is left for the deadline watcher: timeouts of spinning scripts may overrun; keep -exec-slots below GOMAXPROCS where there are 3 or more")
-	}
-	schemas := schema.NewCache()
-	exec := executor.New(executor.Options{
-		Runtime:    rt,
-		Modules:    modules,
-		Config:     cfg,
-		Pools:      pools,
-		Slots:      sl,
-		Schemas:    schemas,
-		Sink:       observe.SlogSink{Logger: log},
-		ExecutorID: f.executorID,
-
-		ValidateConcurrency: f.validateConcurrency,
-	})
-	gw := gateway.New(cfg, exec, schemas, gateway.Options{})
-
-	var ready atomic.Bool
-	srv := &http.Server{
-		Handler:           httpapi.New(gw, httpapi.Options{Ready: ready.Load}),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       10 * time.Second, // bodies are at most 1 MiB
-		WriteTimeout:      35 * time.Second,
-	}
-	ln, err := net.Listen("tcp", f.listen)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintf(stdout, "listening on %s\n", ln.Addr())
-
-	serveErr := make(chan error, 1)
-	go func() { serveErr <- srv.Serve(ln) }()
-
-	// The internal API (module validation for the control plane) has its own
-	// listener so an installation can publish the public port alone.
-	var internal *http.Server
-	internalErr := make(chan error, 1)
-	if f.internalToken != "" {
-		internal = &http.Server{
-			Handler:           internalapi.New(exec, f.internalToken, log.With("component", "internalapi")),
-			ReadHeaderTimeout: 5 * time.Second,
-			ReadTimeout:       10 * time.Second,
-			WriteTimeout:      60 * time.Second, // a validation compiles a module and runs it once
-		}
-		iln, err := net.Listen("tcp", f.internalListen)
-		if err != nil {
-			srv.Close()
-			return fmt.Errorf("internal listener: %w", err)
-		}
-		fmt.Fprintf(stdout, "internal listening on %s\n", iln.Addr())
-		go func() { internalErr <- internal.Serve(iln) }()
-	}
-
-	// Background work that must finish before the runtime is closed.
-	var background sync.WaitGroup
-	if f.controlPlaneURL != "" {
-		first := make(chan struct{})
-		var firstOnce sync.Once
-		preloadKick := make(chan struct{}, 1) // coalesces bursts: at most one pending preload
-		poller := &config.Poller{
-			Source: &config.HTTPSource{BaseURL: f.controlPlaneURL, Token: f.internalToken},
-			Store:  cfg,
-			Log:    log.With("component", "config"),
-			OnUpdate: func(*config.Snapshot) {
-				firstOnce.Do(func() { close(first) })
-				select {
-				case preloadKick <- struct{}{}:
-				default:
-				}
-			},
-		}
-		background.Add(1)
-		go func() {
-			defer background.Done()
-			poller.Run(ctx)
-		}()
-		// Not ready until the first snapshot: until then there are no hooks
-		// and no API keys to serve with.
-		select {
-		case <-first:
-		case <-ctx.Done():
-		case err := <-serveErr:
-			return err
-		case err := <-internalErr:
-			srv.Close()
-			return fmt.Errorf("internal API: %w", err)
-		}
-		// The first snapshot is preloaded below, synchronously; drop its
-		// kick so the background loop does not preload it a second time.
-		select {
-		case <-preloadKick:
-		default:
-		}
-		background.Add(1)
-		go func() {
-			defer background.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-preloadKick:
-					if err := exec.Preload(ctx); err != nil {
-						log.Warn("preload finished with errors", "err", err)
-					}
-				}
-			}
-		}()
-	}
-
-	if ctx.Err() == nil {
-		// Compile bound modules before reporting ready, so first calls do not
-		// pay for compilation. Broken bindings are logged and surface as
-		// handler_error or unavailable when called. Later snapshots are
-		// preloaded in the background.
-		if err := exec.Preload(ctx); err != nil {
-			log.Warn("preload finished with errors", "err", err)
-		}
-		ready.Store(true)
-		log.Info("ready", "listen", ln.Addr().String())
-	}
-
-	select {
-	case err := <-serveErr:
-		return err
-	case err := <-internalErr:
-		return fmt.Errorf("internal API: %w", err)
-	case <-ctx.Done():
-	}
-	log.Info("shutting down")
-	ready.Store(false)
-	// Let calls in flight finish: no hook runs longer than MaxTimeoutMS.
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), config.MaxTimeoutMS*time.Millisecond+5*time.Second)
-	defer cancel()
-	err = srv.Shutdown(shutdownCtx)
-	<-serveErr // http.ErrServerClosed after Shutdown
-	if internal != nil {
-		err = errors.Join(err, internal.Shutdown(shutdownCtx))
-		<-internalErr
-	}
-	background.Wait()
-	return errors.Join(err, pools.Close(shutdownCtx), exec.Close(shutdownCtx), rt.Close(shutdownCtx))
+	return serveRoles(ctx, f, cfg, log, stdout)
 }

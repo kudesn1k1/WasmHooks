@@ -4,6 +4,8 @@ Self-hosted платформа, которая позволяет SaaS-прод�
 
 ## Структура репозитория
 
+**M3 — потеря executor-а в kind.** Один gateway направляет вызовы по gRPC в три executor-а. Приёмочный сценарий под нагрузкой удаляет владельца одного из магазинов, проверяет реальные скидки T7 на двух оставшихся узлах и дожидается возвращения третьего. Запуск и результаты — в [инструкции kind](deploy/kind/README.md).
+
 | Директория | Назначение |
 |---|---|
 | `api/` | контракты (OpenAPI), общие для команды |
@@ -11,7 +13,7 @@ Self-hosted платформа, которая позволяет SaaS-прод�
 | `examples/scripts/rust/` | cargo workspace со скриптами-фикстурами и примерами |
 | `control-plane/` | control plane (Python, FastAPI): фундамент M1, задачи backend — `docs/handoff/backend.md` |
 | `sdk/python/` | Python SDK — задача T8 backend (пока README) |
-| `demo-shop/` | бэкенд демо-магазина — задача T7 backend (пока README) |
+| `demo-shop/` | бэкенд демо-маркетплейса T7, каталог и чекаут с вызовом скидки |
 | `web/` | фронтенд на Next.js: консоли оператора и тенанта, витрина |
 | `docs/` | бриф, спеки, ADR, `TEAM.md` |
 | `.github/workflows/ci.yml` | CI |
